@@ -30,7 +30,7 @@ Exit codes: `0` converted, `2` the model uses SBML with no faithful mapping
    `NAME.import.json` (the full translation, including `kinds`, `sbml_ids` and
    `notes`). Pass `--source BIOMD…` so the description records provenance.
 3. **Read the output and report it:** states, parameters, assignments, and every
-   `note`. A time-dependent model gets an integrated `time` state, and that note
+   `note`. A time-dependent model reads time from the exact model clock (`time_var`, wired to `global_time`); its `--interval` must be exact in binary (0.5, 0.25, 0.125 = the default), and that note
    must be passed on to the user.
 4. **On exit 2,** tell the user exactly which construct blocked it (events,
    delays, algebraic rules, fast reactions, variable stoichiometry, species in a

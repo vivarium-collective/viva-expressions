@@ -163,8 +163,15 @@ def _node(type_, *children: libsbml.ASTNode) -> libsbml.ASTNode:
     return n
 
 
-def to_ast(expr: sp.Basic) -> libsbml.ASTNode:
-    """Convert a sympy expression to a libsbml AST (MathML content)."""
+def to_ast(expr: sp.Basic, time: str | None = None) -> libsbml.ASTNode:
+    """Convert a sympy expression to a libsbml AST (MathML content).
+
+    A symbol named ``time`` becomes SBML's ``time`` csymbol.
+    """
+    if expr.is_Symbol and time is not None and expr.name == time:
+        n = libsbml.ASTNode(libsbml.AST_NAME_TIME)
+        n.setName("time")
+        return n
     if expr.is_Symbol:
         n = libsbml.ASTNode(libsbml.AST_NAME)
         n.setName(expr.name)
@@ -188,28 +195,30 @@ def to_ast(expr: sp.Basic) -> libsbml.ASTNode:
         n = libsbml.ASTNode(libsbml.AST_REAL)
         n.setValue(float(expr))
         return n
+    def sub(e):
+        return to_ast(e, time)
     if expr.is_Add:
-        return _node(libsbml.AST_PLUS, *map(to_ast, expr.args))
+        return _node(libsbml.AST_PLUS, *map(sub, expr.args))
     if expr.is_Mul:
-        return _node(libsbml.AST_TIMES, *map(to_ast, expr.args))
+        return _node(libsbml.AST_TIMES, *map(sub, expr.args))
     if expr.is_Pow:
-        return _node(libsbml.AST_POWER, to_ast(expr.base), to_ast(expr.exp))
+        return _node(libsbml.AST_POWER, sub(expr.base), sub(expr.exp))
     if isinstance(expr, sp.exp):
-        return _node(libsbml.AST_FUNCTION_EXP, to_ast(expr.args[0]))
+        return _node(libsbml.AST_FUNCTION_EXP, sub(expr.args[0]))
     if isinstance(expr, sp.log):
         if len(expr.args) != 1:
             raise UnsupportedSBML(f"log with an explicit base: {expr}")
-        return _node(libsbml.AST_FUNCTION_LN, to_ast(expr.args[0]))
+        return _node(libsbml.AST_FUNCTION_LN, sub(expr.args[0]))
     if isinstance(expr, sp.Piecewise):
         n = libsbml.ASTNode(libsbml.AST_FUNCTION_PIECEWISE)
         for value, cond in expr.args:
-            n.addChild(to_ast(value))
+            n.addChild(sub(value))
             if cond is not sp.true:
-                n.addChild(to_ast(cond))
+                n.addChild(sub(cond))
         return n
     for table in (_TO_UNARY, _TO_RELATIONAL, _TO_NARY):
         if expr.func in table:
-            return _node(table[expr.func], *map(to_ast, expr.args))
+            return _node(table[expr.func], *map(sub, expr.args))
     raise UnsupportedSBML(f"no SBML MathML mapping for {expr.func.__name__}: {expr}")
 
 

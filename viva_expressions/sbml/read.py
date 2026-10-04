@@ -15,9 +15,10 @@ Level 2 models share for everything handled here):
 * Assignment rules are substituted into every derivative (resolved in
   dependency order). They are also kept as named ``assignments``, so derived
   quantities a model declares stay observable.
-* The ``time`` csymbol becomes an integrated ``time`` variable with
-  ``d(time)/dt = 1`` from 0: the standard autonomization, since OdeProcess
-  integrates autonomous right-hand sides.
+* The ``time`` csymbol becomes ``OdeModel.time_var``, a symbol OdeProcess binds
+  to the exact model clock (``global_time`` plus solver time). It is never
+  integrated: an integrated clock drifts by ~1e-13, which puts a piecewise
+  switch that falls on a sample point on the wrong branch.
 
 libsbml's own converters first expand function definitions and initial
 assignments and promote local parameters to global ones. Constructs with no
@@ -32,6 +33,7 @@ from graphlib import CycleError, TopologicalSorter
 from pathlib import Path
 
 import libsbml
+import numpy as np
 import sympy as sp
 
 from viva_expressions.expressions import parse
@@ -45,11 +47,12 @@ CONVERTERS = ("promoteLocalParameters", "expandFunctionDefinitions",
 class OdeModel:
     """An SBML model as OdeProcess inputs, plus what's needed to compare it.
 
-    ``kinds`` says what each state or assignment is in SBML terms
-    (``concentration``, ``amount``, ``parameter``, ``compartment`` or ``time``),
-    and ``sbml_ids`` maps each of those names back to its SBML identifier.
-    Names equal SBML identifiers except where one isn't a valid expression
-    identifier (a Python keyword, or a clash with the added ``time`` variable).
+    ``kinds`` says what each state, assignment or parameter is in SBML terms
+    (``concentration``, ``amount``, ``parameter`` or ``compartment``), and
+    ``sbml_ids`` maps each of those names back to its SBML identifier. Names
+    equal SBML identifiers except where one isn't a valid expression identifier
+    (a Python keyword, a reserved function name, or a clash with ``time_var``).
+    ``time_var`` names the model-time symbol for time-dependent models, else None.
     """
     model_id: str
     rhs: dict[str, str]
@@ -59,6 +62,7 @@ class OdeModel:
     kinds: dict[str, str] = field(default_factory=dict)
     sbml_ids: dict[str, str] = field(default_factory=dict)
     notes: tuple[str, ...] = ()
+    time_var: str | None = None
 
 
 def _read(source: str | Path) -> libsbml.SBMLDocument:
@@ -127,12 +131,23 @@ def _reject(m: libsbml.Model) -> None:
             f"model {m.getId()!r} has no faithful OdeProcess mapping: " + "; ".join(problems))
 
 
+# The namespace lambdify compiles into (modules="numpy"): an argument with one
+# of these names would shadow a function the printed code calls.
+NUMPY_NAMES = frozenset(dir(np))
+
+
+def _reserved(name: str) -> bool:
+    return keyword.iskeyword(name) or name in RESERVED or name in NUMPY_NAMES
+
+
 def _namer(m: libsbml.Model, uses_time: bool):
     """SBML id -> expression name: identity unless the id can't be one.
 
     An id is renamed (suffixed ``_``) when it is a Python keyword, not a Python
-    identifier, or a name the printed expressions use for a function or
-    constant (``RESERVED``), and the clock is renamed if an id is ``time``.
+    identifier, a name the printed expressions use for a function or constant
+    (``RESERVED``), or a name in the numpy namespace that compiled expressions
+    run in (``NUMPY_NAMES``: e.g. a parameter ``select`` would shadow the
+    function a Piecewise compiles to). The clock is renamed if an id is ``time``.
     """
     ids = {e.getId() for lst in (m.getListOfSpecies(), m.getListOfParameters(),
                                  m.getListOfCompartments(), m.getListOfReactions())
@@ -146,8 +161,8 @@ def _namer(m: libsbml.Model, uses_time: bool):
     names = {}
     for i in sorted(ids):
         name = i
-        if keyword.iskeyword(i) or not i.isidentifier() or i in RESERVED:
-            while name in taken or keyword.iskeyword(name) or name in RESERVED:
+        if _reserved(i) or not i.isidentifier():
+            while name in taken or _reserved(name):
                 name += "_"
             taken.add(name)
         names[i] = name
@@ -267,14 +282,13 @@ def read_sbml(source: str | Path) -> OdeModel:
             else:
                 params[x.name], kinds[x.name] = value, kind
     if uses_time:
-        rhs[time_sym], initial[time_name], kinds[time_name] = sp.Integer(1), 0.0, "time"
-        notes.append(f"time-dependent model: added state {time_name!r} with "
-                     f"d{time_name}/dt = 1 from {time_name} = 0")
+        notes.append(f"time-dependent model: {time_name!r} is the exact model clock "
+                     "(global_time), starting at 0")
     if m.getNumConstraints():
         notes.append(f"{m.getNumConstraints()} constraint(s) ignored: they assert "
                      "conditions during simulation but do not change the dynamics")
 
-    allowed = [*initial, *params]
+    allowed = [*initial, *params, *([time_name] if uses_time else [])]
     rhs_text = {x.name: _emit(e.xreplace(definitions), allowed, x.name)
                 for x, e in rhs.items()}
     assign_names = [x.name for x in assign]
@@ -285,28 +299,78 @@ def read_sbml(source: str | Path) -> OdeModel:
     sbml_ids = {n: reverse.get(n, n) for n in [*rhs_text, *assignments, *params]}
     return OdeModel(model_id=m.getId(), rhs=rhs_text, params=params, initial=initial,
                     assignments=assignments, kinds=kinds, sbml_ids=sbml_ids,
-                    notes=tuple(notes))
+                    notes=tuple(notes), time_var=time_name if uses_time else None)
 
 
-def _doubles(expr: sp.Basic) -> sp.Basic:
-    """``expr`` with every float at double precision (the precision it runs at)."""
-    return expr.xreplace({f: sp.Float(float(f)) for f in expr.atoms(sp.Float)})
+# Identity test on seeded sample points: a wide box (positive, negative and
+# log-spaced values) plus every numeric constant of the expression and its
+# neighbours, so Piecewise thresholds (t > 30) are straddled. Agreement is to
+# double-precision rounding. Seeded, so imports are deterministic.
+_RNG_SEED = 0
+_N_POINTS = 24
+_RTOL = 1e-12
+
+
+def _probe_rows(expr: sp.Basic, n_symbols: int) -> np.ndarray:
+    rng = np.random.default_rng(_RNG_SEED)
+    constants = sorted({float(c) for c in expr.atoms(sp.Number)
+                        if math.isfinite(float(c))})[:64]
+    special = np.array([v for c in constants
+                        for v in (c, c * (1 + 1e-3), c * (1 - 1e-3), c + 1e-3, c - 1e-3, -c)]
+                       or [1.0])
+    box = np.concatenate([rng.uniform(0.5, 2.0, 64), rng.uniform(-50.0, 50.0, 64),
+                          10.0 ** rng.uniform(-3, 3, 64), special])
+    return rng.choice(box, size=(_N_POINTS, n_symbols))
+
+
+def _names(expr: sp.Basic) -> set:
+    """The symbols and named constants (pi, E) an expression refers to, tagged
+    by kind: a symbol named ``pi`` and the constant pi print alike (and shadow
+    each other in lambdified code), so only the tag tells them apart."""
+    return ({("symbol", s.name) for s in expr.free_symbols}
+            | {("constant", str(c)) for c in expr.atoms(sp.NumberSymbol)})
+
+
+def _same_function(a: sp.Basic, b: sp.Basic) -> bool:
+    """Whether ``a`` and ``b`` agree at the sample points (at least one of them
+    must be evaluable; an expression undefined at every point can't be checked)."""
+    symbols = sorted(a.free_symbols | b.free_symbols, key=lambda x: x.name)
+    fa, fb = (sp.lambdify(symbols, e, modules="numpy") for e in (a, b))
+    checked = 0
+    with np.errstate(all="ignore"):
+        for row in _probe_rows(a, len(symbols)):
+            va, vb = complex(fa(*row)), complex(fb(*row))
+            if va != va and vb != vb:      # both NaN: outside both domains
+                continue
+            if not (math.isclose(va.real, vb.real, rel_tol=_RTOL, abs_tol=_RTOL)
+                    and math.isclose(va.imag, vb.imag, rel_tol=_RTOL, abs_tol=_RTOL)):
+                return False
+            checked += 1
+    if not checked:
+        raise UnsupportedSBML(f"cannot verify {a}: undefined at every sample point")
+    return True
 
 
 def _emit(expr: sp.Basic, allowed: list[str], name: str) -> str:
-    """Print ``expr`` and check it reparses, in the OdeProcess grammar, to ``expr``.
+    """Print ``expr`` in the OdeProcess grammar, checked to mean exactly ``expr``.
 
-    The check compares expressions, not text, so a printed name that reparses
-    as something else (a constant read as a symbol) is caught. It also rejects
-    numbers outside double range, before or after reparsing: sympy folds e.g.
+    OdeProcess parses the text with sympy, which re-applies its own algebraic
+    normalization (e.g. it distributes a leading minus sign over a sum), so the
+    reparsed expression need not be structurally identical to ``expr``. Instead:
+    the reparsed expression must refer to the same names and named constants (a
+    printed name read back as something else, such as a parameter ``pi`` read as
+    the constant, is caught) and agree with ``expr`` at seeded random points.
+    The returned text is sympy's own canonical form, a print/parse fixed point,
+    so it is exactly what OdeProcess will compile. Numbers outside double range,
+    before or after reparsing, are rejected: sympy folds e.g.
     ``exp(2412.0 - 80*t)`` into ``1e1047*exp(-80*t)``, which evaluates to
     ``inf`` and silently turns trajectories into ``nan``.
     """
-    text = to_text(expr)
     try:
-        parsed = parse(text, allowed)
+        parsed = parse(to_text(expr), allowed)
     except (ValueError, TypeError, SyntaxError) as e:
         raise UnsupportedSBML(f"expression for {name!r} does not reparse: {e}") from e
+    text = to_text(parsed)
     for e in (expr, parsed):
         for number in e.atoms(sp.Number):
             try:
@@ -316,7 +380,18 @@ def _emit(expr: sp.Basic, allowed: list[str], name: str) -> str:
             if not finite:
                 raise UnsupportedSBML(f"expression for {name!r} has a number outside "
                                       f"double range ({number}): {text}")
-    if _doubles(parsed) != _doubles(expr):
-        raise UnsupportedSBML(f"expression for {name!r} does not reparse to itself: "
-                              f"{text!r} reads back as {to_text(parsed)!r}")
+    if _names(parsed) != _names(expr):
+        raise UnsupportedSBML(f"expression for {name!r} reads back with different names: "
+                              f"{sorted(_names(expr))} vs {sorted(_names(parsed))}")
+    try:
+        same = _same_function(expr, parsed)
+    except UnsupportedSBML:
+        raise
+    except Exception as e:      # an expression numpy can't evaluate is unsupported
+        raise UnsupportedSBML(f"expression for {name!r} cannot be evaluated: {e}") from e
+    if not same:
+        raise UnsupportedSBML(f"expression for {name!r} reads back as a different "
+                              f"function: {to_text(expr)!r} vs {text!r}")
+    if to_text(parse(text, allowed)) != text:
+        raise UnsupportedSBML(f"expression for {name!r} has no stable printed form: {text!r}")
     return text
