@@ -1228,3 +1228,68 @@ discovery_implications:
   - title: bench-cost
     motivation: In-process timing (best of N, load and integration measured separately) is needed 
       before any cost claim; workbench wall time is dominated by start-up.
+preregistration:
+  v1:
+    registered: '2026-10-04'
+    commit: 8488a1e
+    text: the `hypothesis` field (unchanged)
+    verdict: H1, H2 and H3 held on the first pass (b06fd83). Kept as recorded; see amendments for 
+      its defects.
+  v2:
+    registered: '2026-10-04'
+    before_runs: Written before any v2 run (the second pass, after viva-expressions v0.3.0's exact 
+      clock and reparse fixes).
+    compared_set: >
+      Every OdeProcess state, PLUS every assignment-rule output that TelluriumProcess emits in its `parameters`
+      map. (v1 excluded outputs, which hid the time-clock bug: BIOMD400 outputs were off by 1.8e-2.) Boundary-species
+      outputs that Tellurium doesn't emit stay excluded, as stated.
+    metric: 'As in v1: per variable, max_t |ode - tel| / max_t |tel| (scale floor 1e-10); any non-finite
+      value fails.'
+    H1: >
+      Tight-tolerance agreement (rtol 1e-12 / atol 1e-14) within tau_m for every model: tau = 1e-8, except
+      BIOMD5, where tau = 1e-7. Rationale: v1's 1e-6 had low power (adversarial panel: 9 of 199 parameters
+      could change by 0.1% undetected). The observed tight errors were <= 4.6e-9, and the solvers' own
+      floor is ~1e-8 (each solver at rtol 1e-12 vs 1e-13: LSODA 9.4e-9, CVODE 5.9e-9 on BIOMD5). tau sits
+      a factor 10 above each floor.
+    H2: >
+      Integrator error, asserted as convergence: for every model, log10(worst default / worst tight) >=
+      2.5. v1's `default >= tight` passed even with a planted semantic error (the ratio collapsed to 3-21x),
+      while the first pass observed 3.4-4.4 orders.
+    H3: >
+      Negative controls that span sensitivity: for each model, rank its global parameters by roadrunner
+      sensitivity on the ORIGINAL SBML, i.e. the oracle side, independent of the comparison (sensitivity
+      = metric of the trajectory under a +1e-3 relative change, divided by 1e-3), and take the median-sensitivity
+      parameter p_m. Perturbing p_m by +1% in the OdeProcess import must exceed tau_m. The procedure is
+      analysis/select_controls.py, run and committed before the v2 runs. The v1 control (BIOMD12 eff +0.1%)
+      is kept.
+    t0: t = 0 is compared if viva-tellurium#7 (empty first row) is fixed by the time of the re-run; 
+      otherwise it stays excluded and is stated as such.
+    environment: All v2 runs come from ONE commit and lock. Per-run provenance (workspace commit, 
+      lock hash, env_id) is taken from runs_meta.manifest_json, not written by hand.
+amendments:
+- date: '2026-10-04'
+  what: objective horizon
+  detail: "t = 0..50 was corrected to t = 0..100 after the runs. The workbench `steps: 100` is a time
+    horizon (201 samples at 0.5). H1-H3 don't depend on the horizon."
+- date: '2026-10-04'
+  what: analysis choices made after the data (v1)
+  detail: tests/test_agreement.py (4fa850c) was written after 38 of the 39 first-pass runs. Its t = 
+    0 drop, compared-variable set and 1e-10 scale floor are therefore post-hoc. The thresholds and 
+    hypothesis text are unchanged since 8488a1e.
+- date: '2026-10-04'
+  what: provenance correction (v1)
+  detail: The first-pass findings named 'vivarium-workbench 3e5edbe8 / viva-expressions 0.2.3' for 
+    all runs. The runs_meta manifests show 30 runs at workspace 526a268 (workbench 8f322e7f, package
+    0.2.1), the 2 BIOMD400 ODE runs at 8ef5797, and only biomd400_tellurium_tight at ce6387d 
+    (workbench 3e5edbe8). Those strings were wrong.
+- date: '2026-10-04'
+  what: defective run records (v1)
+  detail: 'runs.db keeps 6 extra records: biomd400_ode x2 and biomd400_ode_tight x1, marked completed
+    but holding only t = 0 (the MathExpressionStep ndarray bug, fixed in 0.2.2), and biomd400_tellurium_tight
+    x3, marked failed but holding 201 good rows (the workbench stdout-parse bug, fixed in #1273). Analysis
+    used the latest completed record per label.'
+- date: '2026-10-04'
+  what: first pass superseded
+  detail: "The adversarial panel found an importer clock bug: the integrated time drifted, so time-switched
+    outputs took the wrong branch. That is fixed in viva-expressions v0.3.0. The first pass stays in history,
+    and the v2 re-run, from one environment, carries the study's evidence."
