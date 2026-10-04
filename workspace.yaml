@@ -28,3 +28,13 @@ imports:
     installed: true
     install_path: /Users/alexanderpatrie/viva/viva-expressions/external/viva-tellurium
     package: viva_tellurium
+  viva-biomodels:
+    source: https://github.com/vivarium-collective/viva-biomodels.git
+    ref: main
+    mode: reference
+    path: external/viva-biomodels
+    description: 'Process-bigraph workspace: BIOMODELS regression — installs pbg-biomodels-bundle
+      and drives investigations against the BioModels corpus'
+    installed: true
+    install_path: /Users/alexanderpatrie/viva/viva-expressions/external/viva-biomodels
+    package: viva_biomodels

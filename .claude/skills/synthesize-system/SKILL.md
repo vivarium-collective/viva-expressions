@@ -64,7 +64,8 @@ Exit codes: `0` feasible and verified in a real Composite, `2` nothing feasible
      or never produced the measured quantity (e.g. no oscillation at all).
 7. **Hand off** `composite.json`: a self-contained process-bigraph document (one
    `OdeProcess`) that runs with `Composite(doc, core=allocate_core())`, or via
-   `viva_expressions.composites.run_document(doc, t_end)`.
+   `viva_expressions.composites.run_document(doc, t_end)`. To hand it to an SBML
+   tool (Tellurium, COPASI, PySCeS), export it with `/sbml-system export composite.json`.
 
 ## Rules
 

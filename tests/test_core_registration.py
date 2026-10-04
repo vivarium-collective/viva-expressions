@@ -63,7 +63,7 @@ def _discover_package_name() -> str:
         try:
             import yaml
 
-            data = yaml.safe_load(wsyaml.read_text()) or {}
+            data = yaml.safe_load(wsyaml.read_text(encoding="utf-8")) or {}
             pkg = data.get("package_path")
             if pkg:
                 return str(pkg)

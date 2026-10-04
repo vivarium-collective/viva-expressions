@@ -25,14 +25,14 @@ def test_feasible_spec_exits_zero_and_writes_artifacts(logistic_run):
     code, out = logistic_run
     assert code == 0
     assert {p.name for p in out.iterdir()} == {"report.json", "report.md", "composite.json"}
-    rep = json.loads((out / "report.json").read_text())
+    rep = json.loads((out / "report.json").read_text(encoding="utf-8"))
     assert rep["status"] == "verified" and rep["winner"]["origin"] == "motif:logistic"
-    assert "## Composite verification" in (out / "report.md").read_text()
+    assert "## Composite verification" in (out / "report.md").read_text(encoding="utf-8")
 
 
 def test_fresh_composite_from_exported_json_reproduces_steady_state(logistic_run):
     _, out = logistic_run
-    doc = json.loads((out / "composite.json").read_text())
+    doc = json.loads((out / "composite.json").read_text(encoding="utf-8"))
     t, series = run_document(doc, 30.0)
     assert t[-1] == pytest.approx(30.0)
     assert series["N"][-1] == pytest.approx(5.0, abs=0.1)
@@ -66,7 +66,7 @@ def test_infeasible_spec_exits_two_without_composite(tmp_path):
                     "candidates: [{motif: exponential_decay, bind: {x: x}}]\n")
     out = tmp_path / "out"
     assert main([str(spec), "--out", str(out)]) == 2
-    assert json.loads((out / "report.json").read_text())["status"] == "infeasible"
+    assert json.loads((out / "report.json").read_text(encoding="utf-8"))["status"] == "infeasible"
     assert not (out / "composite.json").exists()
 
 
@@ -91,7 +91,7 @@ def test_coarse_interval_is_still_verified(tmp_path):
     # the agreement tolerance by itself and reported a correct model unverified.
     out = tmp_path / "out"
     assert main([str(EXAMPLES / "logistic.yml"), "--out", str(out), "--interval", "0.7"]) == 0
-    assert json.loads((out / "report.json").read_text())["verification"]["max_deviation"] < 1e-4
+    assert json.loads((out / "report.json").read_text(encoding="utf-8"))["verification"]["max_deviation"] < 1e-4
 
 
 def test_input_named_like_a_motif_parameter_fails_check(tmp_path, capsys):
@@ -103,5 +103,35 @@ def test_input_named_like_a_motif_parameter_fails_check(tmp_path, capsys):
                     "candidates: [{motif: logistic, bind: {x: N}}]\n")
     assert main([str(spec), "--check"]) == 1
     assert "candidates[0]: names declared more than once: ['r']" in capsys.readouterr().err
-    spec.write_text(spec.read_text().replace("bind: {x: N}}", "bind: {x: N}, prefix: g_}"))
+    spec.write_text(spec.read_text(encoding="utf-8").replace("bind: {x: N}}", "bind: {x: N}, prefix: g_}"),
+                    encoding="utf-8")
     assert main([str(spec), "--check"]) == 0
+
+
+@pytest.fixture
+def ascii_locale():
+    """The C locale: text I/O that relies on the locale default becomes ASCII.
+
+    Native libraries (libsbml, roadrunner, antimony, COPASI) call setlocale, and
+    on CI's Linux runner the default encoding became ASCII mid-session, so
+    report.md's em dash failed to write. Writes must name their encoding.
+    """
+    import locale
+    previous = locale.setlocale(locale.LC_CTYPE)
+    locale.setlocale(locale.LC_CTYPE, "C")
+    try:
+        yield
+    finally:
+        locale.setlocale(locale.LC_CTYPE, previous)
+
+
+def test_reports_write_as_utf8_under_an_ascii_locale(tmp_path, ascii_locale):
+    spec = tmp_path / "grow.yml"
+    spec.write_text("name: grow — decay\ntime: {t_end: 10, n_points: 101}\n"
+                    "variables: {y: [{name: x, value: 1}]}\n"
+                    "behavior: {features: [{kind: steady_state, var: x, value: 5, tol: 0.1}]}\n"
+                    "candidates: [{motif: exponential_decay, bind: {x: x}}]\n",
+                    encoding="utf-8")
+    out = tmp_path / "out"
+    assert main([str(spec), "--out", str(out)]) == 2
+    assert "—" in (out / "report.md").read_text(encoding="utf-8")

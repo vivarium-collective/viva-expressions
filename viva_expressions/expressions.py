@@ -67,13 +67,16 @@ class CompiledRHS:
 
     ``f`` and ``jac`` take positional vectors ordered as ``state``, ``inputs``
     and ``params``, and return arrays of shape ``(n,)`` and ``(n, n)``.
+    ``jac`` is ``None`` when sympy has no closed-form derivative for some term
+    (``floor``, ``ceiling``, ``Abs`` of a symbol of unknown sign): the solver
+    then estimates the Jacobian by finite differences, as it does by default.
     """
     state: tuple[str, ...]
     inputs: tuple[str, ...]
     params: tuple[str, ...]
     exprs: dict[str, sp.Basic]
     f: Callable[[np.ndarray, np.ndarray, np.ndarray], np.ndarray]
-    jac: Callable[[np.ndarray, np.ndarray, np.ndarray], np.ndarray]
+    jac: Callable[[np.ndarray, np.ndarray, np.ndarray], np.ndarray] | None
 
 
 def compile_rhs(
@@ -100,13 +103,17 @@ def compile_rhs(
     y, u, p = ([sp.Symbol(n) for n in names] for names in (state, inputs, params))
     vector = sp.Matrix([exprs[v] for v in state])
     f_raw = sp.lambdify([y, u, p], vector, modules="numpy")
-    jac_raw = sp.lambdify([y, u, p], vector.jacobian(y), modules="numpy")
     n = len(state)
 
     def f(yv, uv, pv):
         return np.asarray(f_raw(yv, uv, pv), dtype=float).reshape(n)
 
-    def jac(yv, uv, pv):
-        return np.asarray(jac_raw(yv, uv, pv), dtype=float).reshape(n, n)
+    jacobian = vector.jacobian(y)
+    jac = None
+    if not jacobian.has(sp.Derivative):
+        jac_raw = sp.lambdify([y, u, p], jacobian, modules="numpy")
+
+        def jac(yv, uv, pv):
+            return np.asarray(jac_raw(yv, uv, pv), dtype=float).reshape(n, n)
 
     return CompiledRHS(state, inputs, params, exprs, f, jac)

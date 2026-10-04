@@ -34,3 +34,5 @@ workspace/reports/assets/*
 graphify-out/
 .claude/settings.json.graphify-bak
 agenda.md
+# JSONEmitter run output (default out_dir, relative to the working directory)
+out/
