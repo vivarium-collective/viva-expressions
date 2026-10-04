@@ -66,8 +66,15 @@ class MathExpressionStep(Step):
         return {o: f"overwrite[{t.get(o, 'float')}]" for o in self.exprs}
 
     def update(self, state):
+        # A declared float output is returned as a Python float: lambdified
+        # Piecewise (numpy.select) yields a 0-d ndarray, which serializing
+        # emitters (e.g. JSONEmitter) reject.
+        types = self.config.get("output_types", {})
         vals, result = dict(state), {}
         for out in self.order:
             args, fn, values = self.fns[out]
-            result[out] = vals[out] = fn(*[vals[a] for a in args], *values)
+            value = fn(*[vals[a] for a in args], *values)
+            if types.get(out, "float") == "float":
+                value = float(value)
+            result[out] = vals[out] = value
         return result

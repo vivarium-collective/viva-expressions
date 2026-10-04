@@ -600,3 +600,40 @@ def test_exported_lotka_volterra_conserves_its_first_integral():
     x, y = out[:, 0], out[:, 1]
     v = p["d"] * x - p["g"] * np.log(x) + p["b"] * y - p["a"] * np.log(y)
     assert np.max(np.abs(v - v[0])) <= AGREE * abs(v[0])
+
+
+# Regression: MathExpressionStep returned numpy 0-d arrays for Piecewise outputs
+# (numpy.select), which JSONEmitter cannot serialize. The imported BIOMD400
+# composite then died at t = 0 under the workspace's emitter.
+
+def test_math_expression_float_outputs_are_python_floats():
+    step = MathExpressionStep(
+        {"expressions": [{"out": "y", "expr": "Piecewise((x, x > 0), (0, True))"}],
+         "params": {}}, core=allocate_core())
+    y = step.update({"x": 2.0})["y"]
+    assert type(y) is float and y == 2.0
+
+
+def test_piecewise_composite_runs_under_the_json_emitter(tmp_path, monkeypatch):
+    from process_bigraph import Composite
+    from process_bigraph.composite_spec import CompositeSpec
+    from process_bigraph.emitter import gather_emitter_results
+
+    from viva_expressions.core import build_core
+    from viva_expressions.sbml.composite import composite_spec
+
+    path = DATA / "BIOMD0000000400.xml"
+    model = read_sbml(path)
+    monkeypatch.chdir(tmp_path)    # JSONEmitter writes into the working directory
+    spec_path = tmp_path / "b400.composite.yaml"
+    spec_path.write_text(yaml.safe_dump(composite_spec(model, "b400", 0.5)), encoding="utf-8")
+    spec = CompositeSpec.from_file(spec_path)
+    composite = Composite(spec.to_document(overrides={"rtol": 1e-12, "atol": 1e-14}),
+                          core=build_core())
+    composite.run(50.0)
+    rows = gather_emitter_results(composite)[("emitter",)]
+    assert len(rows) == 101
+    _, ref = reference(str(path), model, 50.0, len(rows))
+    ours = {k: np.array([r[k] for r in rows]) for k in ref}
+    name, err = worst_error(ours, ref)
+    assert err <= AGREE, f"{name} off by {err:.2e}"
