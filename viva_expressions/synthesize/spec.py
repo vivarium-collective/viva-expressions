@@ -322,7 +322,7 @@ class _Validator:
         if not path.is_file():
             self.err("data.path", f"file not found: {path}")
             return None
-        table = np.genfromtxt(path, delimiter=",", names=True, dtype=float)
+        table = np.genfromtxt(path, delimiter=",", names=True, dtype=float, encoding="utf-8")
         header = table.dtype.names or ()
         needed = [raw["time_column"], *cols.values()]
         missing = [c for c in needed if c not in header]

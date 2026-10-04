@@ -86,7 +86,7 @@ def run_against_reference(path: Path, t_end=50.0, dt=0.5, solver=TOL):
 
 
 def test_pinned_files_match_checksums():
-    for line in (DATA / "SHA256SUMS").read_text().splitlines():
+    for line in (DATA / "SHA256SUMS").read_text(encoding="utf-8").splitlines():
         digest, name = line.split()
         assert hashlib.sha256((DATA / name).read_bytes()).hexdigest() == digest, name
 
@@ -261,7 +261,7 @@ def test_exact_float_constants_survive_import():
 # Export: expressions -> SBML
 
 def _workspace_composite(name):
-    spec = yaml.safe_load((COMPOSITES / f"{name}.composite.yaml").read_text())
+    spec = yaml.safe_load((COMPOSITES / f"{name}.composite.yaml").read_text(encoding="utf-8"))
     return ode_from_state(substitute_parameters(spec["state"], spec.get("parameters", {})))
 
 
@@ -578,7 +578,7 @@ CLOSED_FORMS = {
 @pytest.mark.parametrize("name", sorted(CLOSED_FORMS))
 def test_exported_sbml_matches_closed_form(name):
     """Roadrunner on the exported SBML against the exact solution."""
-    spec = yaml.safe_load((COMPOSITES / f"{name}.composite.yaml").read_text())
+    spec = yaml.safe_load((COMPOSITES / f"{name}.composite.yaml").read_text(encoding="utf-8"))
     defaults = {k: v["default"] for k, v in spec["parameters"].items()}
     t_end, exact = CLOSED_FORMS[name]
     rr = roadrunner.RoadRunner(write_sbml(**_workspace_composite(name), model_id=name))
@@ -591,7 +591,7 @@ def test_exported_sbml_matches_closed_form(name):
 
 
 def test_exported_lotka_volterra_conserves_its_first_integral():
-    spec = yaml.safe_load((COMPOSITES / "lotka_volterra.composite.yaml").read_text())
+    spec = yaml.safe_load((COMPOSITES / "lotka_volterra.composite.yaml").read_text(encoding="utf-8"))
     p = {k: v["default"] for k, v in spec["parameters"].items()}
     rr = roadrunner.RoadRunner(write_sbml(**_workspace_composite("lotka_volterra")))
     rr.integrator.relative_tolerance, rr.integrator.absolute_tolerance = TOL["rtol"], TOL["atol"]
