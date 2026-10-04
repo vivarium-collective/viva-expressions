@@ -22,6 +22,7 @@ dependencies = [
     "matplotlib",
     "plotly",
     "vivarium-workbench[chat]",
+    "viva_tellurium",
 ]
 
 [project.optional-dependencies]
@@ -50,4 +51,5 @@ packages = ["viva_expressions"]
 testpaths = ["tests"]
 
 [tool.uv.sources]
+viva_tellurium = { path = "external/viva-tellurium", editable = true }
 vivarium-workbench = { git = "https://github.com/vivarium-collective/vivarium-workbench.git", branch = "main" }

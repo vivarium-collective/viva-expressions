@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en"><head>
-<meta charset="UTF-8"><title>viva-expressions</title>
-<link rel="stylesheet" href="assets/style.css?v=1791072966_1791072966_1791072966">
-<link rel="stylesheet" href="assets/chat.css?v=1791072966_1791072966_1791072966">
+<meta charset="UTF-8"><title>viva-expressions:simulator-benchmarking</title>
+<link rel="stylesheet" href="assets/style.css?v=1791085650_1791085650_1791085650">
+<link rel="stylesheet" href="assets/chat.css?v=1791085650_1791085650_1791085650">
 <link rel="stylesheet" href="assets/snapshot-readonly.css">
-<link rel="stylesheet" href="assets/progress-track.css?v=1791072966_1791072966_1791072966">
+<link rel="stylesheet" href="assets/progress-track.css?v=1791085650_1791085650_1791085650">
 <!-- Apply the saved light/dark theme before first paint (no flash of light). -->
 <script>(function(){try{var t=localStorage.getItem('viv.theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <!-- item 41: when this tab was spawned via ?workspace=/?build= (workspace-picker.js's
@@ -30,7 +30,7 @@
     } catch (e) { /* private mode / no URL support — falls back to default workspace */ }
   })();
 </script>
-<script src="assets/session.js?v=1791072966_1791072966_1791072966"></script>
+<script src="assets/session.js?v=1791085650_1791085650_1791085650"></script>
 <script>
 // Per-workspace branding (rail logo, title, brand text) is resolved
 // server-side at GET / and is NOT re-applied by any client script. The
@@ -778,7 +778,7 @@ a.viv-bs-commit:hover { text-decoration: underline; }
     var img = document.createElement('img');
     img.className = 'viv-switch-splash-logo';
     img.alt = 'Vivarium';
-    img.src = 'assets/vivarium-logo' + (dark ? '-dark' : '') + '.png?v=1791072966_1791072966_1791072966';
+    img.src = 'assets/vivarium-logo' + (dark ? '-dark' : '') + '.png?v=1791085650_1791085650_1791085650';
     el.appendChild(img);
     document.body.appendChild(el);
   } catch (e) { /* sessionStorage unavailable (private mode) — skip the splash */ }
@@ -803,9 +803,9 @@ a.viv-bs-commit:hover { text-decoration: underline; }
     <!-- Brand: fixed Vivarium logo + name (no per-workspace icon/name override). -->
     <div class="viv-rail-header">
       <a class="viv-rail-brand-link" href="#about" title="About Vivarium Workbench">
-        <img class="viv-rail-logo" src="assets/vivarium-logo.png?v=1791072966_1791072966_1791072966" alt="Vivarium" loading="lazy"
-             data-light-src="assets/vivarium-logo.png?v=1791072966_1791072966_1791072966"
-             data-dark-src="assets/vivarium-logo-dark.png?v=1791072966_1791072966_1791072966"
+        <img class="viv-rail-logo" src="assets/vivarium-logo.png?v=1791085650_1791085650_1791085650" alt="Vivarium" loading="lazy"
+             data-light-src="assets/vivarium-logo.png?v=1791085650_1791085650_1791085650"
+             data-dark-src="assets/vivarium-logo-dark.png?v=1791085650_1791085650_1791085650"
              onerror="if(this.dataset.lightSrc&&this.src.indexOf('logo-dark')>=0){this.src=this.dataset.lightSrc;}">
         <div class="viv-rail-brand">
           <strong>Vivarium</strong>
@@ -845,7 +845,7 @@ a.viv-bs-commit:hover { text-decoration: underline; }
           <span class="viv-wsp-dot viv-wsp-ready">●</span>
           <span class="viv-wsp-trigger-names">
             <strong>viva-expressions</strong>
-            <span class="viv-wsp-trigger-branch" title="branch: study/expression-kinetics-analytic">study/expression-kinetics-analytic</span>
+            <span class="viv-wsp-trigger-branch" title="branch: main">main</span>
           </span>
         </span>
         <span class="viv-wsp-trigger-caret" aria-hidden="true">▾</span>
@@ -862,7 +862,7 @@ a.viv-bs-commit:hover { text-decoration: underline; }
       <span class="viv-workspace-switcher-glyph">●</span>
       <strong>viva-expressions</strong>
       
-      <a class="viv-ws-repo-link" href="https://github.com/AlexPatrie/viva-expressions" target="_blank" rel="noopener"
+      <a class="viv-ws-repo-link" href="https://github.com/vivarium-collective/viva-expressions" target="_blank" rel="noopener"
          title="Open viva-expressions on GitHub" onclick="event.stopPropagation()">
         <svg class="viv-ws-gh-mark" width="12" height="12"><use href="#viv-gh-mark"/></svg></a>
       
@@ -870,7 +870,7 @@ a.viv-bs-commit:hover { text-decoration: underline; }
 
     
     <!-- Collapsed rail: a single centered GitHub mark linking to the repo. -->
-    <a class="viv-rail-repo-mini" href="https://github.com/AlexPatrie/viva-expressions" target="_blank" rel="noopener"
+    <a class="viv-rail-repo-mini" href="https://github.com/vivarium-collective/viva-expressions" target="_blank" rel="noopener"
        title="Open viva-expressions on GitHub" aria-label="GitHub repository">
       <svg width="16" height="16"><use href="#viv-gh-mark"/></svg>
     </a>
@@ -880,7 +880,7 @@ a.viv-bs-commit:hover { text-decoration: underline; }
          uses these to merge workspace-local artifacts under one repo card and
          to link it to its real GitHub URL. */
       window._workspaceName = "viva-expressions";
-      window._workspaceRepoUrl = "https://github.com/AlexPatrie/viva-expressions";
+      window._workspaceRepoUrl = "https://github.com/vivarium-collective/viva-expressions";
     </script>
 
     <!-- Everything from the Workspace nav down scrolls as ONE region, so a long
@@ -1101,9 +1101,9 @@ a.viv-bs-commit:hover { text-decoration: underline; }
     <div class="about-page">
 
       <header class="about-hero">
-        <img class="about-logo" src="assets/vivarium-logo.png?v=1791072966_1791072966_1791072966" alt="Vivarium"
-             data-light-src="assets/vivarium-logo.png?v=1791072966_1791072966_1791072966"
-             data-dark-src="assets/vivarium-logo-dark.png?v=1791072966_1791072966_1791072966"
+        <img class="about-logo" src="assets/vivarium-logo.png?v=1791085650_1791085650_1791085650" alt="Vivarium"
+             data-light-src="assets/vivarium-logo.png?v=1791085650_1791085650_1791085650"
+             data-dark-src="assets/vivarium-logo-dark.png?v=1791085650_1791085650_1791085650"
              onerror="if(this.dataset.lightSrc&&this.src.indexOf('logo-dark')>=0){this.src=this.dataset.lightSrc;}">
         <div class="about-hero-text">
           <h1>Vivarium&nbsp;Workbench</h1>
@@ -2520,49 +2520,49 @@ Nothing on <code id="pr-base-display-2">main</code> changes until someone presse
      SEPARATE tag after the config line publish.py rewrites, so it always reads
      the injected basePath. -->
 <script>window.__BASE_PATH__ = (window.__DASH_CONFIG__ && window.__DASH_CONFIG__.basePath) || "";</script>
-<script src="assets/data-source.js?v=1791072966_1791072966_1791072966"></script>
-<script src="assets/render-helpers.js?v=1791072966_1791072966_1791072966"></script>
-<script src="assets/toast.js?v=1791072966_1791072966_1791072966"></script>
-<script src="assets/client.js?v=1791072966_1791072966_1791072966" onerror="/* live mode unavailable */"></script>
-<script src="assets/aig-graph.js?v=1791072966_1791072966_1791072966" onerror="/* aig-graph unavailable */"></script>
-<script src="assets/audit.js?v=1791072966_1791072966_1791072966" onerror="/* audit view unavailable */"></script>
-<script src="assets/col-resize.js?v=1791072966_1791072966_1791072966"></script>
+<script src="assets/data-source.js?v=1791085650_1791085650_1791085650"></script>
+<script src="assets/render-helpers.js?v=1791085650_1791085650_1791085650"></script>
+<script src="assets/toast.js?v=1791085650_1791085650_1791085650"></script>
+<script src="assets/client.js?v=1791085650_1791085650_1791085650" onerror="/* live mode unavailable */"></script>
+<script src="assets/aig-graph.js?v=1791085650_1791085650_1791085650" onerror="/* aig-graph unavailable */"></script>
+<script src="assets/audit.js?v=1791085650_1791085650_1791085650" onerror="/* audit view unavailable */"></script>
+<script src="assets/col-resize.js?v=1791085650_1791085650_1791085650"></script>
 <!-- chat-core.js provides the shared dock math (VivChatCore); panel-dock.js the shared
      dockable-panel engine (VivPanelDock). Both must load BEFORE process-code.js and
      chat.js, which build their panels on them. -->
-<script src="assets/chat-core.js?v=1791072966_1791072966_1791072966" onerror="/* chat/dock core unavailable */"></script>
-<script src="assets/panel-dock.js?v=1791072966_1791072966_1791072966" onerror="/* dockable panels unavailable */"></script>
-<script src="assets/process-code.js?v=1791072966_1791072966_1791072966" onerror="/* process-code panel unavailable */"></script>
-<script src="assets/perfetto-open.js?v=1791072966_1791072966_1791072966" onerror="/* trace action unavailable */"></script>
-<script src="assets/sim-table.js?v=1791072966_1791072966_1791072966"></script>
-<script src="assets/progress-track.js?v=1791072966_1791072966_1791072966"></script>
+<script src="assets/chat-core.js?v=1791085650_1791085650_1791085650" onerror="/* chat/dock core unavailable */"></script>
+<script src="assets/panel-dock.js?v=1791085650_1791085650_1791085650" onerror="/* dockable panels unavailable */"></script>
+<script src="assets/process-code.js?v=1791085650_1791085650_1791085650" onerror="/* process-code panel unavailable */"></script>
+<script src="assets/perfetto-open.js?v=1791085650_1791085650_1791085650" onerror="/* trace action unavailable */"></script>
+<script src="assets/sim-table.js?v=1791085650_1791085650_1791085650"></script>
+<script src="assets/progress-track.js?v=1791085650_1791085650_1791085650"></script>
 <!-- composite-card.js: the shared composite-card renderer (extracted from
      walkthrough.js, study-spine-reorg Task 6) — MUST load before
      walkthrough.js, which now calls these functions as globals rather than
      defining them itself. Also loaded on study-detail.html so the Model tab
      renders the identical Full/Grid composite card. -->
-<script src="assets/composite-card.js?v=1791072966_1791072966_1791072966" onerror="/* composite-card unavailable */"></script>
+<script src="assets/composite-card.js?v=1791085650_1791085650_1791085650" onerror="/* composite-card unavailable */"></script>
 <!-- loom-embed.js: the single source for the loom embed glue (_openCompositeLoomInline
      + _compositeStateUrl + auto-height). MUST load before walkthrough.js, which now
      calls these as globals instead of duplicating them. -->
-<script src="assets/loom-embed.js?v=1791072966_1791072966_1791072966" onerror="/* loom-embed unavailable */"></script>
-<script src="assets/checklist-select.js?v=1791072966_1791072966_1791072966" onerror="/* checklist-select unavailable */"></script>
-<script src="assets/walkthrough.js?v=1791072966_1791072966_1791072966" onerror="/* walkthrough unavailable */"></script>
-<script src="assets/github-login.js?v=1791072966_1791072966_1791072966" onerror="/* github-login unavailable */"></script>
+<script src="assets/loom-embed.js?v=1791085650_1791085650_1791085650" onerror="/* loom-embed unavailable */"></script>
+<script src="assets/checklist-select.js?v=1791085650_1791085650_1791085650" onerror="/* checklist-select unavailable */"></script>
+<script src="assets/walkthrough.js?v=1791085650_1791085650_1791085650" onerror="/* walkthrough unavailable */"></script>
+<script src="assets/github-login.js?v=1791085650_1791085650_1791085650" onerror="/* github-login unavailable */"></script>
 <!-- chat-core.js already loaded above (shared by panel-dock.js + process-code.js). -->
-<script src="assets/ai-models.js?v=1791072966_1791072966_1791072966" onerror="/* chat unavailable */"></script>
-<script src="assets/chat.js?v=1791072966_1791072966_1791072966" onerror="/* chat unavailable */"></script>
-<script src="assets/ai-login.js?v=1791072966_1791072966_1791072966" onerror="/* ai-login unavailable */"></script>
+<script src="assets/ai-models.js?v=1791085650_1791085650_1791085650" onerror="/* chat unavailable */"></script>
+<script src="assets/chat.js?v=1791085650_1791085650_1791085650" onerror="/* chat unavailable */"></script>
+<script src="assets/ai-login.js?v=1791085650_1791085650_1791085650" onerror="/* ai-login unavailable */"></script>
 <!-- workspace-switcher.js is intentionally not loaded: the left-rail dropdown
      it used to drive has been repurposed into the investigation switcher
      (investigation-switcher.js). The /api/workspaces endpoints remain available
      for CLI tooling. -->
-<script src="assets/investigation-switcher.js?v=1791072966_1791072966_1791072966"></script>
-<script src="assets/branch-source.js?v=1791072966_1791072966_1791072966"></script>
+<script src="assets/investigation-switcher.js?v=1791085650_1791085650_1791085650"></script>
+<script src="assets/branch-source.js?v=1791085650_1791085650_1791085650"></script>
 <!-- Encode this tab's workspace materialization state in the favicon + title
      (session-per-tab): ready / ⏳ preparing / ⚠️ failed. -->
-<script src="assets/session-status.js?v=1791072966_1791072966_1791072966"></script>
-<script src="assets/workspace-picker.js?v=1791072966_1791072966_1791072966"></script>
+<script src="assets/session-status.js?v=1791085650_1791085650_1791085650"></script>
+<script src="assets/workspace-picker.js?v=1791085650_1791085650_1791085650"></script>
 <script>
 // Initialize drop zones once walkthrough.js is loaded.
 document.addEventListener("DOMContentLoaded", function() {

@@ -1,0 +1,4 @@
+[submodule "external/viva-tellurium"]
+	path = external/viva-tellurium
+	url = https://github.com/vivarium-collective/viva-tellurium.git
+	branch = main
