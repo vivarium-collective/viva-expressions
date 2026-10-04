@@ -26,6 +26,7 @@ faithful mapping (events, delays, algebraic rules, fast reactions, variable
 stoichiometry, species in a compartment whose size changes) raise
 ``UnsupportedSBML``; nothing is dropped silently.
 """
+import cmath
 import keyword
 import math
 from dataclasses import dataclass, field
@@ -340,7 +341,7 @@ def _same_function(a: sp.Basic, b: sp.Basic) -> bool:
     with np.errstate(all="ignore"):
         for row in _probe_rows(a, len(symbols)):
             va, vb = complex(fa(*row)), complex(fb(*row))
-            if va != va and vb != vb:      # both NaN: outside both domains
+            if cmath.isnan(va) and cmath.isnan(vb):    # outside both domains
                 continue
             if not (math.isclose(va.real, vb.real, rel_tol=_RTOL, abs_tol=_RTOL)
                     and math.isclose(va.imag, vb.imag, rel_tol=_RTOL, abs_tol=_RTOL)):
