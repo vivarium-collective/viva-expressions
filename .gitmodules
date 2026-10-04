@@ -2,3 +2,7 @@
 	path = external/viva-tellurium
 	url = https://github.com/vivarium-collective/viva-tellurium.git
 	branch = main
+[submodule "external/viva-biomodels"]
+	path = external/viva-biomodels
+	url = https://github.com/vivarium-collective/viva-biomodels.git
+	branch = main

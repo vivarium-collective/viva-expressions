@@ -23,6 +23,7 @@ dependencies = [
     "plotly",
     "vivarium-workbench[chat]",
     "viva_tellurium",
+    "viva_biomodels",
 ]
 
 [project.optional-dependencies]
@@ -51,5 +52,6 @@ packages = ["viva_expressions"]
 testpaths = ["tests"]
 
 [tool.uv.sources]
-viva_tellurium = { path = "external/viva-tellurium", editable = true }
+viva_biomodels = { path = "external/viva-biomodels", editable = true }
+viva-tellurium = { git = "https://github.com/vivarium-collective/viva-tellurium.git", branch = "main" }
 vivarium-workbench = { git = "https://github.com/vivarium-collective/vivarium-workbench.git", branch = "main" }
