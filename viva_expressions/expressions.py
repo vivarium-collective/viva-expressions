@@ -63,10 +63,12 @@ def substitute(expr: sp.Basic, values: dict[str, float]) -> sp.Basic:
 
 @dataclass(frozen=True)
 class CompiledRHS:
-    """A compiled ODE right-hand side ``dy/dt = f(y, u, p)``.
+    """A compiled ODE right-hand side ``dy/dt = f(y, u, p, t)``.
 
     ``f`` and ``jac`` take positional vectors ordered as ``state``, ``inputs``
-    and ``params``, and return arrays of shape ``(n,)`` and ``(n, n)``.
+    and ``params``, then the model time ``t`` (default 0.0; it only matters when
+    ``time`` names a symbol the expressions use), and return arrays of shape
+    ``(n,)`` and ``(n, n)``.
     ``jac`` is ``None`` when sympy has no closed-form derivative for some term
     (``floor``, ``ceiling``, ``Abs`` of a symbol of unknown sign): the solver
     then estimates the Jacobian by finite differences, as it does by default.
@@ -75,8 +77,9 @@ class CompiledRHS:
     inputs: tuple[str, ...]
     params: tuple[str, ...]
     exprs: dict[str, sp.Basic]
-    f: Callable[[np.ndarray, np.ndarray, np.ndarray], np.ndarray]
-    jac: Callable[[np.ndarray, np.ndarray, np.ndarray], np.ndarray] | None
+    f: Callable[..., np.ndarray]
+    jac: Callable[..., np.ndarray] | None
+    time: str | None = None
 
 
 def compile_rhs(
@@ -84,8 +87,14 @@ def compile_rhs(
     state: Iterable[str],
     inputs: Iterable[str] = (),
     params: Iterable[str] = (),
+    time: str | None = None,
 ) -> CompiledRHS:
-    """Compile ``{var: "expression"}`` into a vectorized RHS and its Jacobian."""
+    """Compile ``{var: "expression"}`` into a vectorized RHS and its Jacobian.
+
+    ``time`` names a symbol that stands for the model time, passed exactly at
+    each evaluation (never integrated). It may not also be a state, input or
+    parameter.
+    """
     state, inputs, params = tuple(state), tuple(inputs), tuple(params)
     missing = set(state) - set(rhs)
     extra = set(rhs) - set(state)
@@ -95,25 +104,28 @@ def compile_rhs(
             f"missing {sorted(missing)}, unexpected {sorted(extra)}")
     clash = (set(state) & set(inputs)) | (set(state) & set(params)) \
         | (set(inputs) & set(params))
+    if time is not None and time in set(state) | set(inputs) | set(params):
+        clash = clash | {time}
     if clash:
         raise ValueError(f"names declared more than once: {sorted(clash)}")
 
-    allowed = state + inputs + params
+    allowed = state + inputs + params + ((time,) if time else ())
     exprs = {v: parse(rhs[v], allowed) for v in state}
     y, u, p = ([sp.Symbol(n) for n in names] for names in (state, inputs, params))
+    t = sp.Symbol(time) if time else sp.Dummy("t")
     vector = sp.Matrix([exprs[v] for v in state])
-    f_raw = sp.lambdify([y, u, p], vector, modules="numpy")
+    f_raw = sp.lambdify([y, u, p, t], vector, modules="numpy")
     n = len(state)
 
-    def f(yv, uv, pv):
-        return np.asarray(f_raw(yv, uv, pv), dtype=float).reshape(n)
+    def f(yv, uv, pv, tv=0.0):
+        return np.asarray(f_raw(yv, uv, pv, tv), dtype=float).reshape(n)
 
     jacobian = vector.jacobian(y)
     jac = None
     if not jacobian.has(sp.Derivative):
-        jac_raw = sp.lambdify([y, u, p], jacobian, modules="numpy")
+        jac_raw = sp.lambdify([y, u, p, t], jacobian, modules="numpy")
 
-        def jac(yv, uv, pv):
-            return np.asarray(jac_raw(yv, uv, pv), dtype=float).reshape(n, n)
+        def jac(yv, uv, pv, tv=0.0):
+            return np.asarray(jac_raw(yv, uv, pv, tv), dtype=float).reshape(n, n)
 
-    return CompiledRHS(state, inputs, params, exprs, f, jac)
+    return CompiledRHS(state, inputs, params, exprs, f, jac, time)

@@ -21,6 +21,7 @@ import libsbml
 import numpy as np
 import pytest
 import roadrunner
+import sympy as sp
 import yaml
 from process_bigraph import allocate_core
 from process_bigraph.composite_spec import substitute_parameters
@@ -44,11 +45,15 @@ TOL = {"rtol": 1e-12, "atol": 1e-14}
 # Pinned BioModels (scripts/fetch_biomodels.py), each chosen for a feature:
 IMPORTABLE = {
     "BIOMD0000000005": "boundary species, assignment rules",
+    "BIOMD0000000051": "large metabolic model; sympy re-normalizes it on reparse",
+    "BIOMD0000000150": "species at ~1e-8 scale; sympy re-normalizes it on reparse",
+    "BIOMD0000000844": "neuron model; sympy re-normalizes it on reparse",
     "BIOMD0000000010": "local parameters, MAPK oscillator",
     "BIOMD0000000012": "hasOnlySubstanceUnits, assignment rules (repressilator)",
     "BIOMD0000000041": "two compartments of different sizes",
     "BIOMD0000000254": "rate rules only, no reactions",
     "BIOMD0000000400": "rate rules, piecewise, time csymbol",
+    "BIOMD0000000678": "periodic time-dependent stimulus (floor of time)",
     "BIOMD0000000700": "function definitions, piecewise",
     "BIOMD0000001000": "initial assignments, function definitions",
 }
@@ -60,8 +65,7 @@ def reference(sbml: str, model, t_end: float, n: int, rtol=TOL["rtol"], atol=TOL
     rr.integrator.relative_tolerance, rr.integrator.absolute_tolerance = rtol, atol
     names = [*model.initial, *model.assignments]
     rr.timeCourseSelections = ["time"] + [
-        "time" if model.kinds[x] == "time"
-        else f"[{model.sbml_ids[x]}]" if model.kinds[x] == "concentration"
+        f"[{model.sbml_ids[x]}]" if model.kinds[x] == "concentration"
         else model.sbml_ids[x] for x in names]
     out = rr.simulate(0, t_end, n)
     return out[:, 0], {x: out[:, j + 1] for j, x in enumerate(names)}
@@ -91,9 +95,17 @@ def test_pinned_files_match_checksums():
         assert hashlib.sha256((DATA / name).read_bytes()).hexdigest() == digest, name
 
 
+# BIOMD150's species live at ~2e-8, where atol = 1e-14 is loose relative to the
+# values. The gap converges with tolerance (rtol 1e-8: 3.2e-3, 1e-10: 3.5e-5,
+# 1e-12: 1.1e-6, 1e-13: 5.1e-8), so it is integrator error, and the tighter
+# solver is the faithful setting for this model.
+SOLVER = {"BIOMD0000000150": {"rtol": 1e-13, "atol": 1e-15}}
+
+
 @pytest.mark.parametrize("model_id", sorted(IMPORTABLE))
 def test_import_matches_roadrunner(model_id):
-    _, ours, ref = run_against_reference(DATA / f"{model_id}.xml")
+    _, ours, ref = run_against_reference(DATA / f"{model_id}.xml",
+                                         solver=SOLVER.get(model_id, TOL))
     name, err = worst_error(ours, ref)
     assert err <= AGREE, f"{model_id} ({IMPORTABLE[model_id]}): {name} off by {err:.2e}"
 
@@ -130,10 +142,69 @@ def test_assignments_are_emitted_and_match():
         assert np.max(np.abs(ours[name] - r)) <= AGREE * max(np.max(np.abs(r)), 1e-10)
 
 
-def test_time_dependent_model_is_autonomized():
+def test_time_dependent_model_uses_the_exact_clock():
+    """SBML time is OdeProcess's model clock, not an integrated state."""
     model = read_sbml(DATA / "BIOMD0000000400.xml")
-    assert model.rhs["time"] == "1" and model.initial["time"] == 0.0
-    assert model.kinds["time"] == "time" and model.notes
+    assert model.time_var == "time"
+    assert "time" not in model.rhs and "time" not in model.initial
+    assert any("time" in e for e in model.rhs.values())
+    assert model.notes
+
+
+# Regression (panel, 2026-10-04): the importer used to integrate d(time)/dt = 1.
+# That clock drifts by ~1e-13, so a piecewise switch that falls on a sample point
+# took the wrong branch: BIOMD400's L/J1/J4 were off by 1.8e-2 at t = 30 with
+# dt = 0.25, and BIOMD678's square-wave stimulus was off by 1.0 of its scale.
+
+@pytest.mark.parametrize("model_id,dt,t_end", [
+    ("BIOMD0000000400", 0.25, 50.0),    # piecewise switch at ts = 30
+    ("BIOMD0000000400", 0.5, 50.0),
+    ("BIOMD0000000678", 0.5, 30.0),     # floor(time/3) square wave, switches on integers
+])
+def test_time_switched_outputs_match_roadrunner(model_id, dt, t_end):
+    model, ours, ref = run_against_reference(DATA / f"{model_id}.xml", t_end=t_end, dt=dt)
+    assert model.assignments, "the time switch is in the assignment outputs"
+    name, err = worst_error(ours, ref)
+    assert err <= AGREE, f"{model_id} dt={dt}: {name} off by {err:.2e}"
+
+
+def test_ode_process_reads_the_exact_clock():
+    """dx/dt = t integrates to t**2/2 across intervals, so the clock is
+    interval start plus solver time."""
+    t, series = run_document(ode_document({"x": "t"}, {}, {"x": 0.0}, interval=0.25,
+                                          time_var="t", **TOL), 3.0)
+    np.testing.assert_allclose(series["x"], t ** 2 / 2, rtol=0, atol=1e-10)
+
+
+def test_time_dependent_model_round_trips_through_sbml_export():
+    path = DATA / "BIOMD0000000400.xml"
+    model = read_sbml(path)
+    sbml = write_sbml(model.rhs, model.params, model.initial, assignments=model.assignments,
+                      model_id="b400", time_var=model.time_var)
+    assert "http://www.sbml.org/sbml/symbols/time" in sbml
+    t, ours = run_document(document(read_sbml(sbml), 0.25, **TOL), 50.0)
+    _, ref = reference(str(path), model, 50.0, len(t))
+    name, err = worst_error(ours, ref)
+    assert err <= AGREE, f"{name} off by {err:.2e}"
+
+
+def test_reparse_normalization_is_not_rejected():
+    """Regression: sympy re-normalizes some expressions when the printed text is
+    parsed (it distributes a leading minus over a sum), so a structural check
+    rejected valid models (BIOMD51, 150, 844). Equivalence is now checked by name
+    binding plus seeded random-point evaluation, and the text emitted is sympy's
+    canonical form."""
+    from viva_expressions.sbml.read import _emit
+    x, y, g = sp.symbols("x y g")
+    assert _emit(-(-x + y) / g, ["x", "y", "g"], "probe") == "(x - y)/g"
+
+
+def test_reparse_still_rejects_a_changed_binding():
+    """A parameter named pi must not be read back as the constant (or vice versa)."""
+    from viva_expressions.sbml.read import _emit
+    x = sp.Symbol("x")
+    with pytest.raises(UnsupportedSBML, match="different names"):
+        _emit(sp.pi * x, ["x", "pi"], "probe")
 
 
 def test_event_model_is_rejected():
@@ -637,3 +708,78 @@ def test_piecewise_composite_runs_under_the_json_emitter(tmp_path, monkeypatch):
     ours = {k: np.array([r[k] for r in rows]) for k in ref}
     name, err = worst_error(ours, ref)
     assert err <= AGREE, f"{name} off by {err:.2e}"
+
+
+# Review of the v0.3.0 clock (2026-10-04). A composite spec can't carry
+# global_time_precision, so its clock is a float running sum. 10 x 0.1 gives
+# 0.9999999999999999, which put floor(time) and time > 3 on the wrong side.
+# Time-dependent specs therefore require an interval that is exact in binary.
+
+def _clock_switches(m):
+    _compartment(m, "c", 1.0)
+    _species(m, "X", "c", conc=1.0)
+    _parameter(m, "k", 0.1)
+    _reaction(m, "r", [("X", 1)], [], "k * X")
+    _variable(m, "step_floor", None)
+    _rule(m, "assignment", "step_floor", "floor(time)")
+    _variable(m, "after3", None)
+    _rule(m, "assignment", "after3", "piecewise(1, time > 3, 0)")
+
+
+def test_time_dependent_spec_refuses_an_inexact_interval():
+    from viva_expressions.sbml.composite import composite_spec
+    model = read_sbml(_l3_model(_clock_switches))
+    with pytest.raises(ValueError, match="exact in binary"):
+        composite_spec(model, "clock", 0.1)
+
+
+def test_time_dependent_spec_switches_exactly(tmp_path, monkeypatch):
+    from process_bigraph import Composite
+    from process_bigraph.composite_spec import CompositeSpec
+    from process_bigraph.emitter import gather_emitter_results
+
+    from viva_expressions.core import build_core
+    from viva_expressions.sbml.composite import composite_spec
+
+    sbml = _l3_model(_clock_switches)
+    model = read_sbml(sbml)
+    monkeypatch.chdir(tmp_path)    # JSONEmitter writes into the working directory
+    path = tmp_path / "clock.composite.yaml"
+    path.write_text(yaml.safe_dump(composite_spec(model, "clock", 0.125)), encoding="utf-8")
+    composite = Composite(CompositeSpec.from_file(path).to_document(
+        overrides={"rtol": 1e-12, "atol": 1e-14}), core=build_core())
+    composite.run(6.0)
+    rows = gather_emitter_results(composite)[("emitter",)]
+    assert [r["time"] for r in rows] == [0.125 * i for i in range(49)]
+    _, ref = reference(sbml, model, 6.0, len(rows))
+    for name in ("step_floor", "after3"):
+        assert [r[name] for r in rows] == list(ref[name]), name
+
+
+def test_parameter_shadowing_a_numpy_name_is_renamed():
+    """A parameter named like a numpy function the compiled code calls (select,
+    for a Piecewise) is renamed, and the model runs and matches roadrunner."""
+    def build(m):
+        _compartment(m, "c", 1.0)
+        _species(m, "X", "c", conc=1.0)
+        _parameter(m, "select", 0.3)
+        _parameter(m, "on", 1.0)
+        # The Piecewise compiles to numpy.select. Its condition is on a constant,
+        # so there's no discontinuity mid-run, which LSODA can stall on.
+        _reaction(m, "r", [("X", 1)], [], "piecewise(select * X, on > 0, 0.1 * X)")
+    sbml = _l3_model(build)
+    model = assert_matches_roadrunner(sbml)
+    assert model.sbml_ids["select_"] == "select"
+
+
+@pytest.mark.parametrize("a,b", [
+    ("Piecewise((1, t > 30), (0, True))", "Piecewise((1, t > 3), (0, True))"),
+    ("Abs(x)", "x"),
+    ("log(x - 5)", "log(x - 6)"),
+])
+def test_equivalence_check_separates_near_misses(a, b):
+    """The sample points include each constant's neighbourhood and negative values,
+    so branch thresholds, Abs and shifted domains are told apart."""
+    from viva_expressions.expressions import parse
+    from viva_expressions.sbml.read import _same_function
+    assert not _same_function(parse(a, ["t", "x"]), parse(b, ["t", "x"]))

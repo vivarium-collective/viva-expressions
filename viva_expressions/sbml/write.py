@@ -49,18 +49,20 @@ def write_sbml(
     inputs: dict[str, float] | None = None,
     assignments: dict[str, str] | None = None,
     model_id: str = "model",
+    time_var: str | None = None,
 ) -> str:
     """SBML text whose rate rules are ``d(state)/dt = rhs[state]``.
 
     ``inputs`` (OdeProcess's exogenous variables, held constant per interval)
     are exported at their given values as constants, so the SBML model is the
-    system with its inputs held at those values.
+    system with its inputs held at those values. ``time_var`` (OdeProcess's
+    model-time symbol) is exported as SBML's ``time`` csymbol.
     """
     inputs, assignments = inputs or {}, assignments or {}
     if set(rhs) != set(initial):
         raise ValueError(f"rhs and initial must name the same states: "
                          f"{sorted(set(rhs) ^ set(initial))}")
-    allowed = [*initial, *inputs, *params]
+    allowed = [*initial, *inputs, *params, *([time_var] if time_var else [])]
     doc = libsbml.SBMLDocument(3, 2)
     model = doc.createModel()
     model.setId(_sid(model_id))
@@ -74,12 +76,12 @@ def write_sbml(
         _parameter(model, name, value, constant=False)
         rule = model.createRateRule()
         rule.setVariable(name)
-        rule.setMath(to_ast(parse(rhs[name], allowed)))
+        rule.setMath(to_ast(parse(rhs[name], allowed), time_var))
     for name, expr in assignments.items():
         _parameter(model, name, None, constant=False)
         rule = model.createAssignmentRule()
         rule.setVariable(name)
-        rule.setMath(to_ast(parse(expr, allowed + list(assignments))))
+        rule.setMath(to_ast(parse(expr, allowed + list(assignments)), time_var))
     _validate(doc)
     return libsbml.writeSBMLToString(doc)
 
@@ -134,7 +136,8 @@ def ode_from_state(state: dict) -> dict:
     return {"rhs": dict(cfg["rhs"]), "params": params,
             "initial": {v: value[v] for v in cfg["state_vars"]},
             "inputs": {v: value[v] for v in cfg.get("input_vars", [])},
-            "assignments": assignments}
+            "assignments": assignments,
+            "time_var": cfg.get("time_var") or None}
 
 
 def _walk(scope: dict):

@@ -11,4 +11,4 @@ __all__ = ["OdeModel", "UnsupportedSBML", "document", "ode_from_state",
 def document(model: OdeModel, interval: float = 0.1, **solver) -> dict:
     """A runnable process-bigraph document for an imported model."""
     return ode_document(model.rhs, model.params, model.initial, interval=interval,
-                        assignments=model.assignments, **solver)
+                        assignments=model.assignments, time_var=model.time_var, **solver)

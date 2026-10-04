@@ -17,6 +17,7 @@ def ode_document(
     inputs: dict[str, float] | None = None,
     interval: float = 0.1,
     assignments: dict[str, str] | None = None,
+    time_var: str | None = None,
     **solver,
 ) -> dict:
     """A self-contained, JSON-serializable document running one OdeProcess.
@@ -26,7 +27,9 @@ def ode_document(
     emitted together with ``global_time``. ``assignments`` are derived
     quantities (``{name: expression}`` over states, inputs, parameters and each
     other), computed by a ``MathExpressionStep`` after every update and emitted
-    too. ``global_time_precision`` rounds
+    too. ``time_var`` names the symbol that stands for model time in ``rhs`` and
+    ``assignments``; it is read from ``global_time`` exactly, never integrated.
+    ``global_time_precision`` rounds
     accumulated time to the interval's decimals, so a run of ``t_end`` lands on
     exactly ``t_end / interval`` steps instead of losing the last one to float drift.
     """
@@ -37,6 +40,7 @@ def ode_document(
     if assignments:
         needs = sorted(set().union(*map(identifiers, assignments.values()))
                        - set(assignments) - set(params) - CONSTANTS)
+        clock = {time_var: ["global_time"]} if time_var else {}
         derived = {**{k: 0.0 for k in assignments}, "assignments": {
             "_type": "step",
             "address": MATH_ADDRESS,
@@ -44,7 +48,7 @@ def ode_document(
                 "expressions": [{"out": k, "expr": e} for k, e in assignments.items()],
                 "params": {k: float(v) for k, v in params.items()},
             },
-            "inputs": {v: [v] for v in needs},
+            "inputs": {v: clock.get(v, [v]) for v in needs},
             "outputs": {k: [k] for k in assignments},
         }}
     return {"global_time_precision": interval_time_precision(float(interval)), "state": {
@@ -58,10 +62,12 @@ def ode_document(
                 "params": {k: float(v) for k, v in params.items()},
                 "state_vars": state_vars,
                 "input_vars": input_vars,
+                **({"time_var": time_var} if time_var else {}),
                 **solver,
             },
             "interval": float(interval),
-            "inputs": {v: [v] for v in ports},
+            "inputs": {**{v: [v] for v in ports},
+                       **({time_var: ["global_time"]} if time_var else {})},
             "outputs": {v: [v] for v in state_vars},
         },
         **derived,
