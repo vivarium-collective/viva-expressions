@@ -1,7 +1,7 @@
 name: biomd0000000400_ode
 description: 'SBML model ''Cooling2007_IP3transients_CardiacMyocyte'' imported into
-  OdeProcess. Source: BIOMD0000000400. time-dependent model: added state ''time''
-  with dtime/dt = 1 from time = 0'
+  OdeProcess. Source: BIOMD0000000400. time-dependent model: ''time'' is the exact
+  model clock (global_time), starting at 0'
 tags:
 - ode
 - expressions
@@ -191,10 +191,6 @@ parameters:
     type: float
     default: 0.1
     description: Initial value of Ca (concentration).
-  time_0:
-    type: float
-    default: 0.0
-    description: Initial value of time (time).
   method:
     type: string
     default: LSODA
@@ -235,7 +231,6 @@ state:
         P: -Ca*P*kf8 - Gt*P*kf9 + Pc*kr8 + Pg*kf13 + Pg*kr9
         Pg: -Ca*Pg*kf11 + Gt*P*kf9 + Kd11*Pcg*kf11 - Pg*kf13 - Pg*kr9
         Ca: -0.0016605778811026237*Rpc*(Ca*P*kf8 + Ca*Pg*kf11 - Kd11*Pcg*kf11 - Pc*kr8)
-        time: '1'
       params:
         Compartment: ${Compartment}
         Ls: ${Ls}
@@ -283,8 +278,8 @@ state:
       - P
       - Pg
       - Ca
-      - time
       input_vars: []
+      time_var: time
       method: ${method}
       rtol: ${rtol}
       atol: ${atol}
@@ -330,8 +325,7 @@ state:
       - stores
       - Ca
       time:
-      - stores
-      - time
+      - global_time
     outputs:
       Gd:
       - stores
@@ -372,9 +366,6 @@ state:
       Ca:
       - stores
       - Ca
-      time:
-      - stores
-      - time
   stores:
     Gd: ${Gd_0}
     Gt: ${Gt_0}
@@ -389,7 +380,6 @@ state:
     P: ${P_0}
     Pg: ${Pg_0}
     Ca: ${Ca_0}
-    time: ${time_0}
     Cc: 0.0
     Cp: 0.0
     Cpc: 0.0
@@ -539,8 +529,7 @@ state:
       - stores
       - Rlg
       time:
-      - stores
-      - time
+      - global_time
     outputs:
       Cc:
       - stores
@@ -632,7 +621,6 @@ state:
         P: float
         Pg: float
         Ca: float
-        time: float
         Cc: float
         Cp: float
         Cpc: float
@@ -657,7 +645,7 @@ state:
         J4: float
         J5: float
         J6: float
-        time_: float
+        time: float
     inputs:
       Gd:
       - stores
@@ -698,9 +686,6 @@ state:
       Ca:
       - stores
       - Ca
-      time:
-      - stores
-      - time
       Cc:
       - stores
       - Cc
@@ -773,5 +758,5 @@ state:
       J6:
       - stores
       - J6
-      time_:
+      time:
       - global_time

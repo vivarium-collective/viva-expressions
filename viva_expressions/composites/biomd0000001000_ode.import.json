@@ -257,5 +257,6 @@
     "kout_deg_Ligand_100pM": "kout_deg_Ligand_100pM",
     "mRNA_prod_C3": "mRNA_prod_C3"
   },
-  "notes": []
+  "notes": [],
+  "time_var": null
 }

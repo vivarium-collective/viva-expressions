@@ -145,33 +145,91 @@ variants:
   base_composite: biomd12_ode
   parameter_overrides:
     eff: 20.02
+- name: biomd5_ode_ctrl_v2
+  base_composite: biomd5_ode
+  parameter_overrides:
+    Reaction3_k9: 1010.0
+    rtol: 1.0e-12
+    atol: 1.0e-14
+- name: biomd10_ode_ctrl_v2
+  base_composite: biomd10_ode
+  parameter_overrides:
+    J7_KK8: 15.15
+    rtol: 1.0e-12
+    atol: 1.0e-14
+- name: biomd12_ode_ctrl_v2
+  base_composite: biomd12_ode
+  parameter_overrides:
+    eff: 20.2
+    rtol: 1.0e-12
+    atol: 1.0e-14
+- name: biomd41_ode_ctrl_v2
+  base_composite: biomd41_ode
+  parameter_overrides:
+    MMCK_Kib_3: 35249.0
+    rtol: 1.0e-12
+    atol: 1.0e-14
+- name: biomd254_ode_ctrl_v2
+  base_composite: biomd254_ode
+  parameter_overrides:
+    km: 13.13
+    rtol: 1.0e-12
+    atol: 1.0e-14
+- name: biomd400_ode_ctrl_v2
+  base_composite: biomd400_ode
+  parameter_overrides:
+    kr8: 0.016867
+    rtol: 1.0e-12
+    atol: 1.0e-14
+- name: biomd700_ode_ctrl_v2
+  base_composite: biomd700_ode
+  parameter_overrides:
+    kSyP53: 0.0505
+    rtol: 1.0e-12
+    atol: 1.0e-14
+- name: biomd1000_ode_ctrl_v2
+  base_composite: biomd1000_ode
+  parameter_overrides:
+    index_kf_homotrimer: 4.5306498460909275
+    rtol: 1.0e-12
+    atol: 1.0e-14
 title: OdeProcess (SBML import) vs viva-tellurium on 8 BioModels
 investigation: simulator-benchmarking
-question: >
-  Does a BioModels SBML model, imported into the expression layer and integrated by OdeProcess, reproduce
-  viva-tellurium (libroadrunner, CVODE) running the original SBML file, and at what computational cost?
-hypothesis: >
-  Pre-registered before any run. (H1) At tight tolerances (rtol 1e-12, atol 1e-14 on both sides) every
-  compared variable of all 8 models agrees within 1e-6 of its scale, measured as max over time of |OdeProcess
-  - Tellurium| / max|Tellurium| after converting Tellurium's species amounts into the importer's units.
-  (H2) At the default tolerances (rtol 1e-8, atol 1e-10) the disagreement is integrator error, so it is
-  never smaller than at tight tolerances. (H3) Negative control: changing one parameter by 0.1% (BIOMD12
-  eff, 20 -> 20.02) pushes the disagreement above 1e-6, so the check can detect a small modelling difference.
-  Cost is measured (wall time per run), not hypothesised.
-objective: >
-  Run each of 8 pinned BioModels two ways, as the /sbml-system import in OdeProcess and as the original
-  SBML in TelluriumProcess, on the same 0.5-unit interval over t = 0..100 (the workbench run length `steps:
-  100` is a time horizon; 201 samples), at default and tight
-  tolerances. Then measure the trajectory agreement and the run cost.
-description: >
-  The models (BIOMD5, 10, 12, 41, 254, 400, 700, 1000) were chosen to cover distinct SBML features: boundary
-  species, local parameters, hasOnlySubstanceUnits, two compartments of different sizes, rate rules only,
-  a time-dependent piecewise model, function definitions, and initial assignments. Their files are pinned
-  by SHA-256 under the investigation's inputs/models. The Tellurium side reports species amounts (roadrunner's
-  bare-id selection), and the OdeProcess side integrates each species in its symbol's units, a concentration
-  unless hasOnlySubstanceUnits. The comparison converts with the compartment sizes from the SBML, so a
-  units mismatch cannot pose as disagreement. Both simulators restart integration at each interval from
-  the previous state.
+question: 'Does a BioModels SBML model, imported into the expression layer and integrated
+  by OdeProcess, reproduce viva-tellurium (libroadrunner, CVODE) running the original
+  SBML file, and at what computational cost?
+
+  '
+hypothesis: 'Pre-registered before any run. (H1) At tight tolerances (rtol 1e-12,
+  atol 1e-14 on both sides) every compared variable of all 8 models agrees within
+  1e-6 of its scale, measured as max over time of |OdeProcess - Tellurium| / max|Tellurium|
+  after converting Tellurium''s species amounts into the importer''s units. (H2) At
+  the default tolerances (rtol 1e-8, atol 1e-10) the disagreement is integrator error,
+  so it is never smaller than at tight tolerances. (H3) Negative control: changing
+  one parameter by 0.1% (BIOMD12 eff, 20 -> 20.02) pushes the disagreement above 1e-6,
+  so the check can detect a small modelling difference. Cost is measured (wall time
+  per run), not hypothesised.
+
+  '
+objective: 'Run each of 8 pinned BioModels two ways, as the /sbml-system import in
+  OdeProcess and as the original SBML in TelluriumProcess, on the same 0.5-unit interval
+  over t = 0..100 (the workbench run length `steps: 100` is a time horizon; 201 samples),
+  at default and tight tolerances. Then measure the trajectory agreement and the run
+  cost.
+
+  '
+description: 'The models (BIOMD5, 10, 12, 41, 254, 400, 700, 1000) were chosen to
+  cover distinct SBML features: boundary species, local parameters, hasOnlySubstanceUnits,
+  two compartments of different sizes, rate rules only, a time-dependent piecewise
+  model, function definitions, and initial assignments. Their files are pinned by
+  SHA-256 under the investigation''s inputs/models. The Tellurium side reports species
+  amounts (roadrunner''s bare-id selection), and the OdeProcess side integrates each
+  species in its symbol''s units, a concentration unless hasOnlySubstanceUnits. The
+  comparison converts with the compartment sizes from the SBML, so a units mismatch
+  cannot pose as disagreement. Both simulators restart integration at each interval
+  from the previous state.
+
+  '
 runs:
 - name: viva_expressions.composites.biomd0000000012_ode__1791126445__2a69fc
   status: completed
@@ -1107,82 +1165,93 @@ pipeline_gate:
     blocked_by: []
     evaluated_by: code
     diverges_from_authored: false
-claim: BioModels imported with /sbml-system and integrated by OdeProcess reproduce libroadrunner on 
-  the original SBML within 1e-6 of scale for all 8 models; the remaining gap is integrator error.
+claim: BioModels imported with /sbml-system and integrated by OdeProcess reproduce
+  libroadrunner on the original SBML within 1e-6 of scale for all 8 models; the remaining
+  gap is integrator error.
 findings:
 - id: h1-tight-agreement
   kind: methodological
   status: confirms
-  statement: >
-    H1 holds. At rtol 1e-12 / atol 1e-14 every compared state of all 8 models agrees with libroadrunner
-    within 1e-6 of its scale. Worst per model: BIOMD5 4.6e-9, 10 1.6e-10, 12 2.8e-10, 41 9.6e-12, 254
-    1.3e-10, 400 5.5e-11, 700 9.9e-11, 1000 2.4e-10.
+  statement: 'H1 holds. At rtol 1e-12 / atol 1e-14 every compared state of all 8 models
+    agrees with libroadrunner within 1e-6 of its scale. Worst per model: BIOMD5 4.6e-9,
+    10 1.6e-10, 12 2.8e-10, 41 9.6e-12, 254 1.3e-10, 400 5.5e-11, 700 9.9e-11, 1000
+    2.4e-10.
+
+    '
   evidence:
     from_test: tests/test_agreement.py
     workbench: vivarium-workbench 3e5edbe8
-    simulators: viva-expressions 0.2.3 OdeProcess (scipy LSODA); viva-tellurium 0.1.1 / tellurium 
-      2.2.13.1 / libroadrunner 2.10.0 (CVODE)
+    simulators: viva-expressions 0.2.3 OdeProcess (scipy LSODA); viva-tellurium 0.1.1
+      / tellurium 2.2.13.1 / libroadrunner 2.10.0 (CVODE)
     platform: macOS arm64, Python 3.12
     observed: worst 4.62e-09 (BIOMD5, M)
     test: 'test_h1_tight_tolerance_agreement[*]: 8/8 passed'
 - id: h2-integrator-error
   kind: methodological
   status: confirms
-  statement: >
-    H2 holds. At the default tolerances (rtol 1e-8, atol 1e-10) the worst disagreement is 2.5e-8 to 1.3e-5
-    (BIOMD5, an oscillator), and it always exceeds the tight-tolerance value by 2 to 4 orders of magnitude.
-    That is integrator error, not a semantic difference. Default-tolerance agreement is therefore about
-    1e-5 for oscillators, not 1e-8.
+  statement: 'H2 holds. At the default tolerances (rtol 1e-8, atol 1e-10) the worst
+    disagreement is 2.5e-8 to 1.3e-5 (BIOMD5, an oscillator), and it always exceeds
+    the tight-tolerance value by 2 to 4 orders of magnitude. That is integrator error,
+    not a semantic difference. Default-tolerance agreement is therefore about 1e-5
+    for oscillators, not 1e-8.
+
+    '
   evidence:
     from_test: tests/test_agreement.py
     workbench: vivarium-workbench 3e5edbe8
-    simulators: viva-expressions 0.2.3 OdeProcess (scipy LSODA); viva-tellurium 0.1.1 / tellurium 
-      2.2.13.1 / libroadrunner 2.10.0 (CVODE)
+    simulators: viva-expressions 0.2.3 OdeProcess (scipy LSODA); viva-tellurium 0.1.1
+      / tellurium 2.2.13.1 / libroadrunner 2.10.0 (CVODE)
     platform: macOS arm64, Python 3.12
     observed: default worst 1.28e-05 (BIOMD5) vs tight 4.62e-09
     test: 'test_h2_default_disagreement_is_integrator_error[*]: 8/8 passed'
 - id: h3-negative-control
   kind: methodological
   status: confirms
-  statement: >
-    H3 holds. Raising one BIOMD12 parameter by 0.1% (eff 20 -> 20.02) produces a 1.09e-3 disagreement,
-    about 1000 times the threshold. A modelling difference this small is detected.
+  statement: 'H3 holds. Raising one BIOMD12 parameter by 0.1% (eff 20 -> 20.02) produces
+    a 1.09e-3 disagreement, about 1000 times the threshold. A modelling difference
+    this small is detected.
+
+    '
   evidence:
     from_test: tests/test_agreement.py
     workbench: vivarium-workbench 3e5edbe8
-    simulators: viva-expressions 0.2.3 OdeProcess (scipy LSODA); viva-tellurium 0.1.1 / tellurium 
-      2.2.13.1 / libroadrunner 2.10.0 (CVODE)
+    simulators: viva-expressions 0.2.3 OdeProcess (scipy LSODA); viva-tellurium 0.1.1
+      / tellurium 2.2.13.1 / libroadrunner 2.10.0 (CVODE)
     platform: macOS arm64, Python 3.12
     observed: 1.09e-03 (PY)
     test: 'test_h3_negative_control_is_detected: passed'
 - id: cost-startup-dominated
   kind: methodological
   status: novel
-  statement: >
-    Cost is inconclusive. The wall time per workbench run is 1.6 to 2.8 s for OdeProcess and 2.1 to 3.8
-    s for Tellurium. These are single runs dominated by subprocess start-up, imports and model loading,
-    so they don't measure integration cost.
+  statement: 'Cost is inconclusive. The wall time per workbench run is 1.6 to 2.8
+    s for OdeProcess and 2.1 to 3.8 s for Tellurium. These are single runs dominated
+    by subprocess start-up, imports and model loading, so they don''t measure integration
+    cost.
+
+    '
   evidence:
     from_test: tests/test_agreement.py
     workbench: vivarium-workbench 3e5edbe8
-    simulators: viva-expressions 0.2.3 OdeProcess (scipy LSODA); viva-tellurium 0.1.1 / tellurium 
-      2.2.13.1 / libroadrunner 2.10.0 (CVODE)
+    simulators: viva-expressions 0.2.3 OdeProcess (scipy LSODA); viva-tellurium 0.1.1
+      / tellurium 2.2.13.1 / libroadrunner 2.10.0 (CVODE)
     platform: macOS arm64, Python 3.12
     observed: runs_meta completed_at - started_at, one run per entry
 limitations:
-- Results hold for libroadrunner 2.10.0 / tellurium 2.2.13.1 on macOS arm64. libroadrunner ships 
-  Linux aarch64 wheels only for 2.7.0, so a Linux arm64 environment would run 2.7.0. That version is
-  not tested here, and no linux/arm64 container image exists.
-- The comparison covers t = 0.5..100. TelluriumProcess's first emitted row (t = 0) has empty maps 
-  (viva-tellurium#7), so t = 0 is compared only by the importer's tests (initial values).
-- Only floating-species, rate-rule-parameter and time states are compared. Assignment-rule outputs 
-  are compared by the importer's own tests (tests/test_sbml.py), not here.
-- 8 models, chosen for SBML-feature coverage, not sampled from the corpus. Agreement on these does 
-  not imply agreement for every BioModel. Models with events, delays or algebraic rules are rejected
-  by the importer and are out of scope.
-- 'Cost is not measured: one run per entry, and wall time includes process start-up and imports.'
-- Both simulators restart integration at each 0.5 interval. Agreement over a single uninterrupted 
-  integration is not tested here.
+- Results hold for libroadrunner 2.10.0 / tellurium 2.2.13.1 on macOS arm64. libroadrunner
+  ships Linux aarch64 wheels only for 2.7.0, so a Linux arm64 environment would run
+  2.7.0. That version is not tested here, and no linux/arm64 container image exists.
+- The comparison covers t = 0.5..100. TelluriumProcess's first emitted row (t = 0)
+  has empty maps (viva-tellurium#7), so t = 0 is compared only by the importer's tests
+  (initial values).
+- Only floating-species, rate-rule-parameter and time states are compared. Assignment-rule
+  outputs are compared by the importer's own tests (tests/test_sbml.py), not here.
+- 8 models, chosen for SBML-feature coverage, not sampled from the corpus. Agreement
+  on these does not imply agreement for every BioModel. Models with events, delays
+  or algebraic rules are rejected by the importer and are out of scope.
+- 'Cost is not measured: one run per entry, and wall time includes process start-up
+  and imports.'
+- Both simulators restart integration at each 0.5 interval. Agreement over a single
+  uninterrupted integration is not tested here.
 conclusion_verdicts:
   regression_compatibility:
     result: PASS
@@ -1194,9 +1263,10 @@ report:
   verdict: passing-with-caveats
   confidence: high
   evidence_quality: regression
-  main_insight: An SBML model imported into the expression layer integrates to libroadrunner's 
+  main_insight: An SBML model imported into the expression layer integrates to libroadrunner's
     trajectory up to integrator error.
-  caveat: libroadrunner 2.10.0 on macOS arm64 only; cost not measured; t = 0 not compared here.
+  caveat: libroadrunner 2.10.0 on macOS arm64 only; cost not measured; t = 0 not compared
+    here.
   key_metrics:
   - label: H1 worst tight-tolerance error
     value: 4.6e-9 (BIOMD5)
@@ -1207,89 +1277,102 @@ report:
   - label: H3 negative control
     value: 1.09e-3 > 1e-6
     status: pass
-conclusion: >
-  All three pre-registered hypotheses hold on 8 BioModels: an SBML model imported with /sbml-system and
-  run by OdeProcess reproduces viva-tellurium (libroadrunner) on the original SBML within 1e-6 of scale,
-  and the default-tolerance gap (up to 1.3e-5) is integrator error. A 0.1% parameter change is detected.
-  Caveats: libroadrunner 2.10.0 on macOS arm64 only (Linux arm64 would need 2.7.0, untested), cost not
-  measured, t = 0 not compared here.
+conclusion: 'All three pre-registered hypotheses hold on 8 BioModels: an SBML model
+  imported with /sbml-system and run by OdeProcess reproduces viva-tellurium (libroadrunner)
+  on the original SBML within 1e-6 of scale, and the default-tolerance gap (up to
+  1.3e-5) is integrator error. A 0.1% parameter change is detected. Caveats: libroadrunner
+  2.10.0 on macOS arm64 only (Linux arm64 would need 2.7.0, untested), cost not measured,
+  t = 0 not compared here.
+
+  '
 discovery_implications:
   resolved_uncertainties:
-  - The importer's SBML semantics match libroadrunner's on the 8 feature-covering models, under 
-    workbench runs (the importer's tests had already shown this in isolation).
+  - The importer's SBML semantics match libroadrunner's on the 8 feature-covering
+    models, under workbench runs (the importer's tests had already shown this in isolation).
   remaining_uncertainties:
   - Agreement on a corpus sample, not feature-chosen models.
   - Integration cost, separated from process start-up.
   - libroadrunner 2.7.0 (the Linux arm64 build).
   followup_study_proposals:
   - title: bench-copasi
-    motivation: The same 8 models against viva-copasi tests the second comparator in the 
-      investigation's one-study-per-comparator plan.
+    motivation: The same 8 models against viva-copasi tests the second comparator
+      in the investigation's one-study-per-comparator plan.
   - title: bench-cost
-    motivation: In-process timing (best of N, load and integration measured separately) is needed 
-      before any cost claim; workbench wall time is dominated by start-up.
+    motivation: In-process timing (best of N, load and integration measured separately)
+      is needed before any cost claim; workbench wall time is dominated by start-up.
 preregistration:
   v1:
     registered: '2026-10-04'
     commit: 8488a1e
     text: the `hypothesis` field (unchanged)
-    verdict: H1, H2 and H3 held on the first pass (b06fd83). Kept as recorded; see amendments for 
-      its defects.
+    verdict: H1, H2 and H3 held on the first pass (b06fd83). Kept as recorded; see
+      amendments for its defects.
   v2:
     registered: '2026-10-04'
-    before_runs: Written before any v2 run (the second pass, after viva-expressions v0.3.0's exact 
-      clock and reparse fixes).
-    compared_set: >
-      Every OdeProcess state, PLUS every assignment-rule output that TelluriumProcess emits in its `parameters`
-      map. (v1 excluded outputs, which hid the time-clock bug: BIOMD400 outputs were off by 1.8e-2.) Boundary-species
-      outputs that Tellurium doesn't emit stay excluded, as stated.
-    metric: 'As in v1: per variable, max_t |ode - tel| / max_t |tel| (scale floor 1e-10); any non-finite
-      value fails.'
-    H1: >
-      Tight-tolerance agreement (rtol 1e-12 / atol 1e-14) within tau_m for every model: tau = 1e-8, except
-      BIOMD5, where tau = 1e-7. Rationale: v1's 1e-6 had low power (adversarial panel: 9 of 199 parameters
-      could change by 0.1% undetected). The observed tight errors were <= 4.6e-9, and the solvers' own
-      floor is ~1e-8 (each solver at rtol 1e-12 vs 1e-13: LSODA 9.4e-9, CVODE 5.9e-9 on BIOMD5). tau sits
-      a factor 10 above each floor.
-    H2: >
-      Integrator error, asserted as convergence: for every model, log10(worst default / worst tight) >=
-      2.5. v1's `default >= tight` passed even with a planted semantic error (the ratio collapsed to 3-21x),
-      while the first pass observed 3.4-4.4 orders.
-    H3: >
-      Negative controls that span sensitivity: for each model, rank its global parameters by roadrunner
-      sensitivity on the ORIGINAL SBML, i.e. the oracle side, independent of the comparison (sensitivity
-      = metric of the trajectory under a +1e-3 relative change, divided by 1e-3), and take the median-sensitivity
-      parameter p_m. Perturbing p_m by +1% in the OdeProcess import must exceed tau_m. The procedure is
-      analysis/select_controls.py, run and committed before the v2 runs. The v1 control (BIOMD12 eff +0.1%)
-      is kept.
-    t0: t = 0 is compared if viva-tellurium#7 (empty first row) is fixed by the time of the re-run; 
-      otherwise it stays excluded and is stated as such.
-    environment: All v2 runs come from ONE commit and lock. Per-run provenance (workspace commit, 
-      lock hash, env_id) is taken from runs_meta.manifest_json, not written by hand.
+    before_runs: Written before any v2 run (the second pass, after viva-expressions
+      v0.3.0's exact clock and reparse fixes).
+    compared_set: 'Every OdeProcess state, PLUS every assignment-rule output that
+      TelluriumProcess emits in its `parameters` map. (v1 excluded outputs, which
+      hid the time-clock bug: BIOMD400 outputs were off by 1.8e-2.) Boundary-species
+      outputs that Tellurium doesn''t emit stay excluded, as stated.
+
+      '
+    metric: 'As in v1: per variable, max_t |ode - tel| / max_t |tel| (scale floor
+      1e-10); any non-finite value fails.'
+    H1: 'Tight-tolerance agreement (rtol 1e-12 / atol 1e-14) within tau_m for every
+      model: tau = 1e-8, except BIOMD5, where tau = 1e-7. Rationale: v1''s 1e-6 had
+      low power (adversarial panel: 9 of 199 parameters could change by 0.1% undetected).
+      The observed tight errors were <= 4.6e-9, and the solvers'' own floor is ~1e-8
+      (each solver at rtol 1e-12 vs 1e-13: LSODA 9.4e-9, CVODE 5.9e-9 on BIOMD5).
+      tau sits a factor 10 above each floor.
+
+      '
+    H2: 'Integrator error, asserted as convergence: for every model, log10(worst default
+      / worst tight) >= 2.5. v1''s `default >= tight` passed even with a planted semantic
+      error (the ratio collapsed to 3-21x), while the first pass observed 3.4-4.4
+      orders.
+
+      '
+    H3: 'Negative controls that span sensitivity: for each model, rank its global
+      parameters by roadrunner sensitivity on the ORIGINAL SBML, i.e. the oracle side,
+      independent of the comparison (sensitivity = metric of the trajectory under
+      a +1e-3 relative change, divided by 1e-3), and take the median-sensitivity parameter
+      p_m. Perturbing p_m by +1% in the OdeProcess import must exceed tau_m. The procedure
+      is analysis/select_controls.py, run and committed before the v2 runs. The v1
+      control (BIOMD12 eff +0.1%) is kept.
+
+      '
+    t0: t = 0 is compared if viva-tellurium#7 (empty first row) is fixed by the time
+      of the re-run; otherwise it stays excluded and is stated as such.
+    environment: All v2 runs come from ONE commit and lock. Per-run provenance (workspace
+      commit, lock hash, env_id) is taken from runs_meta.manifest_json, not written
+      by hand.
 amendments:
 - date: '2026-10-04'
   what: objective horizon
-  detail: "t = 0..50 was corrected to t = 0..100 after the runs. The workbench `steps: 100` is a time
-    horizon (201 samples at 0.5). H1-H3 don't depend on the horizon."
+  detail: 't = 0..50 was corrected to t = 0..100 after the runs. The workbench `steps:
+    100` is a time horizon (201 samples at 0.5). H1-H3 don''t depend on the horizon.'
 - date: '2026-10-04'
   what: analysis choices made after the data (v1)
-  detail: tests/test_agreement.py (4fa850c) was written after 38 of the 39 first-pass runs. Its t = 
-    0 drop, compared-variable set and 1e-10 scale floor are therefore post-hoc. The thresholds and 
-    hypothesis text are unchanged since 8488a1e.
+  detail: tests/test_agreement.py (4fa850c) was written after 38 of the 39 first-pass
+    runs. Its t = 0 drop, compared-variable set and 1e-10 scale floor are therefore
+    post-hoc. The thresholds and hypothesis text are unchanged since 8488a1e.
 - date: '2026-10-04'
   what: provenance correction (v1)
-  detail: The first-pass findings named 'vivarium-workbench 3e5edbe8 / viva-expressions 0.2.3' for 
-    all runs. The runs_meta manifests show 30 runs at workspace 526a268 (workbench 8f322e7f, package
-    0.2.1), the 2 BIOMD400 ODE runs at 8ef5797, and only biomd400_tellurium_tight at ce6387d 
-    (workbench 3e5edbe8). Those strings were wrong.
+  detail: The first-pass findings named 'vivarium-workbench 3e5edbe8 / viva-expressions
+    0.2.3' for all runs. The runs_meta manifests show 30 runs at workspace 526a268
+    (workbench 8f322e7f, package 0.2.1), the 2 BIOMD400 ODE runs at 8ef5797, and only
+    biomd400_tellurium_tight at ce6387d (workbench 3e5edbe8). Those strings were wrong.
 - date: '2026-10-04'
   what: defective run records (v1)
-  detail: 'runs.db keeps 6 extra records: biomd400_ode x2 and biomd400_ode_tight x1, marked completed
-    but holding only t = 0 (the MathExpressionStep ndarray bug, fixed in 0.2.2), and biomd400_tellurium_tight
-    x3, marked failed but holding 201 good rows (the workbench stdout-parse bug, fixed in #1273). Analysis
-    used the latest completed record per label.'
+  detail: 'runs.db keeps 6 extra records: biomd400_ode x2 and biomd400_ode_tight x1,
+    marked completed but holding only t = 0 (the MathExpressionStep ndarray bug, fixed
+    in 0.2.2), and biomd400_tellurium_tight x3, marked failed but holding 201 good
+    rows (the workbench stdout-parse bug, fixed in #1273). Analysis used the latest
+    completed record per label.'
 - date: '2026-10-04'
   what: first pass superseded
-  detail: "The adversarial panel found an importer clock bug: the integrated time drifted, so time-switched
-    outputs took the wrong branch. That is fixed in viva-expressions v0.3.0. The first pass stays in history,
-    and the v2 re-run, from one environment, carries the study's evidence."
+  detail: 'The adversarial panel found an importer clock bug: the integrated time
+    drifted, so time-switched outputs took the wrong branch. That is fixed in viva-expressions
+    v0.3.0. The first pass stays in history, and the v2 re-run, from one environment,
+    carries the study''s evidence.'

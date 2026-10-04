@@ -13,8 +13,7 @@
     "Pcg": "Ca*Pg*kf11 + Gt*Pc*kf10 - Kd11*Pcg*kf11 - Pcg*kf12 - Pcg*kr10",
     "P": "-Ca*P*kf8 - Gt*P*kf9 + Pc*kr8 + Pg*kf13 + Pg*kr9",
     "Pg": "-Ca*Pg*kf11 + Gt*P*kf9 + Kd11*Pcg*kf11 - Pg*kf13 - Pg*kr9",
-    "Ca": "-0.0016605778811026237*Rpc*(Ca*P*kf8 + Ca*Pg*kf11 - Kd11*Pcg*kf11 - Pc*kr8)",
-    "time": "1"
+    "Ca": "-0.0016605778811026237*Rpc*(Ca*P*kf8 + Ca*Pg*kf11 - Kd11*Pcg*kf11 - Pc*kr8)"
   },
   "params": {
     "Compartment": 1.0,
@@ -63,8 +62,7 @@
     "Pcg": 0.0,
     "P": 90.9,
     "Pg": 0.0,
-    "Ca": 0.1,
-    "time": 0.0
+    "Ca": 0.1
   },
   "assignments": {
     "Cc": "0.0016605778811026237/Vc",
@@ -161,8 +159,7 @@
     "Cc": "parameter",
     "Cp": "parameter",
     "Vc": "parameter",
-    "Rpc": "parameter",
-    "time": "time"
+    "Rpc": "parameter"
   },
   "sbml_ids": {
     "Gd": "Gd",
@@ -178,7 +175,6 @@
     "P": "P",
     "Pg": "Pg",
     "Ca": "Ca",
-    "time": "time",
     "Cc": "Cc",
     "Cp": "Cp",
     "Cpc": "Cpc",
@@ -237,6 +233,7 @@
     "Rpc": "Rpc"
   },
   "notes": [
-    "time-dependent model: added state 'time' with dtime/dt = 1 from time = 0"
-  ]
+    "time-dependent model: 'time' is the exact model clock (global_time), starting at 0"
+  ],
+  "time_var": "time"
 }
