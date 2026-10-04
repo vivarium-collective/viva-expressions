@@ -1,0 +1,777 @@
+name: biomd0000000400_ode
+description: 'SBML model ''Cooling2007_IP3transients_CardiacMyocyte'' imported into
+  OdeProcess. Source: BIOMD0000000400. time-dependent model: added state ''time''
+  with dtime/dt = 1 from time = 0'
+tags:
+- ode
+- expressions
+- sbml-import
+requires:
+  processes:
+  - OdeProcess
+  - MathExpressionStep
+parameters:
+  Compartment:
+    type: float
+    default: 1.0
+    description: SBML compartment 'Compartment' (held constant).
+  Ls:
+    type: float
+    default: 0.1
+    description: SBML parameter 'Ls' (held constant).
+  ts:
+    type: float
+    default: 30.0
+    description: SBML parameter 'ts' (held constant).
+  PIP2:
+    type: float
+    default: 4000.0
+    description: SBML parameter 'PIP2' (held constant).
+  kf1:
+    type: float
+    default: 0.0003
+    description: SBML parameter 'kf1' (held constant).
+  Kd1:
+    type: float
+    default: 3.0e-05
+    description: SBML parameter 'Kd1' (held constant).
+  kf2:
+    type: float
+    default: 0.000275
+    description: SBML parameter 'kf2' (held constant).
+  Kd2:
+    type: float
+    default: 27500.0
+    description: SBML parameter 'Kd2' (held constant).
+  kf3:
+    type: float
+    default: 1.0
+    description: SBML parameter 'kf3' (held constant).
+  kr3:
+    type: float
+    default: 0.001
+    description: SBML parameter 'kr3' (held constant).
+  kf4:
+    type: float
+    default: 0.3
+    description: SBML parameter 'kf4' (held constant).
+  Kd4:
+    type: float
+    default: 3.0e-05
+    description: SBML parameter 'Kd4' (held constant).
+  kf5:
+    type: float
+    default: 0.0004
+    description: SBML parameter 'kf5' (held constant).
+  kf6:
+    type: float
+    default: 1.0
+    description: SBML parameter 'kf6' (held constant).
+  kf7:
+    type: float
+    default: 0.15
+    description: SBML parameter 'kf7' (held constant).
+  kf8:
+    type: float
+    default: 0.0167
+    description: SBML parameter 'kf8' (held constant).
+  kr8:
+    type: float
+    default: 0.0167
+    description: SBML parameter 'kr8' (held constant).
+  kf9:
+    type: float
+    default: 0.0042
+    description: SBML parameter 'kf9' (held constant).
+  kr9:
+    type: float
+    default: 1.0
+    description: SBML parameter 'kr9' (held constant).
+  kf10:
+    type: float
+    default: 0.042
+    description: SBML parameter 'kf10' (held constant).
+  kr10:
+    type: float
+    default: 1.0
+    description: SBML parameter 'kr10' (held constant).
+  kf11:
+    type: float
+    default: 0.0334
+    description: SBML parameter 'kf11' (held constant).
+  Kd11:
+    type: float
+    default: 0.1
+    description: SBML parameter 'Kd11' (held constant).
+  kf12:
+    type: float
+    default: 6.0
+    description: SBML parameter 'kf12' (held constant).
+  kf13:
+    type: float
+    default: 6.0
+    description: SBML parameter 'kf13' (held constant).
+  kf14:
+    type: float
+    default: 0.444
+    description: SBML parameter 'kf14' (held constant).
+  Km14:
+    type: float
+    default: 19.8
+    description: SBML parameter 'Km14' (held constant).
+  kf15:
+    type: float
+    default: 3.8
+    description: SBML parameter 'kf15' (held constant).
+  Km15:
+    type: float
+    default: 5.0
+    description: SBML parameter 'Km15' (held constant).
+  kf16:
+    type: float
+    default: 1.25
+    description: SBML parameter 'kf16' (held constant).
+  Vc:
+    type: float
+    default: 2550.0
+    description: SBML parameter 'Vc' (held constant).
+  Rpc:
+    type: float
+    default: 4.61
+    description: SBML parameter 'Rpc' (held constant).
+  Gd_0:
+    type: float
+    default: 10000.0
+    description: Initial value of Gd (concentration).
+  Gt_0:
+    type: float
+    default: 0.0
+    description: Initial value of Gt (concentration).
+  R_0:
+    type: float
+    default: 13.9
+    description: Initial value of R (concentration).
+  Rl_0:
+    type: float
+    default: 0.0
+    description: Initial value of Rl (concentration).
+  Rg_0:
+    type: float
+    default: 5.06
+    description: Initial value of Rg (concentration).
+  Rlg_0:
+    type: float
+    default: 0.0
+    description: Initial value of Rlg (concentration).
+  Rlgp_0:
+    type: float
+    default: 0.0
+    description: Initial value of Rlgp (concentration).
+  IP3_0:
+    type: float
+    default: 0.015
+    description: Initial value of IP3 (concentration).
+  Pc_0:
+    type: float
+    default: 9.09
+    description: Initial value of Pc (concentration).
+  Pcg_0:
+    type: float
+    default: 0.0
+    description: Initial value of Pcg (concentration).
+  P_0:
+    type: float
+    default: 90.9
+    description: Initial value of P (concentration).
+  Pg_0:
+    type: float
+    default: 0.0
+    description: Initial value of Pg (concentration).
+  Ca_0:
+    type: float
+    default: 0.1
+    description: Initial value of Ca (concentration).
+  time_0:
+    type: float
+    default: 0.0
+    description: Initial value of time (time).
+  method:
+    type: string
+    default: LSODA
+    description: scipy solve_ivp method (LSODA, RK45, DOP853, Radau, BDF).
+  rtol:
+    type: float
+    default: 1.0e-08
+    description: Solver relative tolerance.
+  atol:
+    type: float
+    default: 1.0e-10
+    description: Solver absolute tolerance.
+state:
+  ode:
+    _type: process
+    address: local:OdeProcess
+    config:
+      rhs:
+        Gd: -Gd*R*kf2 - Gd*Rl*kf3 + Gt*kf7 + Kd2*Rg*kf2 + Pcg*kf12 + Pg*kf13 + Rlg*kr3
+        Gt: -Gt*P*kf9 - Gt*Pc*kf10 - Gt*kf7 + Pcg*kr10 + Pg*kr9 + Rlg*kf6
+        R: -1.0*Gd*R*kf2 + 1.0*Kd1*Rl*kf1 + 1.0*Kd2*Rg*kf2 - 1.0*R*kf1*Piecewise((Ls/(54.598150033144236*exp(-80.0*time
+          + 80.0*ts) + 1.0), (time >= ts) & (time < ts + 0.15)), (Ls, time >= ts +
+          0.15), (0.0, True))
+        Rl: -Gd*Rl*kf3 - Kd1*Rl*kf1 + R*kf1*Piecewise((Ls/(54.598150033144236*exp(-80.0*time
+          + 80.0*ts) + 1.0), (time >= ts) & (time < ts + 0.15)), (Ls, time >= ts +
+          0.15), (0.0, True)) + Rlg*kf6 + Rlg*kr3
+        Rg: Gd*R*kf2 - Kd2*Rg*kf2 + Kd4*Rlg*kf4 - Rg*kf4*Piecewise((Ls/(54.598150033144236*exp(-80.0*time
+          + 80.0*ts) + 1.0), (time >= ts) & (time < ts + 0.15)), (Ls, time >= ts +
+          0.15), (0.0, True))
+        Rlg: Gd*Rl*kf3 - Kd4*Rlg*kf4 + Rg*kf4*Piecewise((Ls/(54.598150033144236*exp(-80.0*time
+          + 80.0*ts) + 1.0), (time >= ts) & (time < ts + 0.15)), (Ls, time >= ts +
+          0.15), (0.0, True)) - Rlg*kf5 - Rlg*kf6 - Rlg*kr3
+        Rlgp: Rlg*kf5
+        IP3: -IP3*kf16 + 0.0016605778811026237*Rpc*(PIP2*Pc*kf14/(602.2*Km14/Rpc +
+          PIP2) + PIP2*Pcg*kf15/(602.2*Km15/Rpc + PIP2))
+        Pc: Ca*P*kf8 - Gt*Pc*kf10 - Pc*kr8 + Pcg*kf12 + Pcg*kr10
+        Pcg: Ca*Pg*kf11 + Gt*Pc*kf10 - Kd11*Pcg*kf11 - Pcg*kf12 - Pcg*kr10
+        P: -Ca*P*kf8 - Gt*P*kf9 + Pc*kr8 + Pg*kf13 + Pg*kr9
+        Pg: -Ca*Pg*kf11 + Gt*P*kf9 + Kd11*Pcg*kf11 - Pg*kf13 - Pg*kr9
+        Ca: -0.0016605778811026237*Rpc*(Ca*P*kf8 + Ca*Pg*kf11 - Kd11*Pcg*kf11 - Pc*kr8)
+        time: '1'
+      params:
+        Compartment: ${Compartment}
+        Ls: ${Ls}
+        ts: ${ts}
+        PIP2: ${PIP2}
+        kf1: ${kf1}
+        Kd1: ${Kd1}
+        kf2: ${kf2}
+        Kd2: ${Kd2}
+        kf3: ${kf3}
+        kr3: ${kr3}
+        kf4: ${kf4}
+        Kd4: ${Kd4}
+        kf5: ${kf5}
+        kf6: ${kf6}
+        kf7: ${kf7}
+        kf8: ${kf8}
+        kr8: ${kr8}
+        kf9: ${kf9}
+        kr9: ${kr9}
+        kf10: ${kf10}
+        kr10: ${kr10}
+        kf11: ${kf11}
+        Kd11: ${Kd11}
+        kf12: ${kf12}
+        kf13: ${kf13}
+        kf14: ${kf14}
+        Km14: ${Km14}
+        kf15: ${kf15}
+        Km15: ${Km15}
+        kf16: ${kf16}
+        Vc: ${Vc}
+        Rpc: ${Rpc}
+      state_vars:
+      - Gd
+      - Gt
+      - R
+      - Rl
+      - Rg
+      - Rlg
+      - Rlgp
+      - IP3
+      - Pc
+      - Pcg
+      - P
+      - Pg
+      - Ca
+      - time
+      input_vars: []
+      method: ${method}
+      rtol: ${rtol}
+      atol: ${atol}
+    interval: 0.5
+    inputs:
+      Gd:
+      - stores
+      - Gd
+      Gt:
+      - stores
+      - Gt
+      R:
+      - stores
+      - R
+      Rl:
+      - stores
+      - Rl
+      Rg:
+      - stores
+      - Rg
+      Rlg:
+      - stores
+      - Rlg
+      Rlgp:
+      - stores
+      - Rlgp
+      IP3:
+      - stores
+      - IP3
+      Pc:
+      - stores
+      - Pc
+      Pcg:
+      - stores
+      - Pcg
+      P:
+      - stores
+      - P
+      Pg:
+      - stores
+      - Pg
+      Ca:
+      - stores
+      - Ca
+      time:
+      - stores
+      - time
+    outputs:
+      Gd:
+      - stores
+      - Gd
+      Gt:
+      - stores
+      - Gt
+      R:
+      - stores
+      - R
+      Rl:
+      - stores
+      - Rl
+      Rg:
+      - stores
+      - Rg
+      Rlg:
+      - stores
+      - Rlg
+      Rlgp:
+      - stores
+      - Rlgp
+      IP3:
+      - stores
+      - IP3
+      Pc:
+      - stores
+      - Pc
+      Pcg:
+      - stores
+      - Pcg
+      P:
+      - stores
+      - P
+      Pg:
+      - stores
+      - Pg
+      Ca:
+      - stores
+      - Ca
+      time:
+      - stores
+      - time
+  stores:
+    Gd: ${Gd_0}
+    Gt: ${Gt_0}
+    R: ${R_0}
+    Rl: ${Rl_0}
+    Rg: ${Rg_0}
+    Rlg: ${Rlg_0}
+    Rlgp: ${Rlgp_0}
+    IP3: ${IP3_0}
+    Pc: ${Pc_0}
+    Pcg: ${Pcg_0}
+    P: ${P_0}
+    Pg: ${Pg_0}
+    Ca: ${Ca_0}
+    time: ${time_0}
+    Cc: 0.0
+    Cp: 0.0
+    Cpc: 0.0
+    J13: 0.0
+    J12: 0.0
+    kr11: 0.0
+    J11: 0.0
+    J10: 0.0
+    J8: 0.0
+    J9: 0.0
+    J16: 0.0
+    J14: 0.0
+    J15: 0.0
+    J7: 0.0
+    L: 0.0
+    kr1: 0.0
+    J1: 0.0
+    kr2: 0.0
+    J2: 0.0
+    J3: 0.0
+    kr4: 0.0
+    J4: 0.0
+    J5: 0.0
+    J6: 0.0
+  assignments:
+    _type: step
+    address: local:MathExpressionStep
+    config:
+      expressions:
+      - out: Cc
+        expr: 0.0016605778811026237/Vc
+      - out: Cp
+        expr: 1.0/(Rpc*Vc)
+      - out: Cpc
+        expr: Cc/Cp
+      - out: J13
+        expr: Pg*kf13
+      - out: J12
+        expr: Pcg*kf12
+      - out: kr11
+        expr: Kd11*kf11
+      - out: J11
+        expr: Ca*Pg*kf11 - Pcg*kr11
+      - out: J10
+        expr: Gt*Pc*kf10 - Pcg*kr10
+      - out: J8
+        expr: Ca*P*kf8 - Pc*kr8
+      - out: J9
+        expr: Gt*P*kf9 - Pg*kr9
+      - out: J16
+        expr: IP3*kf16
+      - out: J14
+        expr: PIP2*Pc*kf14/(PIP2 + Km14/Cpc)
+      - out: J15
+        expr: PIP2*Pcg*kf15/(PIP2 + Km15/Cpc)
+      - out: J7
+        expr: Gt*kf7
+      - out: L
+        expr: Piecewise((Ls/(54.598150033144236*exp(-80.0*time + 80.0*ts) + 1.0),
+          (time >= ts) & (time < ts + 0.15)), (Ls, time >= ts + 0.15), (0.0, True))
+      - out: kr1
+        expr: Kd1*kf1
+      - out: J1
+        expr: L*R*kf1 - Rl*kr1
+      - out: kr2
+        expr: Kd2*kf2
+      - out: J2
+        expr: Gd*R*kf2 - Rg*kr2
+      - out: J3
+        expr: Gd*Rl*kf3 - Rlg*kr3
+      - out: kr4
+        expr: Kd4*kf4
+      - out: J4
+        expr: L*Rg*kf4 - Rlg*kr4
+      - out: J5
+        expr: Rlg*kf5
+      - out: J6
+        expr: Rlg*kf6
+      params:
+        Compartment: ${Compartment}
+        Ls: ${Ls}
+        ts: ${ts}
+        PIP2: ${PIP2}
+        kf1: ${kf1}
+        Kd1: ${Kd1}
+        kf2: ${kf2}
+        Kd2: ${Kd2}
+        kf3: ${kf3}
+        kr3: ${kr3}
+        kf4: ${kf4}
+        Kd4: ${Kd4}
+        kf5: ${kf5}
+        kf6: ${kf6}
+        kf7: ${kf7}
+        kf8: ${kf8}
+        kr8: ${kr8}
+        kf9: ${kf9}
+        kr9: ${kr9}
+        kf10: ${kf10}
+        kr10: ${kr10}
+        kf11: ${kf11}
+        Kd11: ${Kd11}
+        kf12: ${kf12}
+        kf13: ${kf13}
+        kf14: ${kf14}
+        Km14: ${Km14}
+        kf15: ${kf15}
+        Km15: ${Km15}
+        kf16: ${kf16}
+        Vc: ${Vc}
+        Rpc: ${Rpc}
+    inputs:
+      Ca:
+      - stores
+      - Ca
+      Gd:
+      - stores
+      - Gd
+      Gt:
+      - stores
+      - Gt
+      IP3:
+      - stores
+      - IP3
+      P:
+      - stores
+      - P
+      Pc:
+      - stores
+      - Pc
+      Pcg:
+      - stores
+      - Pcg
+      Pg:
+      - stores
+      - Pg
+      R:
+      - stores
+      - R
+      Rg:
+      - stores
+      - Rg
+      Rl:
+      - stores
+      - Rl
+      Rlg:
+      - stores
+      - Rlg
+      time:
+      - stores
+      - time
+    outputs:
+      Cc:
+      - stores
+      - Cc
+      Cp:
+      - stores
+      - Cp
+      Cpc:
+      - stores
+      - Cpc
+      J13:
+      - stores
+      - J13
+      J12:
+      - stores
+      - J12
+      kr11:
+      - stores
+      - kr11
+      J11:
+      - stores
+      - J11
+      J10:
+      - stores
+      - J10
+      J8:
+      - stores
+      - J8
+      J9:
+      - stores
+      - J9
+      J16:
+      - stores
+      - J16
+      J14:
+      - stores
+      - J14
+      J15:
+      - stores
+      - J15
+      J7:
+      - stores
+      - J7
+      L:
+      - stores
+      - L
+      kr1:
+      - stores
+      - kr1
+      J1:
+      - stores
+      - J1
+      kr2:
+      - stores
+      - kr2
+      J2:
+      - stores
+      - J2
+      J3:
+      - stores
+      - J3
+      kr4:
+      - stores
+      - kr4
+      J4:
+      - stores
+      - J4
+      J5:
+      - stores
+      - J5
+      J6:
+      - stores
+      - J6
+  emitter:
+    _type: step
+    address: local:JSONEmitter
+    config:
+      emit:
+        Gd: float
+        Gt: float
+        R: float
+        Rl: float
+        Rg: float
+        Rlg: float
+        Rlgp: float
+        IP3: float
+        Pc: float
+        Pcg: float
+        P: float
+        Pg: float
+        Ca: float
+        time: float
+        Cc: float
+        Cp: float
+        Cpc: float
+        J13: float
+        J12: float
+        kr11: float
+        J11: float
+        J10: float
+        J8: float
+        J9: float
+        J16: float
+        J14: float
+        J15: float
+        J7: float
+        L: float
+        kr1: float
+        J1: float
+        kr2: float
+        J2: float
+        J3: float
+        kr4: float
+        J4: float
+        J5: float
+        J6: float
+        time_: float
+    inputs:
+      Gd:
+      - stores
+      - Gd
+      Gt:
+      - stores
+      - Gt
+      R:
+      - stores
+      - R
+      Rl:
+      - stores
+      - Rl
+      Rg:
+      - stores
+      - Rg
+      Rlg:
+      - stores
+      - Rlg
+      Rlgp:
+      - stores
+      - Rlgp
+      IP3:
+      - stores
+      - IP3
+      Pc:
+      - stores
+      - Pc
+      Pcg:
+      - stores
+      - Pcg
+      P:
+      - stores
+      - P
+      Pg:
+      - stores
+      - Pg
+      Ca:
+      - stores
+      - Ca
+      time:
+      - stores
+      - time
+      Cc:
+      - stores
+      - Cc
+      Cp:
+      - stores
+      - Cp
+      Cpc:
+      - stores
+      - Cpc
+      J13:
+      - stores
+      - J13
+      J12:
+      - stores
+      - J12
+      kr11:
+      - stores
+      - kr11
+      J11:
+      - stores
+      - J11
+      J10:
+      - stores
+      - J10
+      J8:
+      - stores
+      - J8
+      J9:
+      - stores
+      - J9
+      J16:
+      - stores
+      - J16
+      J14:
+      - stores
+      - J14
+      J15:
+      - stores
+      - J15
+      J7:
+      - stores
+      - J7
+      L:
+      - stores
+      - L
+      kr1:
+      - stores
+      - kr1
+      J1:
+      - stores
+      - J1
+      kr2:
+      - stores
+      - kr2
+      J2:
+      - stores
+      - J2
+      J3:
+      - stores
+      - J3
+      kr4:
+      - stores
+      - kr4
+      J4:
+      - stores
+      - J4
+      J5:
+      - stores
+      - J5
+      J6:
+      - stores
+      - J6
+      time_:
+      - global_time

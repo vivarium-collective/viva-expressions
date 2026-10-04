@@ -1,130 +1,20 @@
-# simulator-benchmarking/investigation.yaml — schema v2
-#
-# An investigation groups Studies under a shared research question. A
-# complete investigation pairs the study list with a narrative spine that
-# mirrors the per-study spine at a level up: executive panel, scientific
-# argument, biological story, evaluator guides, glossary, investigation-
-# wide guidelines.
-#
-# The required fields (schema_version, name, title) are populated below;
-# the rest of the narrative spine is commented out — uncomment + fill the
-# sections that matter as the investigation matures. See NEXT_STEPS.md
-# and docs/concepts/vivarium-dashboard-model.md for the full pattern.
-
 schema_version: 2
 name: simulator-benchmarking
-title: "simulator-benchmarking"
+title: simulator-benchmarking
 created: '2026-10-03'
 status: planning
-
-# runtime — execution defaults inherited by this investigation's studies.
-# default_emitter is the persistence backend every run uses so its trajectory
-# is recorded (not just a summary). sqlite is the portable default; xarray
-# suits large ensembles. A per-study runtime.emitter overrides this.
 runtime:
-  default_emitter: sqlite           # sqlite | xarray
+  default_emitter: sqlite
+description: 'Does the expression layer reproduce established simulators? Compares
+  OdeProcess (viva-expressions) against viva-tellurium, viva-copasi and viva-pysces
+  on the same models, ideally sourced from BioModels via viva-biomodels. One study
+  per model class: kinetics, oscillator, and a stiff case. Shared question: trajectory
+  agreement and computational cost. Practical outcome: guidance on when users should
+  write expressions vs. wrap an SBML model.
 
-# object_of_evaluation: model       # critique #1 — what this investigation
-#                                    # primarily evaluates: method | model |
-#                                    # hypothesis | composition-protocol. Names the
-#                                    # thing the investigation's rigor section judges
-#                                    # ("how well the method defends its claims").
-
-# ─── Front matter ────────────────────────────────────────────────────
-#
-# question: |
-#   (the overarching research question)
-#
-# hypothesis: |
-#   (predicted outcome across the full study sequence)
-#
-# lead: |
-#   (3-4 sentence front-of-textbook intro — first thing a reader sees)
-
-description: |
-  Does the expression layer reproduce established simulators? Compares OdeProcess (viva-expressions) against viva-tellurium, viva-copasi and viva-pysces on the same models, ideally sourced from BioModels via viva-biomodels. One study per model class: kinetics, oscillator, and a stiff case. Shared question: trajectory agreement and computational cost. Practical outcome: guidance on when users should write expressions vs. wrap an SBML model.
-
-
-# ─── Narrative spine ─────────────────────────────────────────────────
-#
-# REQUIRED (lint-gated): executive · scientific_argument · biological_story.
-# A reviewer-ready investigation report must carry these three authored
-# sections. The linter (investigation_narrative_spine_required) emits a
-# warning for each missing one. For a GENUINELY SLIM investigation you may
-# explicitly opt out per-section:
-#
-#   narrative_spine_skip: [scientific_argument, biological_story]
-#   narrative_spine_skip_reason: "single-study screen; full narrative not warranted"
-#
-# (executive / scientific_argument / biological_story are the AUTHORED
-#  sections; "Decisions needed" + "Suggested additions" are framework-computed
-#  and never author-required.)
-#
-# executive:                        # ★REQUIRED — headline panel at the top of the report
-#   what_is_this: ""
-#   verdict: ""
-#   verdict_status: in-progress     # in-progress | passing | passing-with-caveats | failing | inconclusive | not-yet-run
-#   decisions_needed: []
-#
-# scientific_argument:              # ★REQUIRED — structured claim/evidence
-#   main_claim: ""
-#   evidence_for: []
-#   evidence_against: []
-#   key_figures: []
-#   caveats: []
-#   interpretation_ref: ""
-#
-# biological_story: |               # ★REQUIRED — multi-paragraph plain-English mechanism narrative
-#   (multi-paragraph plain-English mechanism narrative)
-#
-# at_a_glance:                      # one-line role per member study
-#   - {study: study-slug, role: "what this study contributes"}
-#
-# how_to_read: |
-#   (evaluator tips: how to read the report, which study to start with)
-#
-# glossary:
-#   - {term: "TERM", definition: "one-sentence definition"}
-#
-# guidelines:                       # investigation-wide rules
-#   literature_anchors: []
-#   parameter_catalog: []
-#   calibration_targets: []
-#   naming_conventions: ""
-
-# ─── RIGOR (the comparative-framing dimension; the rigor scorecard reads this).
-#     An investigation scores a comparative_framing GAP until it names the
-#     competing frameworks it discriminates AND includes >=1 adversarial study.
-#
-# competing_frameworks:             # rival models/hypotheses this investigation tests against
-#   - name: ""                      # e.g. "alternative mechanism / null model X"
-#     prediction: ""                # what it would predict, that we discriminate
-#     discriminated_by: ""          # which study/control rules it out
-#
-# hypotheses:                       # critique #6/#16 — the competing hypotheses this
-#                                   # investigation discriminates. `statement` +
-#                                   # `predictions` are AUTHORED; `support_log` is
-#                                   # COMPUTED (folded from each study's findings +
-#                                   # discovery_implications.alternate_hypotheses that
-#                                   # carry a matching hypothesis_id).
-#   - id: H1
-#     statement: ""                 # one-line competing explanation
-#     predictions:                  # what this hypothesis predicts, per observable
-#       - observable: closure_gap   # an emitted measure / finding-evidence key
-#         expected: ""              # e.g. "< 0.1" / "increases with rate" / a band
-#     required_controls: []         # controls[].name needed to test it
-#     failure_modes: []             # what observation would weaken/exclude it
-#     status: open                  # open | supported | weakened | excluded
-#     # support_log: []             # COMPUTED — list of per-study entries
-#     #                             #   (study, observation, delta) where
-#     #                             #   delta is supports | weakens | excludes
-#
-# NOTE: include at least one member study with `kind: adversarial` (a study
-# designed to break the main claim) so the investigation satisfies the
-# adversarial-study rigor dimension.
-
+  '
 studies: []
-
 expert_docs: []
-
 acceptance_criteria: []
+members:
+- bench-tellurium

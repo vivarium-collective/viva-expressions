@@ -1,0 +1,82 @@
+{
+  "model_id": "BIOMD0000000005",
+  "rhs": {
+    "C2": "(-C2*Reaction2_k8notP*cell + CP*Reaction3_k9*cell + M*Reaction1_k6*cell)/cell",
+    "CP": "(C2*Reaction2_k8notP*cell - CP*Reaction3_k9*cell - CP*Reaction4_k3*Y*cell)/cell",
+    "M": "(-M*Reaction1_k6*cell - M*Reaction5_k5notP*cell + cell*pM*(M**2*Reaction9_k4/(C2 + CP + M + pM)**2 + Reaction9_k4prime))/cell",
+    "pM": "(CP*Reaction4_k3*Y*cell + M*Reaction5_k5notP*cell - cell*pM*(M**2*Reaction9_k4/(C2 + CP + M + pM)**2 + Reaction9_k4prime))/cell",
+    "Y": "(-CP*Reaction4_k3*Y*cell + Reaction6_k1aa*cell - Reaction7_k2*Y*cell)/cell",
+    "YP": "(M*Reaction1_k6*cell - Reaction8_k7*YP*cell)/cell"
+  },
+  "params": {
+    "EmptySet": 0.0,
+    "cell": 1.0,
+    "Reaction1_k6": 1.0,
+    "Reaction2_k8notP": 1000000.0,
+    "Reaction3_k9": 1000.0,
+    "Reaction4_k3": 200.0,
+    "Reaction5_k5notP": 0.0,
+    "Reaction6_k1aa": 0.015,
+    "Reaction7_k2": 0.0,
+    "Reaction8_k7": 0.6,
+    "Reaction9_k4prime": 0.018,
+    "Reaction9_k4": 180.0
+  },
+  "initial": {
+    "C2": 0.0,
+    "CP": 0.75,
+    "M": 0.0,
+    "pM": 0.25,
+    "Y": 0.0,
+    "YP": 0.0
+  },
+  "assignments": {
+    "YT": "M + Y + YP + pM",
+    "CT": "C2 + CP + M + pM"
+  },
+  "kinds": {
+    "EmptySet": "concentration",
+    "C2": "concentration",
+    "CP": "concentration",
+    "M": "concentration",
+    "pM": "concentration",
+    "Y": "concentration",
+    "YP": "concentration",
+    "YT": "concentration",
+    "CT": "concentration",
+    "cell": "compartment",
+    "Reaction1_k6": "parameter",
+    "Reaction2_k8notP": "parameter",
+    "Reaction3_k9": "parameter",
+    "Reaction4_k3": "parameter",
+    "Reaction5_k5notP": "parameter",
+    "Reaction6_k1aa": "parameter",
+    "Reaction7_k2": "parameter",
+    "Reaction8_k7": "parameter",
+    "Reaction9_k4prime": "parameter",
+    "Reaction9_k4": "parameter"
+  },
+  "sbml_ids": {
+    "C2": "C2",
+    "CP": "CP",
+    "M": "M",
+    "pM": "pM",
+    "Y": "Y",
+    "YP": "YP",
+    "YT": "YT",
+    "CT": "CT",
+    "EmptySet": "EmptySet",
+    "cell": "cell",
+    "Reaction1_k6": "Reaction1_k6",
+    "Reaction2_k8notP": "Reaction2_k8notP",
+    "Reaction3_k9": "Reaction3_k9",
+    "Reaction4_k3": "Reaction4_k3",
+    "Reaction5_k5notP": "Reaction5_k5notP",
+    "Reaction6_k1aa": "Reaction6_k1aa",
+    "Reaction7_k2": "Reaction7_k2",
+    "Reaction8_k7": "Reaction8_k7",
+    "Reaction9_k4prime": "Reaction9_k4prime",
+    "Reaction9_k4": "Reaction9_k4"
+  },
+  "notes": []
+}

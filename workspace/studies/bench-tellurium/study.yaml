@@ -1,0 +1,173 @@
+schema_version: 4
+name: bench-tellurium
+created: '2026-10-04'
+status: planned
+phase: Design
+baseline:
+- name: biomd5_ode
+  composite: viva_expressions.composites.biomd0000000005_ode
+  params: {}
+- name: biomd5_tellurium
+  composite: viva_expressions.composites.tellurium_sbml
+  params:
+    model_file: workspace/investigations/simulator-benchmarking/inputs/models/BIOMD0000000005.xml
+- name: biomd10_ode
+  composite: viva_expressions.composites.biomd0000000010_ode
+  params: {}
+- name: biomd10_tellurium
+  composite: viva_expressions.composites.tellurium_sbml
+  params:
+    model_file: workspace/investigations/simulator-benchmarking/inputs/models/BIOMD0000000010.xml
+- name: biomd12_ode
+  composite: viva_expressions.composites.biomd0000000012_ode
+  params: {}
+- name: biomd12_tellurium
+  composite: viva_expressions.composites.tellurium_sbml
+  params:
+    model_file: workspace/investigations/simulator-benchmarking/inputs/models/BIOMD0000000012.xml
+- name: biomd41_ode
+  composite: viva_expressions.composites.biomd0000000041_ode
+  params: {}
+- name: biomd41_tellurium
+  composite: viva_expressions.composites.tellurium_sbml
+  params:
+    model_file: workspace/investigations/simulator-benchmarking/inputs/models/BIOMD0000000041.xml
+- name: biomd254_ode
+  composite: viva_expressions.composites.biomd0000000254_ode
+  params: {}
+- name: biomd254_tellurium
+  composite: viva_expressions.composites.tellurium_sbml
+  params:
+    model_file: workspace/investigations/simulator-benchmarking/inputs/models/BIOMD0000000254.xml
+- name: biomd400_ode
+  composite: viva_expressions.composites.biomd0000000400_ode
+  params: {}
+- name: biomd400_tellurium
+  composite: viva_expressions.composites.tellurium_sbml
+  params:
+    model_file: workspace/investigations/simulator-benchmarking/inputs/models/BIOMD0000000400.xml
+- name: biomd700_ode
+  composite: viva_expressions.composites.biomd0000000700_ode
+  params: {}
+- name: biomd700_tellurium
+  composite: viva_expressions.composites.tellurium_sbml
+  params:
+    model_file: workspace/investigations/simulator-benchmarking/inputs/models/BIOMD0000000700.xml
+- name: biomd1000_ode
+  composite: viva_expressions.composites.biomd0000001000_ode
+  params: {}
+- name: biomd1000_tellurium
+  composite: viva_expressions.composites.tellurium_sbml
+  params:
+    model_file: workspace/investigations/simulator-benchmarking/inputs/models/BIOMD0000001000.xml
+variants:
+- name: biomd5_ode_tight
+  base_composite: biomd5_ode
+  parameter_overrides:
+    rtol: 1.0e-12
+    atol: 1.0e-14
+- name: biomd5_tellurium_tight
+  base_composite: biomd5_tellurium
+  parameter_overrides:
+    rtol: 1.0e-12
+    atol: 1.0e-14
+- name: biomd10_ode_tight
+  base_composite: biomd10_ode
+  parameter_overrides:
+    rtol: 1.0e-12
+    atol: 1.0e-14
+- name: biomd10_tellurium_tight
+  base_composite: biomd10_tellurium
+  parameter_overrides:
+    rtol: 1.0e-12
+    atol: 1.0e-14
+- name: biomd12_ode_tight
+  base_composite: biomd12_ode
+  parameter_overrides:
+    rtol: 1.0e-12
+    atol: 1.0e-14
+- name: biomd12_tellurium_tight
+  base_composite: biomd12_tellurium
+  parameter_overrides:
+    rtol: 1.0e-12
+    atol: 1.0e-14
+- name: biomd41_ode_tight
+  base_composite: biomd41_ode
+  parameter_overrides:
+    rtol: 1.0e-12
+    atol: 1.0e-14
+- name: biomd41_tellurium_tight
+  base_composite: biomd41_tellurium
+  parameter_overrides:
+    rtol: 1.0e-12
+    atol: 1.0e-14
+- name: biomd254_ode_tight
+  base_composite: biomd254_ode
+  parameter_overrides:
+    rtol: 1.0e-12
+    atol: 1.0e-14
+- name: biomd254_tellurium_tight
+  base_composite: biomd254_tellurium
+  parameter_overrides:
+    rtol: 1.0e-12
+    atol: 1.0e-14
+- name: biomd400_ode_tight
+  base_composite: biomd400_ode
+  parameter_overrides:
+    rtol: 1.0e-12
+    atol: 1.0e-14
+- name: biomd400_tellurium_tight
+  base_composite: biomd400_tellurium
+  parameter_overrides:
+    rtol: 1.0e-12
+    atol: 1.0e-14
+- name: biomd700_ode_tight
+  base_composite: biomd700_ode
+  parameter_overrides:
+    rtol: 1.0e-12
+    atol: 1.0e-14
+- name: biomd700_tellurium_tight
+  base_composite: biomd700_tellurium
+  parameter_overrides:
+    rtol: 1.0e-12
+    atol: 1.0e-14
+- name: biomd1000_ode_tight
+  base_composite: biomd1000_ode
+  parameter_overrides:
+    rtol: 1.0e-12
+    atol: 1.0e-14
+- name: biomd1000_tellurium_tight
+  base_composite: biomd1000_tellurium
+  parameter_overrides:
+    rtol: 1.0e-12
+    atol: 1.0e-14
+- name: biomd12_ode_eff_plus_0p1pct
+  base_composite: biomd12_ode
+  parameter_overrides:
+    eff: 20.02
+title: OdeProcess (SBML import) vs viva-tellurium on 8 BioModels
+investigation: simulator-benchmarking
+question: >
+  Does a BioModels SBML model, imported into the expression layer and integrated by OdeProcess, reproduce
+  viva-tellurium (libroadrunner, CVODE) running the original SBML file, and at what computational cost?
+hypothesis: >
+  Pre-registered before any run. (H1) At tight tolerances (rtol 1e-12, atol 1e-14 on both sides) every
+  compared variable of all 8 models agrees within 1e-6 of its scale, measured as max over time of |OdeProcess
+  - Tellurium| / max|Tellurium| after converting Tellurium's species amounts into the importer's units.
+  (H2) At the default tolerances (rtol 1e-8, atol 1e-10) the disagreement is integrator error, so it is
+  never smaller than at tight tolerances. (H3) Negative control: changing one parameter by 0.1% (BIOMD12
+  eff, 20 -> 20.02) pushes the disagreement above 1e-6, so the check can detect a small modelling difference.
+  Cost is measured (wall time per run), not hypothesised.
+objective: >
+  Run each of 8 pinned BioModels two ways, as the /sbml-system import in OdeProcess and as the original
+  SBML in TelluriumProcess, on the same 0.5-unit interval for 100 steps (t = 0..50), at default and tight
+  tolerances. Then measure the trajectory agreement and the run cost.
+description: >
+  The models (BIOMD5, 10, 12, 41, 254, 400, 700, 1000) were chosen to cover distinct SBML features: boundary
+  species, local parameters, hasOnlySubstanceUnits, two compartments of different sizes, rate rules only,
+  a time-dependent piecewise model, function definitions, and initial assignments. Their files are pinned
+  by SHA-256 under the investigation's inputs/models. The Tellurium side reports species amounts (roadrunner's
+  bare-id selection), and the OdeProcess side integrates each species in its symbol's units, a concentration
+  unless hasOnlySubstanceUnits. The comparison converts with the compartment sizes from the SBML, so a
+  units mismatch cannot pose as disagreement. Both simulators restart integration at each interval from
+  the previous state.
