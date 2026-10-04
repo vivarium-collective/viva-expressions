@@ -105,3 +105,32 @@ def test_input_named_like_a_motif_parameter_fails_check(tmp_path, capsys):
     assert "candidates[0]: names declared more than once: ['r']" in capsys.readouterr().err
     spec.write_text(spec.read_text().replace("bind: {x: N}}", "bind: {x: N}, prefix: g_}"))
     assert main([str(spec), "--check"]) == 0
+
+
+@pytest.fixture
+def ascii_locale():
+    """The C locale: text I/O that relies on the locale default becomes ASCII.
+
+    Native libraries (libsbml, roadrunner, antimony, COPASI) call setlocale, and
+    on CI's Linux runner the default encoding became ASCII mid-session, so
+    report.md's em dash failed to write. Writes must name their encoding.
+    """
+    import locale
+    previous = locale.setlocale(locale.LC_CTYPE)
+    locale.setlocale(locale.LC_CTYPE, "C")
+    try:
+        yield
+    finally:
+        locale.setlocale(locale.LC_CTYPE, previous)
+
+
+def test_reports_write_as_utf8_under_an_ascii_locale(tmp_path, ascii_locale):
+    spec = tmp_path / "grow.yml"
+    spec.write_text("name: grow — decay\ntime: {t_end: 10, n_points: 101}\n"
+                    "variables: {y: [{name: x, value: 1}]}\n"
+                    "behavior: {features: [{kind: steady_state, var: x, value: 5, tol: 0.1}]}\n"
+                    "candidates: [{motif: exponential_decay, bind: {x: x}}]\n",
+                    encoding="utf-8")
+    out = tmp_path / "out"
+    assert main([str(spec), "--out", str(out)]) == 2
+    assert "—" in (out / "report.md").read_text(encoding="utf-8")

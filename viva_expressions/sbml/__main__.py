@@ -33,8 +33,10 @@ def _import(args) -> None:
     out = args.out or COMPOSITES
     out.mkdir(parents=True, exist_ok=True)
     spec = composite_spec(model, args.name, args.interval, source=args.source or args.model.name)
-    (out / f"{args.name}.composite.yaml").write_text(yaml.safe_dump(spec, sort_keys=False))
-    (out / f"{args.name}.import.json").write_text(json.dumps(asdict(model), indent=2))
+    (out / f"{args.name}.composite.yaml").write_text(
+        yaml.safe_dump(spec, sort_keys=False), encoding="utf-8")
+    (out / f"{args.name}.import.json").write_text(
+        json.dumps(asdict(model), indent=2), encoding="utf-8")
     print(f"{out / f'{args.name}.composite.yaml'}: {len(model.rhs)} states, "
           f"{len(model.params)} parameters, {len(model.assignments)} assignments")
     for note in model.notes:
@@ -42,13 +44,14 @@ def _import(args) -> None:
 
 
 def _export(args) -> None:
-    raw = (json.loads(args.source.read_text()) if args.source.suffix == ".json"
-           else yaml.safe_load(args.source.read_text()))
+    raw = (json.loads(args.source.read_text(encoding="utf-8")) if args.source.suffix == ".json"
+           else yaml.safe_load(args.source.read_text(encoding="utf-8")))
     state = raw.get("state", raw)
     if "parameters" in raw:
         state = substitute_parameters(state, raw["parameters"])
     model_id = args.id or raw.get("name") or args.source.name.split(".")[0]
-    args.out.write_text(write_sbml(**ode_from_state(state), model_id=model_id))
+    args.out.write_text(write_sbml(**ode_from_state(state), model_id=model_id),
+                        encoding="utf-8")
     print(args.out)
 
 

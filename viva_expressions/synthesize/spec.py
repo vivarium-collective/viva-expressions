@@ -153,7 +153,7 @@ TOP_KEYS = {"name", "time", "variables", "constraints", "data", "behavior",
 def load_spec(path: str | Path) -> Spec:
     path = Path(path)
     try:
-        raw = yaml.safe_load(path.read_text())
+        raw = yaml.safe_load(path.read_text(encoding="utf-8"))
     except yaml.YAMLError as e:
         raise SpecError([f"{path}: not valid YAML: {e}"]) from e
     return parse_spec(raw, base_dir=path.parent)

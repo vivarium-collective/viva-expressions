@@ -140,7 +140,9 @@ def markdown(rep: dict, top: int | None = None) -> str:
 def write(out_dir: str | Path, rep: dict, document: dict | None, top: int | None = None):
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    (out / "report.json").write_text(json.dumps(rep, indent=2, default=float))
-    (out / "report.md").write_text(markdown(rep, top))
+    (out / "report.json").write_text(json.dumps(rep, indent=2, default=float),
+                                     encoding="utf-8")
+    (out / "report.md").write_text(markdown(rep, top), encoding="utf-8")
     if document is not None:
-        (out / "composite.json").write_text(json.dumps(document, indent=2))
+        (out / "composite.json").write_text(json.dumps(document, indent=2),
+                                            encoding="utf-8")

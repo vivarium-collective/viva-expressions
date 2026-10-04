@@ -34,7 +34,7 @@ def main() -> None:
         print(fetch(model_id, args.out))
     sums = sorted(args.out.glob("*.xml"))
     (args.out / "SHA256SUMS").write_text("".join(
-        f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}\n" for p in sums))
+        f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}\n" for p in sums), encoding="utf-8")
 
 
 if __name__ == "__main__":
