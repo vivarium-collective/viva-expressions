@@ -195,48 +195,43 @@ variants:
     atol: 1.0e-14
 title: OdeProcess (SBML import) vs viva-tellurium on 8 BioModels
 investigation: simulator-benchmarking
-question: 'Does a BioModels SBML model, imported into the expression layer and integrated
-  by OdeProcess, reproduce viva-tellurium (libroadrunner, CVODE) running the original
-  SBML file, and at what computational cost?
+question: 'Does a BioModels SBML model, imported into the expression layer and integrated by OdeProcess,
+  reproduce viva-tellurium (libroadrunner, CVODE) running the original SBML file, and at what computational
+  cost?
 
   '
-hypothesis: 'Pre-registered before any run. (H1) At tight tolerances (rtol 1e-12,
-  atol 1e-14 on both sides) every compared variable of all 8 models agrees within
-  1e-6 of its scale, measured as max over time of |OdeProcess - Tellurium| / max|Tellurium|
-  after converting Tellurium''s species amounts into the importer''s units. (H2) At
-  the default tolerances (rtol 1e-8, atol 1e-10) the disagreement is integrator error,
-  so it is never smaller than at tight tolerances. (H3) Negative control: changing
-  one parameter by 0.1% (BIOMD12 eff, 20 -> 20.02) pushes the disagreement above 1e-6,
-  so the check can detect a small modelling difference. Cost is measured (wall time
-  per run), not hypothesised.
+hypothesis: 'Pre-registered before any run. (H1) At tight tolerances (rtol 1e-12, atol 1e-14 on both sides)
+  every compared variable of all 8 models agrees within 1e-6 of its scale, measured as max over time of
+  |OdeProcess - Tellurium| / max|Tellurium| after converting Tellurium''s species amounts into the importer''s
+  units. (H2) At the default tolerances (rtol 1e-8, atol 1e-10) the disagreement is integrator error,
+  so it is never smaller than at tight tolerances. (H3) Negative control: changing one parameter by 0.1%
+  (BIOMD12 eff, 20 -> 20.02) pushes the disagreement above 1e-6, so the check can detect a small modelling
+  difference. Cost is measured (wall time per run), not hypothesised.
 
   '
-objective: 'Run each of 8 pinned BioModels two ways, as the /sbml-system import in
-  OdeProcess and as the original SBML in TelluriumProcess, on the same 0.5-unit interval
-  over t = 0..100 (the workbench run length `steps: 100` is a time horizon; 201 samples),
-  at default and tight tolerances. Then measure the trajectory agreement and the run
-  cost.
+objective: 'Run each of 8 pinned BioModels two ways, as the /sbml-system import in OdeProcess and as the
+  original SBML in TelluriumProcess, on the same 0.5-unit interval over t = 0..100 (the workbench run
+  length `steps: 100` is a time horizon; 201 samples), at default and tight tolerances. Then measure the
+  trajectory agreement and the run cost.
 
   '
-description: 'The models (BIOMD5, 10, 12, 41, 254, 400, 700, 1000) were chosen to
-  cover distinct SBML features: boundary species, local parameters, hasOnlySubstanceUnits,
-  two compartments of different sizes, rate rules only, a time-dependent piecewise
-  model, function definitions, and initial assignments. Their files are pinned by
-  SHA-256 under the investigation''s inputs/models. The Tellurium side reports species
-  amounts (roadrunner''s bare-id selection), and the OdeProcess side integrates each
-  species in its symbol''s units, a concentration unless hasOnlySubstanceUnits. The
-  comparison converts with the compartment sizes from the SBML, so a units mismatch
-  cannot pose as disagreement. Both simulators restart integration at each interval
-  from the previous state.
+description: 'The models (BIOMD5, 10, 12, 41, 254, 400, 700, 1000) were chosen to cover distinct SBML
+  features: boundary species, local parameters, hasOnlySubstanceUnits, two compartments of different sizes,
+  rate rules only, a time-dependent piecewise model, function definitions, and initial assignments. Their
+  files are pinned by SHA-256 under the investigation''s inputs/models. The Tellurium side reports species
+  amounts (roadrunner''s bare-id selection), and the OdeProcess side integrates each species in its symbol''s
+  units, a concentration unless hasOnlySubstanceUnits. The comparison converts with the compartment sizes
+  from the SBML, so a units mismatch cannot pose as disagreement. Both simulators restart integration
+  at each interval from the previous state.
 
   '
 runs:
-- name: viva_expressions.composites.biomd0000000012_ode__1791126445__2a69fc
+- name: viva_expressions.composites.biomd0000000005_ode__1791153555__860e65
   status: completed
-  timestamp: 1791126448.339575
+  timestamp: 1791153558.331051
   emitter:
     kind: unknown
-  env_id: 61d73160db3b06ba
+  env_id: 1a7630d9eae4648e
   params: '{}'
   computed_outcomes:
     _status: store_unresolved
@@ -247,28 +242,12 @@ runs:
         source: resolved
     params_captured_at: '2026-10-04'
     params_source: dashboard-runner
-- name: viva_expressions.composites.biomd0000000005_ode__1791126471__0093a0
+- name: viva_expressions.composites.tellurium_sbml__1791153560__883ef0
   status: completed
-  timestamp: 1791126474.004574
+  timestamp: 1791153563.532477
   emitter:
     kind: unknown
-  env_id: 61d73160db3b06ba
-  params: '{}'
-  computed_outcomes:
-    _status: store_unresolved
-  provenance:
-    params:
-      n_steps:
-        value: 100
-        source: resolved
-    params_captured_at: '2026-10-04'
-    params_source: dashboard-runner
-- name: viva_expressions.composites.tellurium_sbml__1791126474__8ce4cb
-  status: completed
-  timestamp: 1791126477.639026
-  emitter:
-    kind: unknown
-  env_id: 61d73160db3b06ba
+  env_id: 1a7630d9eae4648e
   params: '{"model_file": "workspace/investigations/simulator-benchmarking/inputs/models/BIOMD0000000005.xml"}'
   computed_outcomes:
     _status: store_unresolved
@@ -282,12 +261,12 @@ runs:
         source: resolved
     params_captured_at: '2026-10-04'
     params_source: dashboard-runner
-- name: viva_expressions.composites.biomd0000000010_ode__1791126478__90109e
+- name: viva_expressions.composites.biomd0000000010_ode__1791153564__2cbd64
   status: completed
-  timestamp: 1791126479.950072
+  timestamp: 1791153565.890601
   emitter:
     kind: unknown
-  env_id: 61d73160db3b06ba
+  env_id: 1a7630d9eae4648e
   params: '{}'
   computed_outcomes:
     _status: store_unresolved
@@ -298,12 +277,12 @@ runs:
         source: resolved
     params_captured_at: '2026-10-04'
     params_source: dashboard-runner
-- name: viva_expressions.composites.tellurium_sbml__1791126480__742e39
+- name: viva_expressions.composites.tellurium_sbml__1791153566__d1bf78
   status: completed
-  timestamp: 1791126482.935061
+  timestamp: 1791153568.7371268
   emitter:
     kind: unknown
-  env_id: 61d73160db3b06ba
+  env_id: 1a7630d9eae4648e
   params: '{"model_file": "workspace/investigations/simulator-benchmarking/inputs/models/BIOMD0000000010.xml"}'
   computed_outcomes:
     _status: store_unresolved
@@ -317,12 +296,28 @@ runs:
         source: resolved
     params_captured_at: '2026-10-04'
     params_source: dashboard-runner
-- name: viva_expressions.composites.tellurium_sbml__1791126483__ae74eb
+- name: viva_expressions.composites.biomd0000000012_ode__1791153569__87891f
   status: completed
-  timestamp: 1791126485.836874
+  timestamp: 1791153571.194596
   emitter:
     kind: unknown
-  env_id: 61d73160db3b06ba
+  env_id: 1a7630d9eae4648e
+  params: '{}'
+  computed_outcomes:
+    _status: store_unresolved
+  provenance:
+    params:
+      n_steps:
+        value: 100
+        source: resolved
+    params_captured_at: '2026-10-04'
+    params_source: dashboard-runner
+- name: viva_expressions.composites.tellurium_sbml__1791153571__43ca13
+  status: completed
+  timestamp: 1791153574.0829499
+  emitter:
+    kind: unknown
+  env_id: 1a7630d9eae4648e
   params: '{"model_file": "workspace/investigations/simulator-benchmarking/inputs/models/BIOMD0000000012.xml"}'
   computed_outcomes:
     _status: store_unresolved
@@ -336,12 +331,12 @@ runs:
         source: resolved
     params_captured_at: '2026-10-04'
     params_source: dashboard-runner
-- name: viva_expressions.composites.biomd0000000041_ode__1791126486__1c6dca
+- name: viva_expressions.composites.biomd0000000041_ode__1791153574__db50bd
   status: completed
-  timestamp: 1791126488.6248121
+  timestamp: 1791153576.97055
   emitter:
     kind: unknown
-  env_id: 61d73160db3b06ba
+  env_id: 1a7630d9eae4648e
   params: '{}'
   computed_outcomes:
     _status: store_unresolved
@@ -352,12 +347,12 @@ runs:
         source: resolved
     params_captured_at: '2026-10-04'
     params_source: dashboard-runner
-- name: viva_expressions.composites.tellurium_sbml__1791126489__7ea8d5
+- name: viva_expressions.composites.tellurium_sbml__1791153577__6ca8b6
   status: completed
-  timestamp: 1791126491.490371
+  timestamp: 1791153579.8723829
   emitter:
     kind: unknown
-  env_id: 61d73160db3b06ba
+  env_id: 1a7630d9eae4648e
   params: '{"model_file": "workspace/investigations/simulator-benchmarking/inputs/models/BIOMD0000000041.xml"}'
   computed_outcomes:
     _status: store_unresolved
@@ -371,12 +366,12 @@ runs:
         source: resolved
     params_captured_at: '2026-10-04'
     params_source: dashboard-runner
-- name: viva_expressions.composites.biomd0000000254_ode__1791126492__c86529
+- name: viva_expressions.composites.biomd0000000254_ode__1791153580__549d65
   status: completed
-  timestamp: 1791126493.939837
+  timestamp: 1791153582.2437801
   emitter:
     kind: unknown
-  env_id: 61d73160db3b06ba
+  env_id: 1a7630d9eae4648e
   params: '{}'
   computed_outcomes:
     _status: store_unresolved
@@ -387,12 +382,12 @@ runs:
         source: resolved
     params_captured_at: '2026-10-04'
     params_source: dashboard-runner
-- name: viva_expressions.composites.tellurium_sbml__1791126494__d98c42
+- name: viva_expressions.composites.tellurium_sbml__1791153582__ffaa13
   status: completed
-  timestamp: 1791126496.868007
+  timestamp: 1791153585.269462
   emitter:
     kind: unknown
-  env_id: 61d73160db3b06ba
+  env_id: 1a7630d9eae4648e
   params: '{"model_file": "workspace/investigations/simulator-benchmarking/inputs/models/BIOMD0000000254.xml"}'
   computed_outcomes:
     _status: store_unresolved
@@ -406,12 +401,12 @@ runs:
         source: resolved
     params_captured_at: '2026-10-04'
     params_source: dashboard-runner
-- name: viva_expressions.composites.biomd0000000400_ode__1791126497__613aa1
+- name: viva_expressions.composites.biomd0000000400_ode__1791153585__50ed46
   status: completed
-  timestamp: 1791126499.163051
+  timestamp: 1791153588.173015
   emitter:
     kind: unknown
-  env_id: 61d73160db3b06ba
+  env_id: 1a7630d9eae4648e
   params: '{}'
   computed_outcomes:
     _status: store_unresolved
@@ -422,12 +417,12 @@ runs:
         source: resolved
     params_captured_at: '2026-10-04'
     params_source: dashboard-runner
-- name: viva_expressions.composites.tellurium_sbml__1791126499__c2879d
+- name: viva_expressions.composites.tellurium_sbml__1791153588__c6d61e
   status: completed
-  timestamp: 1791126502.1753652
+  timestamp: 1791153591.229285
   emitter:
     kind: unknown
-  env_id: 61d73160db3b06ba
+  env_id: 1a7630d9eae4648e
   params: '{"model_file": "workspace/investigations/simulator-benchmarking/inputs/models/BIOMD0000000400.xml"}'
   computed_outcomes:
     _status: store_unresolved
@@ -441,12 +436,12 @@ runs:
         source: resolved
     params_captured_at: '2026-10-04'
     params_source: dashboard-runner
-- name: viva_expressions.composites.biomd0000000700_ode__1791126502__1e01fb
+- name: viva_expressions.composites.biomd0000000700_ode__1791153592__27092b
   status: completed
-  timestamp: 1791126504.924698
+  timestamp: 1791153594.3280199
   emitter:
     kind: unknown
-  env_id: 61d73160db3b06ba
+  env_id: 1a7630d9eae4648e
   params: '{}'
   computed_outcomes:
     _status: store_unresolved
@@ -457,12 +452,12 @@ runs:
         source: resolved
     params_captured_at: '2026-10-04'
     params_source: dashboard-runner
-- name: viva_expressions.composites.tellurium_sbml__1791126505__6821ad
+- name: viva_expressions.composites.tellurium_sbml__1791153595__b7f0a8
   status: completed
-  timestamp: 1791126508.273494
+  timestamp: 1791153597.431916
   emitter:
     kind: unknown
-  env_id: 61d73160db3b06ba
+  env_id: 1a7630d9eae4648e
   params: '{"model_file": "workspace/investigations/simulator-benchmarking/inputs/models/BIOMD0000000700.xml"}'
   computed_outcomes:
     _status: store_unresolved
@@ -476,12 +471,12 @@ runs:
         source: resolved
     params_captured_at: '2026-10-04'
     params_source: dashboard-runner
-- name: viva_expressions.composites.biomd0000001000_ode__1791126508__79b175
+- name: viva_expressions.composites.biomd0000001000_ode__1791153598__f1724d
   status: completed
-  timestamp: 1791126511.3296
+  timestamp: 1791153600.501975
   emitter:
     kind: unknown
-  env_id: 61d73160db3b06ba
+  env_id: 1a7630d9eae4648e
   params: '{}'
   computed_outcomes:
     _status: store_unresolved
@@ -492,12 +487,12 @@ runs:
         source: resolved
     params_captured_at: '2026-10-04'
     params_source: dashboard-runner
-- name: viva_expressions.composites.tellurium_sbml__1791126511__d8f9d0
+- name: viva_expressions.composites.tellurium_sbml__1791153601__85a5bf
   status: completed
-  timestamp: 1791126514.490703
+  timestamp: 1791153603.6888099
   emitter:
     kind: unknown
-  env_id: 61d73160db3b06ba
+  env_id: 1a7630d9eae4648e
   params: '{"model_file": "workspace/investigations/simulator-benchmarking/inputs/models/BIOMD0000001000.xml"}'
   computed_outcomes:
     _status: store_unresolved
@@ -511,12 +506,12 @@ runs:
         source: resolved
     params_captured_at: '2026-10-04'
     params_source: dashboard-runner
-- name: viva_expressions.composites.biomd0000000005_ode__1791126519__226fd5
+- name: viva_expressions.composites.biomd0000000005_ode__1791153604__4bcb58
   status: completed
-  timestamp: 1791126522.042439
+  timestamp: 1791153606.6155221
   emitter:
     kind: unknown
-  env_id: 61d73160db3b06ba
+  env_id: 1a7630d9eae4648e
   params: '{"rtol": 1e-12, "atol": 1e-14}'
   computed_outcomes:
     _status: store_unresolved
@@ -530,12 +525,12 @@ runs:
         source: override
     params_captured_at: '2026-10-04'
     params_source: dashboard-runner
-- name: viva_expressions.composites.tellurium_sbml__1791126522__59dcc3
+- name: viva_expressions.composites.tellurium_sbml__1791153607__d77bdc
   status: completed
-  timestamp: 1791126525.550876
+  timestamp: 1791153609.597245
   emitter:
     kind: unknown
-  env_id: 61d73160db3b06ba
+  env_id: 1a7630d9eae4648e
   params: '{"model_file": "workspace/investigations/simulator-benchmarking/inputs/models/BIOMD0000000005.xml",
     "rtol": 1e-12, "atol": 1e-14}'
   computed_outcomes:
@@ -553,12 +548,34 @@ runs:
         source: override
     params_captured_at: '2026-10-04'
     params_source: dashboard-runner
-- name: viva_expressions.composites.biomd0000000010_ode__1791126526__baa9bf
+- name: viva_expressions.composites.biomd0000000005_ode__1791153610__9e5ffc
   status: completed
-  timestamp: 1791126528.035339
+  timestamp: 1791153612.432541
   emitter:
     kind: unknown
-  env_id: 61d73160db3b06ba
+  env_id: 1a7630d9eae4648e
+  params: '{"Reaction3_k9": 1010.0, "rtol": 1e-12, "atol": 1e-14}'
+  computed_outcomes:
+    _status: store_unresolved
+  provenance:
+    params:
+      Reaction3_k9:
+        value: 1010.0
+        source: override
+      atol:
+        value: 1e-14
+        source: override
+      rtol:
+        value: 1e-12
+        source: override
+    params_captured_at: '2026-10-04'
+    params_source: dashboard-runner
+- name: viva_expressions.composites.biomd0000000010_ode__1791153613__b67620
+  status: completed
+  timestamp: 1791153615.028367
+  emitter:
+    kind: unknown
+  env_id: 1a7630d9eae4648e
   params: '{"rtol": 1e-12, "atol": 1e-14}'
   computed_outcomes:
     _status: store_unresolved
@@ -572,12 +589,12 @@ runs:
         source: override
     params_captured_at: '2026-10-04'
     params_source: dashboard-runner
-- name: viva_expressions.composites.tellurium_sbml__1791126528__28eae2
+- name: viva_expressions.composites.tellurium_sbml__1791153615__0b85f8
   status: completed
-  timestamp: 1791126531.209942
+  timestamp: 1791153618.1238961
   emitter:
     kind: unknown
-  env_id: 61d73160db3b06ba
+  env_id: 1a7630d9eae4648e
   params: '{"model_file": "workspace/investigations/simulator-benchmarking/inputs/models/BIOMD0000000010.xml",
     "rtol": 1e-12, "atol": 1e-14}'
   computed_outcomes:
@@ -595,12 +612,34 @@ runs:
         source: override
     params_captured_at: '2026-10-04'
     params_source: dashboard-runner
-- name: viva_expressions.composites.biomd0000000012_ode__1791126531__ae5026
+- name: viva_expressions.composites.biomd0000000010_ode__1791153618__71ee75
   status: completed
-  timestamp: 1791126533.83567
+  timestamp: 1791153620.6974468
   emitter:
     kind: unknown
-  env_id: 61d73160db3b06ba
+  env_id: 1a7630d9eae4648e
+  params: '{"J7_KK8": 15.15, "rtol": 1e-12, "atol": 1e-14}'
+  computed_outcomes:
+    _status: store_unresolved
+  provenance:
+    params:
+      J7_KK8:
+        value: 15.15
+        source: override
+      atol:
+        value: 1e-14
+        source: override
+      rtol:
+        value: 1e-12
+        source: override
+    params_captured_at: '2026-10-04'
+    params_source: dashboard-runner
+- name: viva_expressions.composites.biomd0000000012_ode__1791153621__6b537f
+  status: completed
+  timestamp: 1791153623.382391
+  emitter:
+    kind: unknown
+  env_id: 1a7630d9eae4648e
   params: '{"rtol": 1e-12, "atol": 1e-14}'
   computed_outcomes:
     _status: store_unresolved
@@ -614,12 +653,12 @@ runs:
         source: override
     params_captured_at: '2026-10-04'
     params_source: dashboard-runner
-- name: viva_expressions.composites.tellurium_sbml__1791126534__6d4420
+- name: viva_expressions.composites.tellurium_sbml__1791153624__fc4ba0
   status: completed
-  timestamp: 1791126537.028167
+  timestamp: 1791153626.534243
   emitter:
     kind: unknown
-  env_id: 61d73160db3b06ba
+  env_id: 1a7630d9eae4648e
   params: '{"model_file": "workspace/investigations/simulator-benchmarking/inputs/models/BIOMD0000000012.xml",
     "rtol": 1e-12, "atol": 1e-14}'
   computed_outcomes:
@@ -637,12 +676,34 @@ runs:
         source: override
     params_captured_at: '2026-10-04'
     params_source: dashboard-runner
-- name: viva_expressions.composites.biomd0000000041_ode__1791126537__f4c113
+- name: viva_expressions.composites.biomd0000000012_ode__1791153627__e0b7fa
   status: completed
-  timestamp: 1791126539.833211
+  timestamp: 1791153629.1198661
   emitter:
     kind: unknown
-  env_id: 61d73160db3b06ba
+  env_id: 1a7630d9eae4648e
+  params: '{"eff": 20.2, "rtol": 1e-12, "atol": 1e-14}'
+  computed_outcomes:
+    _status: store_unresolved
+  provenance:
+    params:
+      atol:
+        value: 1e-14
+        source: override
+      eff:
+        value: 20.2
+        source: override
+      rtol:
+        value: 1e-12
+        source: override
+    params_captured_at: '2026-10-04'
+    params_source: dashboard-runner
+- name: viva_expressions.composites.biomd0000000041_ode__1791153629__b46b99
+  status: completed
+  timestamp: 1791153632.053786
+  emitter:
+    kind: unknown
+  env_id: 1a7630d9eae4648e
   params: '{"rtol": 1e-12, "atol": 1e-14}'
   computed_outcomes:
     _status: store_unresolved
@@ -656,12 +717,12 @@ runs:
         source: override
     params_captured_at: '2026-10-04'
     params_source: dashboard-runner
-- name: viva_expressions.composites.tellurium_sbml__1791126540__9218b9
+- name: viva_expressions.composites.tellurium_sbml__1791153632__3172ea
   status: completed
-  timestamp: 1791126543.244621
+  timestamp: 1791153635.12372
   emitter:
     kind: unknown
-  env_id: 61d73160db3b06ba
+  env_id: 1a7630d9eae4648e
   params: '{"model_file": "workspace/investigations/simulator-benchmarking/inputs/models/BIOMD0000000041.xml",
     "rtol": 1e-12, "atol": 1e-14}'
   computed_outcomes:
@@ -679,12 +740,34 @@ runs:
         source: override
     params_captured_at: '2026-10-04'
     params_source: dashboard-runner
-- name: viva_expressions.composites.biomd0000000254_ode__1791126543__ad969d
+- name: viva_expressions.composites.biomd0000000041_ode__1791153636__e4e8e1
   status: completed
-  timestamp: 1791126545.8167381
+  timestamp: 1791153638.182422
   emitter:
     kind: unknown
-  env_id: 61d73160db3b06ba
+  env_id: 1a7630d9eae4648e
+  params: '{"MMCK_Kib_3": 35249.0, "rtol": 1e-12, "atol": 1e-14}'
+  computed_outcomes:
+    _status: store_unresolved
+  provenance:
+    params:
+      MMCK_Kib_3:
+        value: 35249.0
+        source: override
+      atol:
+        value: 1e-14
+        source: override
+      rtol:
+        value: 1e-12
+        source: override
+    params_captured_at: '2026-10-04'
+    params_source: dashboard-runner
+- name: viva_expressions.composites.biomd0000000254_ode__1791153639__804a77
+  status: completed
+  timestamp: 1791153640.882732
+  emitter:
+    kind: unknown
+  env_id: 1a7630d9eae4648e
   params: '{"rtol": 1e-12, "atol": 1e-14}'
   computed_outcomes:
     _status: store_unresolved
@@ -698,12 +781,12 @@ runs:
         source: override
     params_captured_at: '2026-10-04'
     params_source: dashboard-runner
-- name: viva_expressions.composites.tellurium_sbml__1791126546__5b58f5
+- name: viva_expressions.composites.tellurium_sbml__1791153641__331e66
   status: completed
-  timestamp: 1791126549.0023592
+  timestamp: 1791153643.973539
   emitter:
     kind: unknown
-  env_id: 61d73160db3b06ba
+  env_id: 1a7630d9eae4648e
   params: '{"model_file": "workspace/investigations/simulator-benchmarking/inputs/models/BIOMD0000000254.xml",
     "rtol": 1e-12, "atol": 1e-14}'
   computed_outcomes:
@@ -721,12 +804,34 @@ runs:
         source: override
     params_captured_at: '2026-10-04'
     params_source: dashboard-runner
-- name: viva_expressions.composites.biomd0000000400_ode__1791126549__dbae82
+- name: viva_expressions.composites.biomd0000000254_ode__1791153644__058a56
   status: completed
-  timestamp: 1791126551.475539
+  timestamp: 1791153646.682624
   emitter:
     kind: unknown
-  env_id: 61d73160db3b06ba
+  env_id: 1a7630d9eae4648e
+  params: '{"km": 13.13, "rtol": 1e-12, "atol": 1e-14}'
+  computed_outcomes:
+    _status: store_unresolved
+  provenance:
+    params:
+      atol:
+        value: 1e-14
+        source: override
+      km:
+        value: 13.13
+        source: override
+      rtol:
+        value: 1e-12
+        source: override
+    params_captured_at: '2026-10-04'
+    params_source: dashboard-runner
+- name: viva_expressions.composites.biomd0000000400_ode__1791153647__cef232
+  status: completed
+  timestamp: 1791153650.04305
+  emitter:
+    kind: unknown
+  env_id: 1a7630d9eae4648e
   params: '{"rtol": 1e-12, "atol": 1e-14}'
   computed_outcomes:
     _status: store_unresolved
@@ -740,41 +845,76 @@ runs:
         source: override
     params_captured_at: '2026-10-04'
     params_source: dashboard-runner
-- name: viva_expressions.composites.biomd0000000700_ode__1791126554__6847ad
+- name: viva_expressions.composites.tellurium_sbml__1791153651__1c7953
   status: completed
-  timestamp: 1791126557.508706
+  timestamp: 1791153653.432875
   emitter:
     kind: unknown
-  env_id: 61d73160db3b06ba
-  params: '{"rtol": 1e-12, "atol": 1e-14}'
-  computed_outcomes:
-    _status: store_unresolved
-  provenance:
-    params:
-      atol:
-        value: 1e-14
-        source: override
-      rtol:
-        value: 1e-12
-        source: override
-    params_captured_at: '2026-10-04'
-    params_source: dashboard-runner
-- name: viva_expressions.composites.tellurium_sbml__1791126552__16448e
-  status: failed
-  timestamp: 1791126554.679672
-  emitter:
-    kind: unknown
-  env_id: 61d73160db3b06ba
+  env_id: 1a7630d9eae4648e
   params: '{"model_file": "workspace/investigations/simulator-benchmarking/inputs/models/BIOMD0000000400.xml",
     "rtol": 1e-12, "atol": 1e-14}'
   computed_outcomes:
     _status: store_unresolved
-- name: viva_expressions.composites.tellurium_sbml__1791126558__63448b
+  provenance:
+    params:
+      atol:
+        value: 1e-14
+        source: override
+      model_file:
+        value: workspace/investigations/simulator-benchmarking/inputs/models/BIOMD0000000400.xml
+        source: override
+      rtol:
+        value: 1e-12
+        source: override
+    params_captured_at: '2026-10-04'
+    params_source: dashboard-runner
+- name: viva_expressions.composites.biomd0000000400_ode__1791153654__17975e
   status: completed
-  timestamp: 1791126560.616527
+  timestamp: 1791153656.742465
   emitter:
     kind: unknown
-  env_id: 61d73160db3b06ba
+  env_id: 1a7630d9eae4648e
+  params: '{"kr8": 0.016867, "rtol": 1e-12, "atol": 1e-14}'
+  computed_outcomes:
+    _status: store_unresolved
+  provenance:
+    params:
+      atol:
+        value: 1e-14
+        source: override
+      kr8:
+        value: 0.016867
+        source: override
+      rtol:
+        value: 1e-12
+        source: override
+    params_captured_at: '2026-10-04'
+    params_source: dashboard-runner
+- name: viva_expressions.composites.biomd0000000700_ode__1791153657__54af77
+  status: completed
+  timestamp: 1791153660.334147
+  emitter:
+    kind: unknown
+  env_id: 1a7630d9eae4648e
+  params: '{"rtol": 1e-12, "atol": 1e-14}'
+  computed_outcomes:
+    _status: store_unresolved
+  provenance:
+    params:
+      atol:
+        value: 1e-14
+        source: override
+      rtol:
+        value: 1e-12
+        source: override
+    params_captured_at: '2026-10-04'
+    params_source: dashboard-runner
+- name: viva_expressions.composites.tellurium_sbml__1791153661__17d99e
+  status: completed
+  timestamp: 1791153663.820283
+  emitter:
+    kind: unknown
+  env_id: 1a7630d9eae4648e
   params: '{"model_file": "workspace/investigations/simulator-benchmarking/inputs/models/BIOMD0000000700.xml",
     "rtol": 1e-12, "atol": 1e-14}'
   computed_outcomes:
@@ -792,12 +932,34 @@ runs:
         source: override
     params_captured_at: '2026-10-04'
     params_source: dashboard-runner
-- name: viva_expressions.composites.biomd0000001000_ode__1791126561__09886d
+- name: viva_expressions.composites.biomd0000000700_ode__1791153664__009448
   status: completed
-  timestamp: 1791126563.865382
+  timestamp: 1791153667.411822
   emitter:
     kind: unknown
-  env_id: 61d73160db3b06ba
+  env_id: 1a7630d9eae4648e
+  params: '{"kSyP53": 0.0505, "rtol": 1e-12, "atol": 1e-14}'
+  computed_outcomes:
+    _status: store_unresolved
+  provenance:
+    params:
+      atol:
+        value: 1e-14
+        source: override
+      kSyP53:
+        value: 0.0505
+        source: override
+      rtol:
+        value: 1e-12
+        source: override
+    params_captured_at: '2026-10-04'
+    params_source: dashboard-runner
+- name: viva_expressions.composites.biomd0000001000_ode__1791153668__855f2e
+  status: completed
+  timestamp: 1791153670.7652469
+  emitter:
+    kind: unknown
+  env_id: 1a7630d9eae4648e
   params: '{"rtol": 1e-12, "atol": 1e-14}'
   computed_outcomes:
     _status: store_unresolved
@@ -811,12 +973,12 @@ runs:
         source: override
     params_captured_at: '2026-10-04'
     params_source: dashboard-runner
-- name: viva_expressions.composites.tellurium_sbml__1791126564__9a7af2
+- name: viva_expressions.composites.tellurium_sbml__1791153671__1b159a
   status: completed
-  timestamp: 1791126567.003822
+  timestamp: 1791153674.263787
   emitter:
     kind: unknown
-  env_id: 61d73160db3b06ba
+  env_id: 1a7630d9eae4648e
   params: '{"model_file": "workspace/investigations/simulator-benchmarking/inputs/models/BIOMD0000001000.xml",
     "rtol": 1e-12, "atol": 1e-14}'
   computed_outcomes:
@@ -834,12 +996,34 @@ runs:
         source: override
     params_captured_at: '2026-10-04'
     params_source: dashboard-runner
-- name: viva_expressions.composites.biomd0000000012_ode__1791126567__894f40
+- name: viva_expressions.composites.biomd0000001000_ode__1791153675__7ebb7b
   status: completed
-  timestamp: 1791126569.594453
+  timestamp: 1791153677.6019578
   emitter:
     kind: unknown
-  env_id: 61d73160db3b06ba
+  env_id: 1a7630d9eae4648e
+  params: '{"index_kf_homotrimer": 4.5306498460909275, "rtol": 1e-12, "atol": 1e-14}'
+  computed_outcomes:
+    _status: store_unresolved
+  provenance:
+    params:
+      atol:
+        value: 1e-14
+        source: override
+      index_kf_homotrimer:
+        value: 4.5306498460909275
+        source: override
+      rtol:
+        value: 1e-12
+        source: override
+    params_captured_at: '2026-10-04'
+    params_source: dashboard-runner
+- name: viva_expressions.composites.biomd0000000012_ode__1791153678__de235a
+  status: completed
+  timestamp: 1791153680.455491
+  emitter:
+    kind: unknown
+  env_id: 1a7630d9eae4648e
   params: '{"eff": 20.02}'
   computed_outcomes:
     _status: store_unresolved
@@ -847,100 +1031,6 @@ runs:
     params:
       eff:
         value: 20.02
-        source: override
-    params_captured_at: '2026-10-04'
-    params_source: dashboard-runner
-- name: viva_expressions.composites.biomd0000000400_ode__1791126622__7321a3
-  status: completed
-  timestamp: 1791126624.230294
-  emitter:
-    kind: unknown
-  env_id: 61d73160db3b06ba
-  params: '{}'
-  computed_outcomes:
-    _status: store_unresolved
-  provenance:
-    params:
-      n_steps:
-        value: 100
-        source: resolved
-    params_captured_at: '2026-10-04'
-    params_source: dashboard-runner
-- name: viva_expressions.composites.tellurium_sbml__1791126584__bbe02b
-  status: failed
-  timestamp: 1791126587.354549
-  emitter:
-    kind: unknown
-  env_id: 61d73160db3b06ba
-  params: '{"model_file": "workspace/investigations/simulator-benchmarking/inputs/models/BIOMD0000000400.xml",
-    "rtol": 1e-12, "atol": 1e-14}'
-  computed_outcomes:
-    _status: store_unresolved
-- name: viva_expressions.composites.tellurium_sbml__1791126575__ad76f1
-  status: failed
-  timestamp: 1791126577.637716
-  emitter:
-    kind: unknown
-  env_id: 61d73160db3b06ba
-  params: '{"model_file": "workspace/investigations/simulator-benchmarking/inputs/models/BIOMD0000000400.xml",
-    "rtol": 1e-12, "atol": 1e-14}'
-  computed_outcomes:
-    _status: store_unresolved
-- name: viva_expressions.composites.biomd0000000400_ode__1791127340__2aa156
-  status: completed
-  timestamp: 1791127343.96524
-  emitter:
-    kind: unknown
-  env_id: 3b3d444e0a8805ad
-  params: '{}'
-  computed_outcomes:
-    _status: store_unresolved
-  provenance:
-    params:
-      n_steps:
-        value: 100
-        source: resolved
-    params_captured_at: '2026-10-04'
-    params_source: dashboard-runner
-- name: viva_expressions.composites.biomd0000000400_ode__1791127344__cc8d99
-  status: completed
-  timestamp: 1791127347.374411
-  emitter:
-    kind: unknown
-  env_id: 3b3d444e0a8805ad
-  params: '{"rtol": 1e-12, "atol": 1e-14}'
-  computed_outcomes:
-    _status: store_unresolved
-  provenance:
-    params:
-      atol:
-        value: 1e-14
-        source: override
-      rtol:
-        value: 1e-12
-        source: override
-    params_captured_at: '2026-10-04'
-    params_source: dashboard-runner
-- name: viva_expressions.composites.tellurium_sbml__1791128543__aea7da
-  status: completed
-  timestamp: 1791128547.7124412
-  emitter:
-    kind: unknown
-  env_id: 8900f3cd9a0354c3
-  params: '{"model_file": "workspace/investigations/simulator-benchmarking/inputs/models/BIOMD0000000400.xml",
-    "rtol": 1e-12, "atol": 1e-14}'
-  computed_outcomes:
-    _status: store_unresolved
-  provenance:
-    params:
-      atol:
-        value: 1e-14
-        source: override
-      model_file:
-        value: workspace/investigations/simulator-benchmarking/inputs/models/BIOMD0000000400.xml
-        source: override
-      rtol:
-        value: 1e-12
         source: override
     params_captured_at: '2026-10-04'
     params_source: dashboard-runner
@@ -1159,220 +1249,370 @@ simulation_set:
   perturbation:
     eff: 20.02
   status: ran
+- name: biomd5_ode_ctrl_v2
+  kind: single
+  base_model: biomd5_ode
+  perturbation:
+    Reaction3_k9: 1010.0
+    rtol: 1e-12
+    atol: 1e-14
+  status: ran
+- name: biomd10_ode_ctrl_v2
+  kind: single
+  base_model: biomd10_ode
+  perturbation:
+    J7_KK8: 15.15
+    rtol: 1e-12
+    atol: 1e-14
+  status: ran
+- name: biomd12_ode_ctrl_v2
+  kind: single
+  base_model: biomd12_ode
+  perturbation:
+    eff: 20.2
+    rtol: 1e-12
+    atol: 1e-14
+  status: ran
+- name: biomd41_ode_ctrl_v2
+  kind: single
+  base_model: biomd41_ode
+  perturbation:
+    MMCK_Kib_3: 35249.0
+    rtol: 1e-12
+    atol: 1e-14
+  status: ran
+- name: biomd254_ode_ctrl_v2
+  kind: single
+  base_model: biomd254_ode
+  perturbation:
+    km: 13.13
+    rtol: 1e-12
+    atol: 1e-14
+  status: ran
+- name: biomd400_ode_ctrl_v2
+  kind: single
+  base_model: biomd400_ode
+  perturbation:
+    kr8: 0.016867
+    rtol: 1e-12
+    atol: 1e-14
+  status: ran
+- name: biomd700_ode_ctrl_v2
+  kind: single
+  base_model: biomd700_ode
+  perturbation:
+    kSyP53: 0.0505
+    rtol: 1e-12
+    atol: 1e-14
+  status: ran
+- name: biomd1000_ode_ctrl_v2
+  kind: single
+  base_model: biomd1000_ode
+  perturbation:
+    index_kf_homotrimer: 4.5306498460909275
+    rtol: 1e-12
+    atol: 1e-14
+  status: ran
 pipeline_gate:
   gate_evaluator:
     result: not_started
     blocked_by: []
     evaluated_by: code
     diverges_from_authored: false
-claim: BioModels imported with /sbml-system and integrated by OdeProcess reproduce
-  libroadrunner on the original SBML within 1e-6 of scale for all 8 models; the remaining
-  gap is integrator error.
+claim: 'Eight BioModels imported with /sbml-system (v0.3.0) and run by OdeProcess reproduce libroadrunner
+  on the original SBML, states and model outputs, within 1e-8 of scale (BIOMD5: 1e-7) at tight tolerances.
+  The default-tolerance gap converges away as integrator error.'
 findings:
 - id: h1-tight-agreement
   kind: methodological
   status: confirms
-  statement: 'H1 holds. At rtol 1e-12 / atol 1e-14 every compared state of all 8 models
-    agrees with libroadrunner within 1e-6 of its scale. Worst per model: BIOMD5 4.6e-9,
-    10 1.6e-10, 12 2.8e-10, 41 9.6e-12, 254 1.3e-10, 400 5.5e-11, 700 9.9e-11, 1000
-    2.4e-10.
+  statement: 'H1 holds. At rtol 1e-12 / atol 1e-14 every compared state of all 8 models agrees with libroadrunner
+    within 1e-6 of its scale. Worst per model: BIOMD5 4.6e-9, 10 1.6e-10, 12 2.8e-10, 41 9.6e-12, 254
+    1.3e-10, 400 5.5e-11, 700 9.9e-11, 1000 2.4e-10.
 
     '
   evidence:
     from_test: tests/test_agreement.py
     workbench: vivarium-workbench 3e5edbe8
-    simulators: viva-expressions 0.2.3 OdeProcess (scipy LSODA); viva-tellurium 0.1.1
-      / tellurium 2.2.13.1 / libroadrunner 2.10.0 (CVODE)
+    simulators: viva-expressions 0.2.3 OdeProcess (scipy LSODA); viva-tellurium 0.1.1 / tellurium 
+      2.2.13.1 / libroadrunner 2.10.0 (CVODE)
     platform: macOS arm64, Python 3.12
     observed: worst 4.62e-09 (BIOMD5, M)
     test: 'test_h1_tight_tolerance_agreement[*]: 8/8 passed'
+  obsoleted_by: v2-h1-tight-within-tau
+  explanation: First pass (v1), superseded. Its runs came from three environments (see amendments), 
+    and the integrated-clock importer defect hid wrong time-switched outputs.
 - id: h2-integrator-error
   kind: methodological
   status: confirms
-  statement: 'H2 holds. At the default tolerances (rtol 1e-8, atol 1e-10) the worst
-    disagreement is 2.5e-8 to 1.3e-5 (BIOMD5, an oscillator), and it always exceeds
-    the tight-tolerance value by 2 to 4 orders of magnitude. That is integrator error,
-    not a semantic difference. Default-tolerance agreement is therefore about 1e-5
-    for oscillators, not 1e-8.
+  statement: 'H2 holds. At the default tolerances (rtol 1e-8, atol 1e-10) the worst disagreement is 2.5e-8
+    to 1.3e-5 (BIOMD5, an oscillator), and it always exceeds the tight-tolerance value by 2 to 4 orders
+    of magnitude. That is integrator error, not a semantic difference. Default-tolerance agreement is
+    therefore about 1e-5 for oscillators, not 1e-8.
 
     '
   evidence:
     from_test: tests/test_agreement.py
     workbench: vivarium-workbench 3e5edbe8
-    simulators: viva-expressions 0.2.3 OdeProcess (scipy LSODA); viva-tellurium 0.1.1
-      / tellurium 2.2.13.1 / libroadrunner 2.10.0 (CVODE)
+    simulators: viva-expressions 0.2.3 OdeProcess (scipy LSODA); viva-tellurium 0.1.1 / tellurium 
+      2.2.13.1 / libroadrunner 2.10.0 (CVODE)
     platform: macOS arm64, Python 3.12
     observed: default worst 1.28e-05 (BIOMD5) vs tight 4.62e-09
     test: 'test_h2_default_disagreement_is_integrator_error[*]: 8/8 passed'
+  obsoleted_by: v2-h2-convergence
+  explanation: First pass (v1), superseded. Its runs came from three environments (see amendments), 
+    and the integrated-clock importer defect hid wrong time-switched outputs.
 - id: h3-negative-control
   kind: methodological
   status: confirms
-  statement: 'H3 holds. Raising one BIOMD12 parameter by 0.1% (eff 20 -> 20.02) produces
-    a 1.09e-3 disagreement, about 1000 times the threshold. A modelling difference
-    this small is detected.
+  statement: 'H3 holds. Raising one BIOMD12 parameter by 0.1% (eff 20 -> 20.02) produces a 1.09e-3 disagreement,
+    about 1000 times the threshold. A modelling difference this small is detected.
 
     '
   evidence:
     from_test: tests/test_agreement.py
     workbench: vivarium-workbench 3e5edbe8
-    simulators: viva-expressions 0.2.3 OdeProcess (scipy LSODA); viva-tellurium 0.1.1
-      / tellurium 2.2.13.1 / libroadrunner 2.10.0 (CVODE)
+    simulators: viva-expressions 0.2.3 OdeProcess (scipy LSODA); viva-tellurium 0.1.1 / tellurium 
+      2.2.13.1 / libroadrunner 2.10.0 (CVODE)
     platform: macOS arm64, Python 3.12
     observed: 1.09e-03 (PY)
     test: 'test_h3_negative_control_is_detected: passed'
+  obsoleted_by: v2-h3-median-controls
+  explanation: First pass (v1), superseded. Its runs came from three environments (see amendments), 
+    and the integrated-clock importer defect hid wrong time-switched outputs.
 - id: cost-startup-dominated
   kind: methodological
   status: novel
-  statement: 'Cost is inconclusive. The wall time per workbench run is 1.6 to 2.8
-    s for OdeProcess and 2.1 to 3.8 s for Tellurium. These are single runs dominated
-    by subprocess start-up, imports and model loading, so they don''t measure integration
-    cost.
+  statement: 'Cost is inconclusive. The wall time per workbench run is 1.6 to 2.8 s for OdeProcess and
+    2.1 to 3.8 s for Tellurium. These are single runs dominated by subprocess start-up, imports and model
+    loading, so they don''t measure integration cost.
 
     '
   evidence:
     from_test: tests/test_agreement.py
     workbench: vivarium-workbench 3e5edbe8
-    simulators: viva-expressions 0.2.3 OdeProcess (scipy LSODA); viva-tellurium 0.1.1
-      / tellurium 2.2.13.1 / libroadrunner 2.10.0 (CVODE)
+    simulators: viva-expressions 0.2.3 OdeProcess (scipy LSODA); viva-tellurium 0.1.1 / tellurium 
+      2.2.13.1 / libroadrunner 2.10.0 (CVODE)
     platform: macOS arm64, Python 3.12
     observed: runs_meta completed_at - started_at, one run per entry
+  obsoleted_by: v2-cost-not-measured
+  explanation: First pass (v1), superseded. Its runs came from three environments (see amendments), 
+    and the integrated-clock importer defect hid wrong time-switched outputs.
+- id: v2-h1-tight-within-tau
+  kind: methodological
+  status: confirms
+  statement: >
+    v2 H1 holds. At rtol 1e-12 / atol 1e-14, every state AND every assignment output that Tellurium emits
+    agrees within tau_m for all 8 models (129 variables). Worst per model: BIOMD5 4.6e-9 (tau 1e-7), 10
+    1.5e-10, 12 2.8e-10, 41 9.6e-12, 254 1.4e-10, 400 3.5e-9, 700 9.9e-11, 1000 3.4e-10 (tau 1e-8). BIOMD400's
+    time-switched outputs, wrong by 1.8e-2 under v1's importer, now agree to 3.5e-9.
+  evidence:
+    workspace_commit: d719575
+    env_id: 1a7630d9eae4648e
+    lockfile_hash: 9ff04b59d16fe256
+    source: runs_meta.manifest_json, identical for all 41 v2 runs
+    locked: viva-expressions 0.3.1, vivarium-workbench 8a30a092, viva-tellurium 59772834 / tellurium
+      2.2.13.1 / libroadrunner 2.10.0
+    platform: macOS arm64, Python 3.12.12
+    tests: 'tests/test_agreement_v2.py via POST /api/study-tests-run: 41/41 passed (v1 17 + v2 24)'
+    observed: worst 4.62e-09 (BIOMD5, M); BIOMD400 3.45e-09 (J2)
+- id: v2-h2-convergence
+  kind: methodological
+  status: confirms
+  statement: >
+    v2 H2 holds. The worst disagreement falls by 3.38 to 4.36 orders from default (rtol 1e-8) to tight
+    tolerances, against a pre-registered 2.5, so it is integrator error. A planted semantic error collapses
+    this ratio to 3-21x (panel). Most of the default-tolerance gap comes from CVODE: BIOMD12 OdeProcess
+    at default vs Tellurium at tight is 5.8e-8, against 2.2e-6 with both at default.
+  evidence:
+    workspace_commit: d719575
+    env_id: 1a7630d9eae4648e
+    lockfile_hash: 9ff04b59d16fe256
+    source: runs_meta.manifest_json, identical for all 41 v2 runs
+    locked: viva-expressions 0.3.1, vivarium-workbench 8a30a092, viva-tellurium 59772834 / tellurium
+      2.2.13.1 / libroadrunner 2.10.0
+    platform: macOS arm64, Python 3.12.12
+    tests: 'tests/test_agreement_v2.py via POST /api/study-tests-run: 41/41 passed (v1 17 + v2 24)'
+    observed: min 3.38 orders (BIOMD400), max 4.36 (BIOMD10)
+- id: v2-h3-median-controls
+  kind: methodological
+  status: confirms
+  statement: >
+    v2 H3 holds. A +1% change of each model's median-sensitivity parameter, chosen on the oracle side
+    by analysis/select_controls.py, is detected in all 8 models (2.2e-3 to 0.49, at least 2e5 x tau).
+    This shows a typical parameter error is detected. It does NOT show that every error is: the panel
+    found 9 of 199 parameters where a 0.1% change moves the trajectories by less than 1e-6.
+  evidence:
+    workspace_commit: d719575
+    env_id: 1a7630d9eae4648e
+    lockfile_hash: 9ff04b59d16fe256
+    source: runs_meta.manifest_json, identical for all 41 v2 runs
+    locked: viva-expressions 0.3.1, vivarium-workbench 8a30a092, viva-tellurium 59772834 / tellurium
+      2.2.13.1 / libroadrunner 2.10.0
+    platform: macOS arm64, Python 3.12.12
+    tests: 'tests/test_agreement_v2.py via POST /api/study-tests-run: 41/41 passed (v1 17 + v2 24)'
+    observed: min 2.17e-03 (BIOMD41 MMCK_Kib_3), max 4.93e-01 (BIOMD400 kr8)
+- id: v2-cost-not-measured
+  kind: methodological
+  status: novel
+  statement: >
+    Cost is not measured. Workbench wall time per run (OdeProcess 1.5-2.0 s, Tellurium 2.0-2.5 s at default
+    tolerance) is dominated by process start-up, imports and model load.
+  evidence:
+    workspace_commit: d719575
+    env_id: 1a7630d9eae4648e
+    lockfile_hash: 9ff04b59d16fe256
+    source: runs_meta.manifest_json, identical for all 41 v2 runs
+    locked: viva-expressions 0.3.1, vivarium-workbench 8a30a092, viva-tellurium 59772834 / tellurium
+      2.2.13.1 / libroadrunner 2.10.0
+    platform: macOS arm64, Python 3.12.12
+    tests: 'tests/test_agreement_v2.py via POST /api/study-tests-run: 41/41 passed (v1 17 + v2 24)'
+    observed: runs_meta completed_at - started_at, one run per entry
 limitations:
-- Results hold for libroadrunner 2.10.0 / tellurium 2.2.13.1 on macOS arm64. libroadrunner
-  ships Linux aarch64 wheels only for 2.7.0, so a Linux arm64 environment would run
-  2.7.0. That version is not tested here, and no linux/arm64 container image exists.
-- The comparison covers t = 0.5..100. TelluriumProcess's first emitted row (t = 0)
-  has empty maps (viva-tellurium#7), so t = 0 is compared only by the importer's tests
-  (initial values).
-- Only floating-species, rate-rule-parameter and time states are compared. Assignment-rule
-  outputs are compared by the importer's own tests (tests/test_sbml.py), not here.
-- 8 models, chosen for SBML-feature coverage, not sampled from the corpus. Agreement
-  on these does not imply agreement for every BioModel. Models with events, delays
-  or algebraic rules are rejected by the importer and are out of scope.
-- 'Cost is not measured: one run per entry, and wall time includes process start-up
-  and imports.'
-- Both simulators restart integration at each 0.5 interval. Agreement over a single
-  uninterrupted integration is not tested here.
+- 'Platform: libroadrunner 2.10.0 / tellurium 2.2.13.1 on macOS arm64. The lock pins libroadrunner 2.10.0,
+  which has no Linux aarch64 wheel (PyPI only ever shipped one for 2.7.0), so `uv sync` of this lock FAILS
+  on Linux arm64 and no linux/arm64 image is built (viva-template#65). Results are not claimed for libroadrunner
+  2.7.0 or any other version.'
+- "t = 0 is not compared: TelluriumProcess emits an empty first row (viva-tellurium#7). The importer's
+  tests check initial values separately. For BIOMD41, 98.9-100% of each species' transient lies in [0,
+  0.5], so the comparison mostly covers its slow drift."
+- 'Compared set: states, plus the assignment outputs that Tellurium emits. Boundary-species outputs (BIOMD5
+  YT/CT, BIOMD700) are not emitted by TelluriumProcess and are not compared here; a continuous roadrunner
+  run agrees with them (panel: 2.6e-9, 1e-11).'
+- "Coverage: none of the 8 models has a rate-rule-parameter state, and hasOnlySubstanceUnits appears only
+  in a size-1 compartment (BIOMD12). Those conversions are covered by the importer's hand-built tests,
+  not by this study."
+- 'Sample: 8 models chosen for SBML-feature coverage, not sampled. Even if they were a random sample,
+  0 failures in 8 would only bound the corpus failure rate at <= 31% (95%). The corpus-coverage study
+  addresses this.'
+- 'Detection: tau_m bounds trajectory disagreement, not parameter error. Some parameters move the trajectories
+  so little that a 0.1% change in them stays under 1e-6 (panel: 9 of 199).'
+- Both simulators restart integration each 0.5 interval. Chunked and continuous roadrunner differ by
+  up to 9.9e-9 (BIOMD5), and H1 v1 also holds against a continuous run (panel).
+- Cost is not measured (one run per entry; start-up-dominated wall time).
 conclusion_verdicts:
   regression_compatibility:
     result: PASS
-    basis: 'H1-H3: 17/17 study tests pass on the recorded runs (tests/test_agreement.py).'
+    basis: "v2 pre-registered H1-H3: 24/24 tests pass on 41 single-environment runs (d719575). v1's 17/17
+      also pass on the same runs."
   explanatory_gain:
     result: NEUTRAL
     basis: 'Methodological study: it establishes simulator equivalence, not new mechanism.'
 report:
   verdict: passing-with-caveats
-  confidence: high
+  confidence: medium
   evidence_quality: regression
-  main_insight: An SBML model imported into the expression layer integrates to libroadrunner's
-    trajectory up to integrator error.
-  caveat: libroadrunner 2.10.0 on macOS arm64 only; cost not measured; t = 0 not compared
-    here.
+  main_insight: An SBML model imported into the expression layer integrates to libroadrunner's 
+    trajectory, states and outputs, up to integrator error.
+  caveat: libroadrunner 2.10.0 on macOS arm64 only; 8 feature-chosen models; t = 0 not compared; 
+    cost not measured.
   key_metrics:
-  - label: H1 worst tight-tolerance error
-    value: 4.6e-9 (BIOMD5)
+  - label: v2 H1 worst tight error / tau
+    value: 4.6e-9 / 1e-7 (BIOMD5); <= 3.5e-9 / 1e-8 others
     status: pass
-  - label: H2 default vs tight
-    value: default 2.5e-8..1.3e-5 > tight
+  - label: v2 H2 convergence
+    value: 3.38-4.36 orders (>= 2.5)
     status: pass
-  - label: H3 negative control
-    value: 1.09e-3 > 1e-6
+  - label: v2 H3 median-sensitivity controls (+1%)
+    value: 8/8 detected (>= 2.2e-3)
     status: pass
-conclusion: 'All three pre-registered hypotheses hold on 8 BioModels: an SBML model
-  imported with /sbml-system and run by OdeProcess reproduces viva-tellurium (libroadrunner)
-  on the original SBML within 1e-6 of scale, and the default-tolerance gap (up to
-  1.3e-5) is integrator error. A 0.1% parameter change is detected. Caveats: libroadrunner
-  2.10.0 on macOS arm64 only (Linux arm64 would need 2.7.0, untested), cost not measured,
-  t = 0 not compared here.
-
-  '
+conclusion: >
+  Second pass (v2, pre-registered 542bf96, single environment d719575): on 8 BioModels the /sbml-system
+  import run by OdeProcess matches libroadrunner on the original SBML, states and Tellurium-emitted outputs,
+  within 1e-8 of scale (1e-7 for BIOMD5) at tight tolerances. The default-tolerance gap shrinks by 3.4-4.4
+  orders, so it is integrator error, mostly CVODE's. Median-sensitivity parameter changes of 1% are detected
+  in every model. The first pass was superseded: it hid an importer clock bug (fixed in v0.3.0) and mixed
+  three environments. Caveats: libroadrunner 2.10.0 on macOS arm64 only (the lock does not install on
+  Linux arm64), 8 feature-chosen models, t = 0 not compared, cost not measured.
 discovery_implications:
   resolved_uncertainties:
-  - The importer's SBML semantics match libroadrunner's on the 8 feature-covering
-    models, under workbench runs (the importer's tests had already shown this in isolation).
+  - The importer's species and output semantics, including the exact model clock for time-dependent 
+    models, match libroadrunner on the 8 feature-covering models, run through the workbench.
   remaining_uncertainties:
-  - Agreement on a corpus sample, not feature-chosen models.
-  - Integration cost, separated from process start-up.
-  - libroadrunner 2.7.0 (the Linux arm64 build).
+  - Agreement on a corpus sample (the corpus-coverage study).
+  - Integration cost, separated from start-up.
+  - libroadrunner versions other than 2.10.0.
+  - t = 0 under the workbench (viva-tellurium#7).
   followup_study_proposals:
+  - title: corpus-coverage
+    motivation: A pre-registered BioModels range, so the claim rests on a sample and reports import,
+      reject and agreement rates.
   - title: bench-copasi
-    motivation: The same 8 models against viva-copasi tests the second comparator
-      in the investigation's one-study-per-comparator plan.
+    motivation: The second comparator, on the same 8 models.
   - title: bench-cost
-    motivation: In-process timing (best of N, load and integration measured separately)
-      is needed before any cost claim; workbench wall time is dominated by start-up.
+    motivation: In-process timing (best of N, load and integration separated) before any cost claim.
 preregistration:
   v1:
     registered: '2026-10-04'
     commit: 8488a1e
     text: the `hypothesis` field (unchanged)
-    verdict: H1, H2 and H3 held on the first pass (b06fd83). Kept as recorded; see
-      amendments for its defects.
+    verdict: H1, H2 and H3 held on the first pass (b06fd83). Kept as recorded; see amendments for 
+      its defects.
   v2:
     registered: '2026-10-04'
-    before_runs: Written before any v2 run (the second pass, after viva-expressions
-      v0.3.0's exact clock and reparse fixes).
-    compared_set: 'Every OdeProcess state, PLUS every assignment-rule output that
-      TelluriumProcess emits in its `parameters` map. (v1 excluded outputs, which
-      hid the time-clock bug: BIOMD400 outputs were off by 1.8e-2.) Boundary-species
-      outputs that Tellurium doesn''t emit stay excluded, as stated.
+    before_runs: Written before any v2 run (the second pass, after viva-expressions v0.3.0's exact 
+      clock and reparse fixes).
+    compared_set: 'Every OdeProcess state, PLUS every assignment-rule output that TelluriumProcess emits
+      in its `parameters` map. (v1 excluded outputs, which hid the time-clock bug: BIOMD400 outputs were
+      off by 1.8e-2.) Boundary-species outputs that Tellurium doesn''t emit stay excluded, as stated.
 
       '
-    metric: 'As in v1: per variable, max_t |ode - tel| / max_t |tel| (scale floor
-      1e-10); any non-finite value fails.'
-    H1: 'Tight-tolerance agreement (rtol 1e-12 / atol 1e-14) within tau_m for every
-      model: tau = 1e-8, except BIOMD5, where tau = 1e-7. Rationale: v1''s 1e-6 had
-      low power (adversarial panel: 9 of 199 parameters could change by 0.1% undetected).
-      The observed tight errors were <= 4.6e-9, and the solvers'' own floor is ~1e-8
-      (each solver at rtol 1e-12 vs 1e-13: LSODA 9.4e-9, CVODE 5.9e-9 on BIOMD5).
-      tau sits a factor 10 above each floor.
+    metric: 'As in v1: per variable, max_t |ode - tel| / max_t |tel| (scale floor 1e-10); any non-finite
+      value fails.'
+    H1: 'Tight-tolerance agreement (rtol 1e-12 / atol 1e-14) within tau_m for every model: tau = 1e-8,
+      except BIOMD5, where tau = 1e-7. Rationale: v1''s 1e-6 had low power (adversarial panel: 9 of 199
+      parameters could change by 0.1% undetected). The observed tight errors were <= 4.6e-9, and the solvers''
+      own floor is ~1e-8 (each solver at rtol 1e-12 vs 1e-13: LSODA 9.4e-9, CVODE 5.9e-9 on BIOMD5). tau
+      sits a factor 10 above each floor.
 
       '
-    H2: 'Integrator error, asserted as convergence: for every model, log10(worst default
-      / worst tight) >= 2.5. v1''s `default >= tight` passed even with a planted semantic
-      error (the ratio collapsed to 3-21x), while the first pass observed 3.4-4.4
-      orders.
+    H2: 'Integrator error, asserted as convergence: for every model, log10(worst default / worst tight)
+      >= 2.5. v1''s `default >= tight` passed even with a planted semantic error (the ratio collapsed
+      to 3-21x), while the first pass observed 3.4-4.4 orders.
 
       '
-    H3: 'Negative controls that span sensitivity: for each model, rank its global
-      parameters by roadrunner sensitivity on the ORIGINAL SBML, i.e. the oracle side,
-      independent of the comparison (sensitivity = metric of the trajectory under
-      a +1e-3 relative change, divided by 1e-3), and take the median-sensitivity parameter
-      p_m. Perturbing p_m by +1% in the OdeProcess import must exceed tau_m. The procedure
-      is analysis/select_controls.py, run and committed before the v2 runs. The v1
-      control (BIOMD12 eff +0.1%) is kept.
+    H3: 'Negative controls that span sensitivity: for each model, rank its global parameters by roadrunner
+      sensitivity on the ORIGINAL SBML, i.e. the oracle side, independent of the comparison (sensitivity
+      = metric of the trajectory under a +1e-3 relative change, divided by 1e-3), and take the median-sensitivity
+      parameter p_m. Perturbing p_m by +1% in the OdeProcess import must exceed tau_m. The procedure is
+      analysis/select_controls.py, run and committed before the v2 runs. The v1 control (BIOMD12 eff +0.1%)
+      is kept.
 
       '
-    t0: t = 0 is compared if viva-tellurium#7 (empty first row) is fixed by the time
-      of the re-run; otherwise it stays excluded and is stated as such.
-    environment: All v2 runs come from ONE commit and lock. Per-run provenance (workspace
-      commit, lock hash, env_id) is taken from runs_meta.manifest_json, not written
-      by hand.
+    t0: t = 0 is compared if viva-tellurium#7 (empty first row) is fixed by the time of the re-run; 
+      otherwise it stays excluded and is stated as such.
+    environment: All v2 runs come from ONE commit and lock. Per-run provenance (workspace commit, 
+      lock hash, env_id) is taken from runs_meta.manifest_json, not written by hand.
 amendments:
 - date: '2026-10-04'
   what: objective horizon
-  detail: 't = 0..50 was corrected to t = 0..100 after the runs. The workbench `steps:
-    100` is a time horizon (201 samples at 0.5). H1-H3 don''t depend on the horizon.'
+  detail: 't = 0..50 was corrected to t = 0..100 after the runs. The workbench `steps: 100` is a time
+    horizon (201 samples at 0.5). H1-H3 don''t depend on the horizon.'
 - date: '2026-10-04'
   what: analysis choices made after the data (v1)
-  detail: tests/test_agreement.py (4fa850c) was written after 38 of the 39 first-pass
-    runs. Its t = 0 drop, compared-variable set and 1e-10 scale floor are therefore
-    post-hoc. The thresholds and hypothesis text are unchanged since 8488a1e.
+  detail: tests/test_agreement.py (4fa850c) was written after 38 of the 39 first-pass runs. Its t = 
+    0 drop, compared-variable set and 1e-10 scale floor are therefore post-hoc. The thresholds and 
+    hypothesis text are unchanged since 8488a1e.
 - date: '2026-10-04'
   what: provenance correction (v1)
-  detail: The first-pass findings named 'vivarium-workbench 3e5edbe8 / viva-expressions
-    0.2.3' for all runs. The runs_meta manifests show 30 runs at workspace 526a268
-    (workbench 8f322e7f, package 0.2.1), the 2 BIOMD400 ODE runs at 8ef5797, and only
-    biomd400_tellurium_tight at ce6387d (workbench 3e5edbe8). Those strings were wrong.
+  detail: The first-pass findings named 'vivarium-workbench 3e5edbe8 / viva-expressions 0.2.3' for 
+    all runs. The runs_meta manifests show 30 runs at workspace 526a268 (workbench 8f322e7f, package
+    0.2.1), the 2 BIOMD400 ODE runs at 8ef5797, and only biomd400_tellurium_tight at ce6387d 
+    (workbench 3e5edbe8). Those strings were wrong.
 - date: '2026-10-04'
   what: defective run records (v1)
-  detail: 'runs.db keeps 6 extra records: biomd400_ode x2 and biomd400_ode_tight x1,
-    marked completed but holding only t = 0 (the MathExpressionStep ndarray bug, fixed
-    in 0.2.2), and biomd400_tellurium_tight x3, marked failed but holding 201 good
-    rows (the workbench stdout-parse bug, fixed in #1273). Analysis used the latest
-    completed record per label.'
+  detail: 'runs.db keeps 6 extra records: biomd400_ode x2 and biomd400_ode_tight x1, marked completed
+    but holding only t = 0 (the MathExpressionStep ndarray bug, fixed in 0.2.2), and biomd400_tellurium_tight
+    x3, marked failed but holding 201 good rows (the workbench stdout-parse bug, fixed in #1273). Analysis
+    used the latest completed record per label.'
 - date: '2026-10-04'
   what: first pass superseded
-  detail: 'The adversarial panel found an importer clock bug: the integrated time
-    drifted, so time-switched outputs took the wrong branch. That is fixed in viva-expressions
-    v0.3.0. The first pass stays in history, and the v2 re-run, from one environment,
-    carries the study''s evidence.'
+  detail: 'The adversarial panel found an importer clock bug: the integrated time drifted, so time-switched
+    outputs took the wrong branch. That is fixed in viva-expressions v0.3.0. The first pass stays in history,
+    and the v2 re-run, from one environment, carries the study''s evidence.'
+last_test_run:
+  timestamp: '2026-10-04T22:49:15+00:00'
+  passed: 41
+  failed: 0
+  skipped: 0
+  duration_s: 1.2050278186798096

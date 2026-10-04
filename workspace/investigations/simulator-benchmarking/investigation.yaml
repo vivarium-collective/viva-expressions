@@ -27,31 +27,39 @@ hypothesis: >
 executive:
   what_is_this: Simulator benchmarking of the expression layer against established SBML simulators, 
     one study per comparator.
-  verdict: bench-tellurium passes. On 8 BioModels the imported OdeProcess models match libroadrunner
-    within 1e-6 of scale (worst 4.6e-9 at tight tolerances), and the default-tolerance gap (up to 
-    1.3e-5) is integrator error.
+  verdict: bench-tellurium v2 passes its pre-registered tests. On 8 BioModels the imported 
+    OdeProcess models match libroadrunner, states and model outputs, within 1e-8 of scale (1e-7 for 
+    BIOMD5) at tight tolerances. The default-tolerance gap converges away (3.4-4.4 orders), so it is
+    integrator error.
   verdict_status: in-progress
-  verdict_detail: 1 of 3 comparator studies done (Tellurium). COPASI and PySCeS are not yet 
-    installed.
+  verdict_detail: 1 of 3 comparator studies done (Tellurium), on a second, single-environment pass 
+    after an importer clock bug found by the adversarial panel was fixed (viva-expressions v0.3.0). 
+    COPASI and PySCeS are not yet installed.
   decisions_needed:
   - question: Install viva-copasi and viva-pysces for the next comparator studies?
     context: bench-tellurium's design (models, settings, tests) is reusable as is.
 scientific_argument:
   main_claim: The expression layer, fed by /sbml-system imports, reproduces libroadrunner's 
-    integration of the same SBML up to integrator error.
+    integration of the same SBML (states and outputs) up to integrator error, on 8 feature-chosen 
+    BioModels.
   evidence_for:
-  - 'bench-tellurium H1: 8/8 models within 1e-6 at tight tolerances (worst 4.6e-9).'
-  - 'bench-tellurium H2: the default-tolerance gap is always 2-4 orders larger than the tight one, i.e.
-    it is integrator error.'
-  - 'bench-tellurium H3: a 0.1% parameter change is detected (1.09e-3).'
-  evidence_against: []
+  - 'bench-tellurium v2 H1: 8/8 models within tau (1e-8, or 1e-7 for BIOMD5) at tight tolerances over
+    129 states and outputs; worst 4.6e-9.'
+  - 'bench-tellurium v2 H2: the default-to-tight drop is 3.38-4.36 orders (pre-registered >= 2.5), so
+    the gap is integrator error.'
+  - 'bench-tellurium v2 H3: +1% median-sensitivity parameter changes are detected in 8/8 models (>= 2.2e-3).'
+  evidence_against:
+  - "First pass (superseded): with the integrated clock, BIOMD400's time-switched outputs were off by
+    1.8e-2. Fixed in v0.3.0, and the v2 runs confirm the fix (3.5e-9)."
   key_figures: []
   caveats:
-  - 'arm64 disparity: all results use libroadrunner 2.10.0 on macOS arm64. libroadrunner ships Linux aarch64
-    wheels only for 2.7.0, so Linux arm64 environments (and any arm64 container image) would run an untested
-    older version. No linux/arm64 image is built (viva-template#65 adds IMAGE_PLATFORMS).'
-  - The 8 models were chosen for SBML-feature coverage, not sampled; models with events, delays or 
-    algebraic rules are out of scope (rejected by the importer).
+  - 'arm64 disparity: all results use libroadrunner 2.10.0 on macOS arm64. The lock pins 2.10.0, which
+    has no Linux aarch64 wheel (PyPI only ever shipped one for 2.7.0), so the lock does not install on
+    Linux arm64 and no linux/arm64 image is built (viva-template#65). Other libroadrunner versions are
+    untested.'
+  - 8 models chosen for SBML-feature coverage, not sampled (0/8 failures would bound a corpus 
+    failure rate at <= 31% even if they were sampled); the corpus-coverage study addresses this. The
+    importer rejects models with events, delays or algebraic rules.
   - 'Cost is not yet measured: workbench wall time is dominated by process start-up.'
   - 't = 0 is not compared under the workbench (viva-tellurium#7: empty first row).'
 narrative_spine_skip:

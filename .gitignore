@@ -41,3 +41,6 @@ out/
 # machine-local temp paths that check-no-local-paths.sh rejects)
 workspace/investigations/*/studies/*/sims/
 workspace/investigations/*/studies/*/viz/
+# SQLite write-ahead / shared-memory sidecars of study runs.db (transient)
+workspace/investigations/*/studies/*/runs.db-wal
+workspace/investigations/*/studies/*/runs.db-shm
