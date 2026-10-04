@@ -127,7 +127,7 @@ class Problem:
             with np.errstate(all="ignore"):
                 sol = solve_ivp(lambda t, y: f(y, u, theta), (0.0, self.spec.time.t_end),
                                 self.y0, method=method, t_eval=t_eval,
-                                jac=lambda t, y: jac(y, u, theta), rtol=RTOL, atol=ATOL,
+                                jac=None if jac is None else (lambda t, y: jac(y, u, theta)), rtol=RTOL, atol=ATOL,
                                 events=diverged)
             if sol.status == 0 and sol.y.shape[1] == len(t_eval) \
                     and np.all(np.isfinite(sol.y)):

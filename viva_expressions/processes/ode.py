@@ -53,7 +53,8 @@ class OdeProcess(Process):
 
         sol = solve_ivp(
             lambda t, y: f(y, u, p), (0.0, interval), y0,
-            method=self.config["method"], jac=lambda t, y: jac(y, u, p),
+            method=self.config["method"],
+            jac=None if jac is None else (lambda t, y: jac(y, u, p)),
             rtol=self.config["rtol"], atol=self.config["atol"], events=diverged)
         y_end = sol.y[:, -1]
         if sol.status == 1:

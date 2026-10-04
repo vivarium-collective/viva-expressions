@@ -4,7 +4,7 @@ from graphlib import TopologicalSorter
 import sympy as sp
 from process_bigraph import Step
 
-from viva_expressions.expressions import parse, substitute
+from viva_expressions.expressions import parse
 
 logger = logging.getLogger(__name__)
 
@@ -38,13 +38,17 @@ class MathExpressionStep(Step):
         # topological order (graphlib.TopologicalSorter); raise on cycles
         self.order = list(TopologicalSorter(self.deps).static_order())
 
-        # compile each: args = inputs + upstream outputs
+        # compile each: args = inputs + upstream outputs, then the parameters
+        # it uses, passed as values. Substituting them into the expression
+        # instead lets sympy fold constants past float range (e.g.
+        # exp(-80*(t - ts)) at ts = 30 becomes 1e1042*exp(-80*t) -> inf*0 = nan).
         self.fns = {}
         for out in self.order:
-            args = sorted(s.name for s in self.exprs[out].free_symbols
-                          if s.name not in self.params)
-            sub = substitute(self.exprs[out], self.params)
-            self.fns[out] = (args, sp.lambdify(args, sub, modules=cfg["functions"]))
+            names = sorted(s.name for s in self.exprs[out].free_symbols)
+            args = [n for n in names if n not in self.params]
+            used = [n for n in names if n in self.params]
+            fn = sp.lambdify(args + used, self.exprs[out], modules=cfg["functions"])
+            self.fns[out] = (args, fn, [float(self.params[n]) for n in used])
 
         level = logging.INFO if cfg["debug"] else logging.DEBUG
         logger.log(level, "inputs: %s", self.input_names)
@@ -64,6 +68,6 @@ class MathExpressionStep(Step):
     def update(self, state):
         vals, result = dict(state), {}
         for out in self.order:
-            args, fn = self.fns[out]
-            result[out] = vals[out] = fn(*[vals[a] for a in args])
+            args, fn, values = self.fns[out]
+            result[out] = vals[out] = fn(*[vals[a] for a in args], *values)
         return result

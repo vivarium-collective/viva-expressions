@@ -297,6 +297,21 @@ The report also tells you what the spec *does not* determine. For the repressor 
 
 The winner is exported as a process-bigraph document, **re-run in a real `Composite` through `OdeProcess` at its own tolerances**, and re-scored. It is verified only if every feature is still satisfied *and* the Composite trajectory agrees with the fitter's to within 1e-3 of each variable's scale. A fit that passes in the optimizer but not in the exported composite is reported `unverified`, so the artifact you ship is the one that was checked.
 
+## SBML interchange: import and export
+
+Expressions stay the way models are written here. SBML is something models convert to and from (`viva_expressions.sbml`, driven by the [`/sbml-system`](.claude/skills/sbml-system/SKILL.md) skill):
+
+```bash
+uv run python scripts/fetch_biomodels.py BIOMD0000000012 --out workspace/references/biomodels   # via viva-biomodels, with SHA256SUMS
+uv run python -m viva_expressions.sbml import workspace/references/biomodels/BIOMD0000000012.xml --name repressilator --source BIOMD0000000012
+uv run python -m viva_expressions.sbml export viva_expressions/composites/michaelis_menten.composite.yaml --out mm.xml
+```
+
+- **Import** follows SBML L3V2 semantics. Kinetic laws are extents per time. Each species is integrated in its symbol's units (a concentration unless `hasOnlySubstanceUnits`). Boundary and constant species are untouched by reactions, and conversion factors apply. libsbml expands function definitions and initial assignments and promotes local parameters. Assignment rules are substituted into the derivatives and are also emitted as outputs through a `MathExpressionStep`. The `time` csymbol becomes an integrated `time` state. The result is a workspace `*.composite.yaml` whose parameters and initial values are all composite parameters.
+- **Rejected, never dropped:** events, delays, algebraic rules, fast reactions, variable stoichiometry, species in a compartment whose size changes, piecewise without `otherwise`, and constants outside double range.
+- **Export** writes SBML L3V2. Each state is a parameter with a rate rule carrying its exact rhs. A `MathExpressionStep`'s outputs become assignment rules. Any other process in the document raises. It writes rate rules rather than reactions, because a summed rhs splits into reactions in more than one way. No units are declared. libsbml writes doubles to 15 significant digits.
+- **Checked against libroadrunner on the original SBML** (`tests/test_sbml.py`), using eight pinned BioModels chosen to cover those features. Both solvers run at rtol 1e-12. Every variable, including assignment outputs, agrees within 1e-6 of its scale; the worst gap is 5.6e-7. The test suite also checks four further points. The gap shrinks with tolerance (1.5e-5 → 5.6e-7 → 1.2e-8), so it is integrator error, not semantics. Flipping the sign of one rate fails the check. The four workspace composites export to SBML that roadrunner runs identically. Expressions → SBML → expressions reproduces trajectories bit for bit.
+
 ## Workspace and dashboard
 
 This repo is also a [viva-superpowers](https://github.com/vivarium-collective/viva-superpowers) workspace (see [`workspace.yaml`](workspace.yaml)): its research objects live in `workspace/` and are served by [vivarium-workbench](https://github.com/vivarium-collective/vivarium-workbench).
@@ -352,7 +367,7 @@ Candidate work, strongest first (from [`docs/new-work-candidates.md`](docs/new-w
 |---|---|---|
 | 1 | **Single study: expression-defined kinetics against analytic solutions.** The foundation for new models; needs no installs. | **Built** as a study (4 baselines, 13 variants, oracles checked above). Not yet run through the workbench, and the oracle bands are not yet encoded as study readouts (see [limitations](#known-limitations)). |
 | 2 | **Single study: gene-circuit dynamics** (repressilator or toggle switch) as pure expressions; sweep Hill coefficient and degradation rate to find the oscillation-to-steady-state boundary; `MathExpressionStep` supplies period/amplitude observables. | **In progress.** The synthesis side exists (`goodwin` motif, `repressor.yml`); the study itself is not yet in `workspace/studies/`. |
-| 3 | **Investigation: does the expression layer reproduce established simulators?** `OdeProcess` against viva-tellurium, viva-copasi and viva-pysces on the same models from 1 and 2 (ideally via viva-biomodels): kinetics, oscillator and stiff case; trajectory agreement and cost. | **Planned.** [`simulator-benchmarking`](workspace/investigations/simulator-benchmarking/investigation.yaml) exists with its research question in `description` (its `question:` field is still blank) and no member studies yet. |
+| 3 | **Investigation: does the expression layer reproduce established simulators?** `OdeProcess` against viva-tellurium, viva-copasi and viva-pysces on the same models from 1 and 2 (ideally via viva-biomodels): kinetics, oscillator and stiff case; trajectory agreement and cost. | **In progress.** SBML import/export is built (see [SBML interchange](#sbml-interchange-import-and-export)), viva-tellurium and viva-biomodels are installed. [`simulator-benchmarking`](workspace/investigations/simulator-benchmarking/investigation.yaml) exists with its research question in `description` (its `question:` field is still blank) and no member studies yet. |
 | 4 | **Investigation: composition with existing modules.** Expressions as glue: an `OdeProcess` controller driving viva-comets or spatio-flux (dFBA); (a) the port and type contract with a one-way coupling, (b) closed-loop feedback, (c) sensitivity to the coupling interval. | **Planned**, and the riskiest: the ports of the uninstalled modules are unverified. |
 | 5 | **Single study: deterministic vs stochastic validity.** `OdeProcess` against viva-smoldyn or viva-nfsim as copy number falls, to find where the ODE approximation breaks. | **Planned**; needs the stochastic wrapper installed first. |
 
@@ -371,10 +386,15 @@ viva_expressions/
   composites/*.composite.yaml    the four analytic baselines
   core.py                   build_core(): registers this package's processes
   synthesize/               spec · motifs · fit · select · sindy · behavior · export · pipeline · CLI
+  sbml/                     read (SBML -> OdeModel) · write (-> SBML L3V2) · math (MathML <-> sympy) · composite · CLI
 systems/                    template.yml (annotated spec) and examples/ (4 specs + lv.csv)
 workspace/                  studies/ · investigations/ · references/ · reports/  (viva-superpowers layout)
 tests/                      OdeProcess, MathExpressionStep, parser, spec, motifs, fit/select, SINDy, CLI, behavior
 scripts/make_readme_figures.py   regenerates docs/img/*.png
+scripts/fetch_biomodels.py       pins BioModels SBML files with SHA256SUMS (tests/data/biomodels/)
+external/                   viva-tellurium, viva-biomodels: workspace-import checkouts (git submodules).
+                            viva-tellurium installs from git main, the source viva-biomodels also
+                            declares; viva-biomodels installs editable from its checkout.
 docs/                       new-work-candidates.md · first-run-agent-guide.md
 ```
 
@@ -385,7 +405,7 @@ uv run pytest                                      # tests/ (~90 s)
 uv run python scripts/make_readme_figures.py       # regenerate docs/img/*.png (~3 min)
 ```
 
-- **Tests** cover the process and step in real Composites (e.g. logistic against its analytic solution, a Lotka-Volterra run against an independent `solve_ivp`, JSON round-tripping, the guard), the parser, spec validation (exhaustive error reporting), the motif library, fitting and ranking, SINDy, and the synthesis CLI end to end, including re-running an exported `composite.json` in a fresh Composite.
+- **Tests** cover the process and step in real Composites (e.g. logistic against its analytic solution, a Lotka-Volterra run against an independent `solve_ivp`, JSON round-tripping, the guard), the parser, spec validation (exhaustive error reporting), the motif library, fitting and ranking, SINDy, and the synthesis CLI end to end, including re-running an exported `composite.json` in a fresh Composite. SBML import/export is checked against libroadrunner on pinned BioModels (see [SBML interchange](#sbml-interchange-import-and-export)).
 - **CI** (`.github/workflows/`): `workspace-ci` runs the tests on every push to `main` and on pull requests; `publish-dashboard` and `publish-reports` republish the site to `gh-pages` when `workspace/**` changes; `build-and-push` builds the container image on `v*` tags. The `Dockerfile` serves the workbench on port 9863.
 - **Agents.** [`AGENTS.md`](AGENTS.md) holds the PR conventions (feature PRs vs. investigation PRs) and [`docs/first-run-agent-guide.md`](docs/first-run-agent-guide.md) is a runbook for a coding agent taking a new user from zero to a running workbench.
 - **Related:** [process-bigraph](https://github.com/vivarium-collective/process-bigraph) (the composition framework), [vivarium-workbench](https://github.com/vivarium-collective/vivarium-workbench) (the UI), [viva-superpowers](https://github.com/vivarium-collective/viva-superpowers) (Claude Code skills that drive it), [viva-template](https://github.com/vivarium-collective/viva-template) (the workspace scaffold).

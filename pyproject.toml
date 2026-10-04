@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "viva-expressions"
-version = "0.1.0"
+version = "0.2.0"
 description = "Assemble process-bigraph models of dynamical systems from expected outputs and behavior"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -24,6 +24,7 @@ dependencies = [
     "vivarium-workbench[chat]",
     "viva_tellurium",
     "viva_biomodels",
+    "python-libsbml>=5.20",
 ]
 
 [project.optional-dependencies]
@@ -37,12 +38,14 @@ sindy = [
 dev = [
     "pysindy>=2.1,<3",
     "pytest>=8",
+    "libroadrunner",
 ]
 
 [dependency-groups]
 dev = [
     "pysindy>=2.1,<3",
     "pytest>=8",
+    "libroadrunner",
 ]
 
 [tool.hatch.build.targets.wheel]
