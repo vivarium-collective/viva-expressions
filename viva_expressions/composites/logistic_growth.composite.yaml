@@ -1,0 +1,55 @@
+name: logistic_growth
+description: "Logistic growth dN/dt = r*N*(1-N/K) integrated by OdeProcess; closed-form solution N(t)=K/(1+((K-N0)/N0)*exp(-r t)) is the validation oracle."
+tags: [ode, expressions, validation]
+requires:
+  processes: [OdeProcess]
+parameters:
+  r:
+    type: float
+    default: 0.5
+    description: "Intrinsic growth rate (1/time)."
+  K:
+    type: float
+    default: 100.0
+    description: "Carrying capacity."
+  N0:
+    type: float
+    default: 5.0
+    description: "Initial population."
+  method:
+    type: string
+    default: LSODA
+    description: "scipy solve_ivp method (LSODA, RK45, DOP853, Radau, BDF)."
+  rtol:
+    type: float
+    default: 1.0e-8
+    description: "Solver relative tolerance."
+  atol:
+    type: float
+    default: 1.0e-10
+    description: "Solver absolute tolerance."
+state:
+  growth:
+    _type: process
+    address: "local:OdeProcess"
+    config:
+      rhs: {N: "r*N*(1 - N/K)"}
+      params: {r: "${r}", K: "${K}"}
+      state_vars: [N]
+      input_vars: []
+      method: "${method}"
+      rtol: "${rtol}"
+      atol: "${atol}"
+    interval: 0.5
+    inputs: {N: ["stores", "N"]}
+    outputs: {N: ["stores", "N"]}
+  stores:
+    N: "${N0}"
+  emitter:
+    _type: step
+    address: "local:JSONEmitter"
+    config:
+      emit: {N: float, time: float}
+    inputs:
+      N: ["stores", "N"]
+      time: ["global_time"]

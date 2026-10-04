@@ -1,0 +1,22 @@
+# Dry run of "a repressor that oscillates with a period of ~20": qualitative
+# only. Rival structures differ in repression cooperativity; with equal stage
+# rates the Goodwin loop can only oscillate when n > 8.
+name: repressor
+time: {t_end: 200, n_points: 2001}
+variables:
+  y:
+    - {name: m, value: 0.1, bounds: [0, null]}   # mRNA
+    - {name: p, value: 0.1, bounds: [0, null]}   # protein
+    - {name: r, value: 0.1, bounds: [0, null]}   # active repressor
+behavior:
+  description: A repressor that oscillates with a period of ~20.
+  features:
+    - {kind: oscillation, var: r, period: 20, tol: 0.1, sustained: true}
+candidates:
+  - {motif: goodwin, bind: {m: m, p: p, r: r}}
+  - name: low_cooperativity_repression
+    rhs:
+      m: "alpha/(1 + (r/Ki)**n) - k*m"
+      p: "k*m - k*p"
+      r: "k*p - k*r"
+    params: {alpha: [0, 100], Ki: [0.001, 100], n: [1, 4], k: [0, 5]}

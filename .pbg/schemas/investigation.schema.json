@@ -1,0 +1,217 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "investigation.yaml (v1/v2)",
+  "description": "A named collection of Studies grouped under a shared research question, with an explicit cross-study dependency DAG and top-level acceptance criteria. Accepts schema_version 1 (minimal: name/title/question/hypothesis/description/studies/acceptance_criteria) and 2 (current: adds the narrative-spine fields the dnaa-replication investigation evolved — executive, scientific_argument, biological_story, lead, at_a_glance, how_to_read, glossary, guidelines). All v2 fields are optional; a v1 spec validates unchanged. New scaffolds should write schema_version: 2 with the narrative-spine fields present (empty or commented) so they prompt the author to fill them in.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["name", "title"],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [1, 2],
+      "description": "1 = legacy v1 (bare name/title/question/hypothesis/description/studies/acceptance_criteria). 2 = current (narrative-spine fields populated). New scaffolds emit 2."
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]*$",
+      "description": "URL-safe slug that matches the directory name under investigations/."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable title for the investigation."
+    },
+    "created": {
+      "type": "string",
+      "format": "date",
+      "description": "ISO-8601 creation date (YYYY-MM-DD)."
+    },
+    "status": {
+      "enum": ["planned", "planning", "running", "ran", "complete", "failed", "invalid", "archived", "closed"],
+      "description": "Overall status of the investigation. 'planning' is accepted as an alias for 'planned' for back-compat. 'closed' is the terminal post-merge state set by the close-investigation workflow (`/viva-investigation close <slug>`) after the report.html has been checked in and the PR opened."
+    },
+    "question": {
+      "type": "string",
+      "description": "The overarching research question answered by running all member studies in concert."
+    },
+    "hypothesis": {
+      "type": "string",
+      "description": "Predicted outcome across the full study sequence."
+    },
+    "description": {
+      "type": "string",
+      "description": "Markdown narrative: background, mechanism, study sequence, expected outcome. Superseded for new specs by the v2 `biological_story` (multi-paragraph mechanism prose) + `lead` (3-4 sentence intro) fields, which separate the front-of-textbook summary from the in-depth mechanism narrative. Kept for v1 back-compat."
+    },
+    "studies": {
+      "type": "array",
+      "description": "Ordered list of study slugs that belong to this investigation. Controls dashboard grouping/visibility. The DAG topology is derived from each study's own parent_studies field.",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9_-]*$"
+      },
+      "uniqueItems": true
+    },
+    "expert_docs": {
+      "type": "array",
+      "description": "Names of expert_docs entries from workspace.yaml that are relevant to this investigation (cross-reference convenience, not authoritative).",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "description": "Top-level success criteria for the investigation. Each entry maps to a specific expected_behavior[i].name on a member study. The investigation is 'complete' when all entries pass.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["study", "behavior"],
+        "properties": {
+          "study": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "description": "Slug of the member study that owns this criterion."
+          },
+          "behavior": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The expected_behavior[i].name value on the named study."
+          }
+        }
+      }
+    },
+    "executive": {
+      "type": "object",
+      "description": "v2 narrative field — executive summary panel rendered at the top of the report. Lets a reviewer who won't read the studies see what the investigation concluded, where it stands, and what the open decisions are. dnaa-replication example: {what_is_this, verdict, verdict_status, decisions_needed: ['expert opinion on RIDA vs DDAH', ...]}.",
+      "additionalProperties": true,
+      "properties": {
+        "what_is_this": {"type": "string", "description": "One-paragraph 'what an investigation is, and what THIS investigation is about'. Reader-friendly."},
+        "verdict": {"type": "string", "description": "Headline summary of where the investigation currently stands."},
+        "verdict_status": {
+          "type": "string",
+          "description": "Common values: in-progress | passing | passing-with-caveats | failing | inconclusive | not-yet-run."
+        },
+        "decisions_needed": {
+          "type": "array",
+          "description": "Open decisions blocking forward progress. Each entry is a short string or {question, owner, context} object.",
+          "items": {
+            "oneOf": [
+              {"type": "string"},
+              {"type": "object", "additionalProperties": true}
+            ]
+          }
+        }
+      }
+    },
+    "scientific_argument": {
+      "type": "object",
+      "description": "v2 narrative field — the structured claim/evidence panel. Separates the main claim from the evidence that supports/contradicts it, the key figures, and known caveats. Distinct from `executive` (which is the bottom-line verdict) — this is the chain of reasoning.",
+      "additionalProperties": true,
+      "properties": {
+        "main_claim": {"type": "string", "description": "The investigation's primary claim, as a single statement."},
+        "evidence_for": {"type": "array", "items": {"type": "string"}, "description": "Bullets supporting the main claim. Free-form."},
+        "evidence_against": {"type": "array", "items": {"type": "string"}, "description": "Bullets contradicting the main claim. Free-form."},
+        "key_figures": {"type": "array", "items": {"type": "string"}, "description": "Pointers to viz/report assets supporting the argument (paths or anchor names)."},
+        "caveats": {"type": "array", "items": {"type": "string"}, "description": "Known limitations of the argument as currently posed."},
+        "interpretation_ref": {"type": "string", "description": "Path to a longer interpretation document, when one exists."}
+      }
+    },
+    "biological_story": {
+      "type": "string",
+      "description": "v2 narrative field — multi-paragraph plain-English mechanism narrative. The 'textbook chapter' summary of what the investigation is modeling. Markdown allowed. Distinct from `description` (legacy free-form) and `lead` (the 3-4 sentence intro)."
+    },
+    "lead": {
+      "type": "string",
+      "description": "v2 narrative field — 3-4 sentence front-of-textbook intro. The first thing a reader sees. Lands above biological_story in the rendered report."
+    },
+    "at_a_glance": {
+      "type": "array",
+      "description": "v2 narrative field — one-line role per study. Lets a reviewer see what each study CONTRIBUTES to the overall arc without opening any of them. Each entry: {study: <slug>, role: '<one-line role>'}.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["study"],
+        "properties": {
+          "study": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$"},
+          "role": {"type": "string", "description": "One sentence: what this study contributes to the arc."}
+        }
+      }
+    },
+    "how_to_read": {
+      "type": "string",
+      "description": "v2 narrative field — evaluator tips. 'Read studies in order. Each study's `report.verdict` block is the headline. Open the rendered viz only when a primary test fails.' Markdown allowed."
+    },
+    "glossary": {
+      "type": "array",
+      "description": "v2 narrative field — investigation-local term definitions. Lets a reader who doesn't know the domain look up DnaA-ATP, RIDA, DDAH inline. Each entry: {term, definition}.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["term", "definition"],
+        "properties": {
+          "term": {"type": "string"},
+          "definition": {"type": "string"}
+        }
+      }
+    },
+    "guidelines": {
+      "type": "object",
+      "description": "v2 narrative field — investigation-wide rules: literature anchors, parameter tables, naming conventions, calibration thresholds that every member study should respect. Free-form sub-fields; common ones include `literature_anchors[]`, `parameter_catalog[]`, `naming_conventions`, `calibration_targets`.",
+      "additionalProperties": true
+    },
+    "contributors": {
+      "type": "array",
+      "description": "S5: who built this investigation. Auto-derived by `/viva-investigation close` from `git log --pretty='%an|%ae' <main>..<branch>` plus any agent-session metadata under .pbg/agent-sessions/, then editable by the author. Survives squash-merges where git authors would otherwise be lost. Lets future contributors see who came before and gives credit when others build on top.",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "additionalProperties": true,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Display name (human or agent)."
+          },
+          "email": {
+            "type": "string",
+            "description": "Email (humans) or NULL/placeholder (agents)."
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["human", "agent"],
+            "default": "human",
+            "description": "human = git commit author; agent = recorded via .pbg/agent-sessions/."
+          },
+          "roles": {
+            "type": "array",
+            "description": "Roles played on this investigation. Free-form; common values: designer | implementer | reviewer | agent_runner | data_curator. A single contributor may have multiple roles.",
+            "items": {"type": "string"}
+          },
+          "commits": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Count of commits attributed to this contributor on the investigation branch (since divergence from main). Populated by the close mechanic; informational only."
+          },
+          "sessions": {
+            "type": "array",
+            "description": "For agents: list of session ids (UUIDs from .pbg/agent-sessions/<id>.json) attributed to this contributor.",
+            "items": {"type": "string"}
+          },
+          "notes": {
+            "type": "string",
+            "description": "Optional free-form acknowledgement (e.g., 'expert review of dnaa-02 implementation')."
+          }
+        }
+      }
+    },
+    "closed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "S5: ISO-8601 timestamp when `/viva-investigation close` stamped the investigation. Set automatically by the close mechanic; not user-edited. Distinct from `created` (start of work)."
+    },
+    "report_url": {
+      "type": "string",
+      "description": "S5: path to the checked-in HTML report. Relative to the investigation directory (typically just 'report.html'). Set automatically by the close mechanic when it copies the rendered report into investigations/<slug>/report.html. Lets the dashboard link to the immutable snapshot of what the investigation produced."
+    }
+  }
+}

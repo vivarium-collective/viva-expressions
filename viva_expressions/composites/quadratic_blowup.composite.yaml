@@ -1,0 +1,52 @@
+name: quadratic_blowup
+description: "Finite-time singularity dx/dt = x**2 integrated by OdeProcess; exact solution x(t) = x0/(1 - x0*t) diverges at t* = 1/x0. Negative control for the max_abs guard: the run must FAIL with a max_abs RuntimeError shortly after t*, never stall or return a finite state past t*."
+tags: [ode, expressions, validation, negative-control]
+requires:
+  processes: [OdeProcess]
+parameters:
+  x0:
+    type: float
+    default: 1.0
+    description: "Initial value; blow-up time t* = 1/x0."
+  max_abs:
+    type: float
+    default: 1.0e12
+    description: "OdeProcess divergence bound; integration stops and raises once |x| exceeds it."
+  method:
+    type: string
+    default: LSODA
+    description: "scipy solve_ivp method (LSODA, RK45, DOP853, Radau, BDF)."
+  rtol:
+    type: float
+    default: 1.0e-8
+    description: "Solver relative tolerance."
+  atol:
+    type: float
+    default: 1.0e-10
+    description: "Solver absolute tolerance."
+state:
+  blowup:
+    _type: process
+    address: "local:OdeProcess"
+    config:
+      rhs: {x: "x**2"}
+      params: {}
+      state_vars: [x]
+      input_vars: []
+      method: "${method}"
+      rtol: "${rtol}"
+      atol: "${atol}"
+      max_abs: "${max_abs}"
+    interval: 0.1
+    inputs: {x: ["stores", "x"]}
+    outputs: {x: ["stores", "x"]}
+  stores:
+    x: "${x0}"
+  emitter:
+    _type: step
+    address: "local:JSONEmitter"
+    config:
+      emit: {x: float, time: float}
+    inputs:
+      x: ["stores", "x"]
+      time: ["global_time"]

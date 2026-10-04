@@ -1,0 +1,36 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+.env
+
+# IDE
+.idea/
+
+
+# Added by pbg-superpowers in-place scaffolder
+.venv/
+.pbg/*
+!.pbg/schemas/
+!.pbg/hpc.env.example
+investigations/*/runs.db
+investigations/*/viz/
+investigations/*/.run.lock
+*.pyc
+*.egg-info/
+.pytest_cache/
+workspace/reports/assets/*
+!workspace/reports/assets/.keep
+.superpowers/brainstorm/
+
+
+# graphify (regenerable: `graphify update .`)
+graphify-out/
+.claude/settings.json.graphify-bak
+agenda.md

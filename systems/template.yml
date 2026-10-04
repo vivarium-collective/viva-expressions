@@ -1,0 +1,50 @@
+# System-synthesis spec. Load with viva_expressions.synthesize.load_spec(path).
+# Supply `data`, `behavior.features`, or both; supply `candidates` unless `data`
+# is present for structure discovery.
+name: <name>
+
+time:
+  t_end: <float>        # simulate over [0, t_end]
+  n_points: <int>       # behavior is scored on this many evenly spaced points
+
+variables:
+  x:                    # exogenous inputs, held constant over the run (optional)
+    - name: <identifier>
+      value: <float>
+  y:                    # state variables; `value` is the initial condition
+    - name: <identifier>
+      value: <float>
+      bounds: [<lo|null>, <hi|null>]   # optional
+
+constraints:            # optional free-text notes, carried into the report
+  - <note>
+
+data:                   # optional observed trajectories (CSV with a header row)
+  path: <file.csv>      # relative to this spec file
+  time_column: <column>
+  columns:              # state variable -> CSV column
+    <y-name>: <column>
+
+behavior:
+  description: <free text: what the system should do>
+  features:             # structured, scorable behavior; each names a state `var`
+    - {kind: steady_state,  var: <y>, value: <float>, tol: <abs>}
+    - {kind: settling_time, var: <y>, value: <time>, band: <fraction>, tol: <abs time>}
+    - {kind: monotonic,     var: <y>, direction: increasing|decreasing}
+    - {kind: bounds,        var: <y>, min: <float>, max: <float>}   # either or both
+    - {kind: oscillation,   var: <y>, period: <time>, tol: <fraction>,
+       amplitude: <float>, sustained: true}                          # amplitude optional
+
+candidates:             # model structures to fit and compare
+  - motif: <motif-name> # library motif; list with `--list-motifs`
+    bind: {<role>: <variable>}
+    params: {<param>: [<lo>, <hi>]}   # optional overrides of the motif's default bounds
+    prefix: <identifier-prefix>       # optional; renames the motif's params (avoids name clashes)
+  - name: <name>        # custom structure
+    rhs: {<y-name>: "<expression>"}
+    params: {<param>: [<lo>, <hi>]}
+
+fit:                    # optional
+  weights: {data: 1.0, behavior: 1.0}
+  seed: 0
+  maxiter: 100

@@ -1,0 +1,14 @@
+# Qualitative only: an undamped oscillation with period 2*pi and amplitude 1.
+name: oscillator
+time: {t_end: 30, n_points: 1501}
+variables:
+  y:
+    - {name: x, value: 1.0}
+    - {name: v, value: 0.0}
+behavior:
+  description: Oscillates indefinitely with period ~6.28 and amplitude ~1.
+  features:
+    - {kind: oscillation, var: x, period: 6.283, amplitude: 1.0, tol: 0.05, sustained: true}
+candidates:
+  - {motif: harmonic_oscillator, bind: {x: x, v: v}}
+  - {motif: damped_oscillator, bind: {x: x, v: v}}

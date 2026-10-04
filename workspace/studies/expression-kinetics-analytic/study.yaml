@@ -1,0 +1,85 @@
+schema_version: 4
+name: expression-kinetics-analytic
+created: '2026-10-03'
+status: planned
+phase: Design
+baseline:
+- name: logistic
+  composite: viva_expressions.composites.logistic_growth
+  params: {}
+- name: michaelis_menten
+  composite: viva_expressions.composites.michaelis_menten
+  params: {}
+- name: lotka_volterra
+  composite: viva_expressions.composites.lotka_volterra
+  params: {}
+- name: quadratic_blowup
+  composite: viva_expressions.composites.quadratic_blowup
+  params: {}
+variants:
+- name: logistic_rk45
+  base_composite: logistic
+  parameter_overrides:
+    method: RK45
+- name: logistic_radau
+  base_composite: logistic
+  parameter_overrides:
+    method: Radau
+- name: logistic_rtol_loose
+  base_composite: logistic
+  parameter_overrides:
+    rtol: 0.0001
+    atol: 1.0e-06
+- name: logistic_rtol_tight
+  base_composite: logistic
+  parameter_overrides:
+    rtol: 1.0e-11
+    atol: 1.0e-13
+- name: mm_bdf
+  base_composite: michaelis_menten
+  parameter_overrides:
+    method: BDF
+- name: mm_stiff_lsoda
+  base_composite: michaelis_menten
+  parameter_overrides:
+    Km: 0.0001
+- name: mm_stiff_radau
+  base_composite: michaelis_menten
+  parameter_overrides:
+    Km: 0.0001
+    method: Radau
+- name: mm_stiff_rk45
+  base_composite: michaelis_menten
+  parameter_overrides:
+    Km: 0.0001
+    method: RK45
+- name: lv_dop853
+  base_composite: lotka_volterra
+  parameter_overrides:
+    method: DOP853
+- name: lv_rk45_loose
+  base_composite: lotka_volterra
+  parameter_overrides:
+    method: RK45
+    rtol: 0.0001
+    atol: 1.0e-06
+- name: lv_rtol_tight
+  base_composite: lotka_volterra
+  parameter_overrides:
+    rtol: 1.0e-11
+    atol: 1.0e-13
+- name: blowup_low_guard
+  base_composite: quadratic_blowup
+  parameter_overrides:
+    max_abs: 1000
+- name: blowup_x0_2
+  base_composite: quadratic_blowup
+  parameter_overrides:
+    x0: 2
+question: Does the expression-defined OdeProcess reproduce closed-form solutions and
+  conserved quantities within numeric error bands across solver methods, tolerances
+  and stiff regimes, and does its max_abs guard fail loudly at a finite-time singularity?
+hypothesis: At the default tolerances (rtol=1e-8, atol=1e-10) every analytic baseline
+  lands within a relative error of 1e-6 of its oracle for every method. Error grows
+  with rtol but stays inside a band set by that rtol. dx/dt = x**2 raises the max_abs
+  RuntimeError at t = 1/x0 instead of stalling.

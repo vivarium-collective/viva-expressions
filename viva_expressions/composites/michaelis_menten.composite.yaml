@@ -1,0 +1,59 @@
+name: michaelis_menten
+description: "Michaelis-Menten substrate depletion dS/dt = -Vmax*S/(Km+S), dP/dt = +Vmax*S/(Km+S) integrated by OdeProcess; oracles are the closed form S(t) = Km*W((S0/Km)*exp((S0 - Vmax*t)/Km)) (Lambert W) and the conserved total S+P = S0."
+tags: [ode, expressions, validation]
+requires:
+  processes: [OdeProcess]
+parameters:
+  Vmax:
+    type: float
+    default: 1.0
+    description: "Maximal reaction rate (concentration/time)."
+  Km:
+    type: float
+    default: 2.0
+    description: "Michaelis constant (concentration). Small Km/S0 makes the system stiff as S -> 0."
+  S0:
+    type: float
+    default: 10.0
+    description: "Initial substrate concentration."
+  method:
+    type: string
+    default: LSODA
+    description: "scipy solve_ivp method (LSODA, RK45, DOP853, Radau, BDF)."
+  rtol:
+    type: float
+    default: 1.0e-8
+    description: "Solver relative tolerance."
+  atol:
+    type: float
+    default: 1.0e-10
+    description: "Solver absolute tolerance."
+state:
+  enzyme:
+    _type: process
+    address: "local:OdeProcess"
+    config:
+      rhs:
+        S: "-Vmax*S/(Km + S)"
+        P: "Vmax*S/(Km + S)"
+      params: {Vmax: "${Vmax}", Km: "${Km}"}
+      state_vars: [S, P]
+      input_vars: []
+      method: "${method}"
+      rtol: "${rtol}"
+      atol: "${atol}"
+    interval: 0.5
+    inputs: {S: ["stores", "S"], P: ["stores", "P"]}
+    outputs: {S: ["stores", "S"], P: ["stores", "P"]}
+  stores:
+    S: "${S0}"
+    P: 0.0
+  emitter:
+    _type: step
+    address: "local:JSONEmitter"
+    config:
+      emit: {S: float, P: float, time: float}
+    inputs:
+      S: ["stores", "S"]
+      P: ["stores", "P"]
+      time: ["global_time"]

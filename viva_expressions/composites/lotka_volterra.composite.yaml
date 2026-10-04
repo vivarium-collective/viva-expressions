@@ -1,0 +1,71 @@
+name: lotka_volterra
+description: "Lotka-Volterra predator-prey dx/dt = a*x - b*x*y, dy/dt = d*x*y - g*y integrated by OdeProcess; oracle is the first integral V(x,y) = d*x - g*ln(x) + b*y - a*ln(y), conserved exactly along trajectories."
+tags: [ode, expressions, validation]
+requires:
+  processes: [OdeProcess]
+parameters:
+  a:
+    type: float
+    default: 1.0
+    description: "Prey growth rate (1/time)."
+  b:
+    type: float
+    default: 0.1
+    description: "Predation rate."
+  d:
+    type: float
+    default: 0.075
+    description: "Predator conversion rate."
+  g:
+    type: float
+    default: 1.5
+    description: "Predator death rate (1/time)."
+  x0:
+    type: float
+    default: 10.0
+    description: "Initial prey."
+  y0:
+    type: float
+    default: 5.0
+    description: "Initial predators."
+  method:
+    type: string
+    default: LSODA
+    description: "scipy solve_ivp method (LSODA, RK45, DOP853, Radau, BDF)."
+  rtol:
+    type: float
+    default: 1.0e-8
+    description: "Solver relative tolerance."
+  atol:
+    type: float
+    default: 1.0e-10
+    description: "Solver absolute tolerance."
+state:
+  predation:
+    _type: process
+    address: "local:OdeProcess"
+    config:
+      rhs:
+        x: "a*x - b*x*y"
+        y: "d*x*y - g*y"
+      params: {a: "${a}", b: "${b}", d: "${d}", g: "${g}"}
+      state_vars: [x, y]
+      input_vars: []
+      method: "${method}"
+      rtol: "${rtol}"
+      atol: "${atol}"
+    interval: 0.1
+    inputs: {x: ["stores", "x"], y: ["stores", "y"]}
+    outputs: {x: ["stores", "x"], y: ["stores", "y"]}
+  stores:
+    x: "${x0}"
+    y: "${y0}"
+  emitter:
+    _type: step
+    address: "local:JSONEmitter"
+    config:
+      emit: {x: float, y: float, time: float}
+    inputs:
+      x: ["stores", "x"]
+      y: ["stores", "y"]
+      time: ["global_time"]

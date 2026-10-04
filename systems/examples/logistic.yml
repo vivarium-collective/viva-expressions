@@ -1,0 +1,15 @@
+# Qualitative only: a population that saturates at 5 within ~15 time units.
+name: logistic
+time: {t_end: 30, n_points: 301}
+variables:
+  y:
+    - {name: N, value: 0.1, bounds: [0, null]}
+behavior:
+  description: Grows from a small seed, levels off at 5, never overshoots.
+  features:
+    - {kind: steady_state, var: N, value: 5.0, tol: 0.1}
+    - {kind: settling_time, var: N, value: 12.0, band: 0.02, tol: 3.0}
+    - {kind: monotonic, var: N, direction: increasing}
+candidates:
+  - {motif: logistic, bind: {x: N}}
+  - {motif: exponential_growth, bind: {x: N}}
