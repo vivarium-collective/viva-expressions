@@ -1,20 +1,63 @@
 schema_version: 2
 name: simulator-benchmarking
-title: simulator-benchmarking
+title: Does the expression layer reproduce established simulators?
 created: '2026-10-03'
-status: planning
+status: running
 runtime:
   default_emitter: sqlite
-description: 'Does the expression layer reproduce established simulators? Compares
-  OdeProcess (viva-expressions) against viva-tellurium, viva-copasi and viva-pysces
-  on the same models, ideally sourced from BioModels via viva-biomodels. One study
-  per model class: kinetics, oscillator, and a stiff case. Shared question: trajectory
-  agreement and computational cost. Practical outcome: guidance on when users should
-  write expressions vs. wrap an SBML model.
-
-  '
+description: >
+  One study per comparator, all on the same 8 pinned BioModels (inputs/models, SHA-256 pinned) and the
+  same settings: 0.5 interval, t = 0..100, default tolerances (rtol 1e-8, atol 1e-10) and tight ones (1e-12
+  / 1e-14). The OdeProcess side is the /sbml-system import of each model. The comparator runs the original
+  SBML. Started with bench-tellurium (viva-tellurium is installed). bench-copasi and bench-pysces follow
+  once their wrappers are installed. Practical outcome: guidance on when to write expressions and when
+  to wrap an SBML model.
 studies: []
 expert_docs: []
 acceptance_criteria: []
 members:
 - bench-tellurium
+question: >
+  Does a model defined in the viva-expressions layer (OdeProcess), here imported from BioModels SBML with
+  /sbml-system, reproduce established SBML simulators (viva-tellurium, viva-copasi, viva-pysces) on the
+  same models, and at what cost?
+hypothesis: >
+  Each comparator agrees with OdeProcess within 1e-6 of scale at tight tolerances, with any default-tolerance
+  gap explained by integrator error. Each comparator study pre-registers its own thresholds.
+executive:
+  what_is_this: Simulator benchmarking of the expression layer against established SBML simulators, 
+    one study per comparator.
+  verdict: bench-tellurium passes. On 8 BioModels the imported OdeProcess models match libroadrunner
+    within 1e-6 of scale (worst 4.6e-9 at tight tolerances), and the default-tolerance gap (up to 
+    1.3e-5) is integrator error.
+  verdict_status: in-progress
+  verdict_detail: 1 of 3 comparator studies done (Tellurium). COPASI and PySCeS are not yet 
+    installed.
+  decisions_needed:
+  - question: Install viva-copasi and viva-pysces for the next comparator studies?
+    context: bench-tellurium's design (models, settings, tests) is reusable as is.
+scientific_argument:
+  main_claim: The expression layer, fed by /sbml-system imports, reproduces libroadrunner's 
+    integration of the same SBML up to integrator error.
+  evidence_for:
+  - 'bench-tellurium H1: 8/8 models within 1e-6 at tight tolerances (worst 4.6e-9).'
+  - 'bench-tellurium H2: the default-tolerance gap is always 2-4 orders larger than the tight one, i.e.
+    it is integrator error.'
+  - 'bench-tellurium H3: a 0.1% parameter change is detected (1.09e-3).'
+  evidence_against: []
+  key_figures: []
+  caveats:
+  - 'arm64 disparity: all results use libroadrunner 2.10.0 on macOS arm64. libroadrunner ships Linux aarch64
+    wheels only for 2.7.0, so Linux arm64 environments (and any arm64 container image) would run an untested
+    older version. No linux/arm64 image is built (viva-template#65 adds IMAGE_PLATFORMS).'
+  - The 8 models were chosen for SBML-feature coverage, not sampled; models with events, delays or 
+    algebraic rules are out of scope (rejected by the importer).
+  - 'Cost is not yet measured: workbench wall time is dominated by process start-up.'
+  - 't = 0 is not compared under the workbench (viva-tellurium#7: empty first row).'
+narrative_spine_skip:
+- biological_story
+narrative_spine_skip_reason: Methods investigation (simulator equivalence); it makes no biological 
+  claim.
+at_a_glance:
+- study: bench-tellurium
+  role: 'OdeProcess (SBML import) vs viva-tellurium on 8 BioModels: passes H1-H3.'
