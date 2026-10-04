@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "viva-expressions"
-version = "0.2.3"
+version = "0.3.1"
 description = "Assemble process-bigraph models of dynamical systems from expected outputs and behavior"
 readme = "README.md"
 requires-python = ">=3.12"

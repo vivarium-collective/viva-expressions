@@ -63,7 +63,8 @@ def main(argv=None) -> int:
     imp.add_argument("model", type=Path)
     imp.add_argument("--name", required=True, help="composite name (file stem)")
     imp.add_argument("--out", type=Path, help="output directory (default: package composites/)")
-    imp.add_argument("--interval", type=float, default=0.1, help="OdeProcess interval")
+    imp.add_argument("--interval", type=float, default=0.125,
+                     help="OdeProcess interval; exact in binary (k/2**n) for time-dependent models")
     imp.add_argument("--source", help="provenance text for the description (e.g. a BioModels id)")
     exp = sub.add_parser("export", help="OdeProcess document/spec -> SBML")
     exp.add_argument("source", type=Path)
@@ -75,7 +76,7 @@ def main(argv=None) -> int:
     except UnsupportedSBML as e:
         print(f"unsupported: {e}", file=sys.stderr)
         return 2
-    except (ValueError, KeyError, FileNotFoundError) as e:
+    except (ValueError, KeyError, FileNotFoundError) as e:   # UnsupportedSBML handled above
         print(f"error: {e}", file=sys.stderr)
         return 1
     return 0
