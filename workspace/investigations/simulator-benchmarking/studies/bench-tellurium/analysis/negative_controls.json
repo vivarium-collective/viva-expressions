@@ -1,0 +1,66 @@
+{
+  "BIOMD0000000005": {
+    "sbml_id": "Reaction3_k9",
+    "import_name": "Reaction3_k9",
+    "sensitivity": 0.9989856363392575,
+    "value": 1000.0,
+    "n_candidates": 8,
+    "n_nonzero": 8
+  },
+  "BIOMD0000000010": {
+    "sbml_id": "J7_KK8",
+    "import_name": "J7_KK8",
+    "sensitivity": 0.29931456791080374,
+    "value": 15.0,
+    "n_candidates": 22,
+    "n_nonzero": 22
+  },
+  "BIOMD0000000012": {
+    "sbml_id": "eff",
+    "import_name": "eff",
+    "sensitivity": 1.0893214068386197,
+    "value": 20.0,
+    "n_candidates": 7,
+    "n_nonzero": 7
+  },
+  "BIOMD0000000041": {
+    "sbml_id": "MMCK_Kib_3",
+    "import_name": "MMCK_Kib_3",
+    "sensitivity": 0.21901054850090748,
+    "value": 34900.0,
+    "n_candidates": 25,
+    "n_nonzero": 25
+  },
+  "BIOMD0000000254": {
+    "sbml_id": "km",
+    "import_name": "km",
+    "sensitivity": 3.7457777028529007,
+    "value": 13.0,
+    "n_candidates": 5,
+    "n_nonzero": 5
+  },
+  "BIOMD0000000400": {
+    "sbml_id": "kr8",
+    "import_name": "kr8",
+    "sensitivity": 0.4991336185351801,
+    "value": 0.0167,
+    "n_candidates": 31,
+    "n_nonzero": 31
+  },
+  "BIOMD0000000700": {
+    "sbml_id": "kSyP53",
+    "import_name": "kSyP53",
+    "sensitivity": 0.9730676116474073,
+    "value": 0.05,
+    "n_candidates": 55,
+    "n_nonzero": 55
+  },
+  "BIOMD0000001000": {
+    "sbml_id": "index_kf_homotrimer",
+    "import_name": "index_kf_homotrimer",
+    "sensitivity": 0.5770159271132667,
+    "value": 4.4857919268227,
+    "n_candidates": 48,
+    "n_nonzero": 48
+  }
+}
