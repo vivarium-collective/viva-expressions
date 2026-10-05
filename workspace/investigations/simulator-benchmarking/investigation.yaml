@@ -104,6 +104,9 @@ executive:
     - TelluriumProcess's t = 0 row is empty (viva-tellurium#7); comparisons start at t = 0.5.
     - Study runs.db is committed evidence; workbench-generated sims/ and viz/ are gitignored 
       (machine-local paths).
+    - At checkpoint the working tree had uncommitted user edits to Makefile/uv.lock (workbench 
+      2f2dc5ac, bigraph-schema 1.7.0). Decide which lock is canonical before step 2, and regenerate 
+      posthoc_resolution.json in that ONE environment; the JSON on disk is not evidence.
     awaiting_review:
     - viva-template#65 (IMAGE_PLATFORMS; then regenerate build-and-push here and set 
       IMAGE_PLATFORMS=linux/amd64)
