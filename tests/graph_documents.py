@@ -36,9 +36,10 @@ def real_documents():
     docs = {p.name: workspace_spec(p) for p in WORKSPACE}
     docs["oscillator"] = oscillator()
     docs["ode_document(assignments, time_var)"] = ode_document(
-        rhs={"S": "-k*S*sw", "P": "k*S*sw"}, params={"k": 0.5, "t0": 2.0},
-        initial={"S": 1.0, "P": 0.0}, interval=0.25,
-        assignments={"sw": "Piecewise((0.0, t < t0), (1.0, True))", "total": "S + P"},
+        rhs={"S": "-k*S*Piecewise((0.0, t < t0), (1.0, True))",
+             "P": "k*S*Piecewise((0.0, t < t0), (1.0, True))"},
+        params={"k": 0.5, "t0": 2.0}, initial={"S": 1.0, "P": 0.0}, interval=0.25,
+        assignments={"on": "Piecewise((0.0, t < t0), (1.0, True))", "total": "S + P"},
         time_var="t", method="Radau")
     docs["grow_divide_agent"] = grow_divide_document()
     docs["v2ecoli baseline"] = json.loads(

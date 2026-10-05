@@ -146,7 +146,8 @@ def _is_core(attrs) -> bool:
     return "view" not in attrs
 
 
-def _is_port(attrs) -> bool:
+def is_port(attrs) -> bool:
+    """A port node: neither a container (``slots``) nor a leaf (``value``)."""
     return "slots" not in attrs and "value" not in attrs
 
 
@@ -195,10 +196,11 @@ def _parent(G, node):
     return None, None
 
 
-def _child(G, node, slot):
-    child = node + "/" + escape(slot)
-    if child in G and G.has_edge(node, child, key=CONTAINS) and _is_core(G.nodes[child]):
-        return child
+def child(G, node, slot):
+    """The core node under ``slot`` of ``node``, or ``None``."""
+    ptr = node + "/" + escape(slot)
+    if ptr in G and G.has_edge(node, ptr, key=CONTAINS) and _is_core(G.nodes[ptr]):
+        return ptr
     return None
 
 
@@ -227,7 +229,7 @@ def _resolution(G, port, wire):
     elif owner_kind == "bridge":
         side = BRIDGE_SIDES.get(slot)
         holder, _ = _parent(G, parent)
-        scope = _child(G, holder, "state") if holder is not None else None
+        scope = child(G, holder, "state") if holder is not None else None
         if scope is None or G.nodes[scope].get("kind") != "scope":
             scope, error = _enclosing_scope(G, parent), "bridge has no state scope"
         base = []
@@ -257,10 +259,10 @@ def _resolution(G, port, wire):
         for step in resolved:
             if type(step) is not str or step == "*":
                 break
-            child = _child(G, endpoint, step)
-            if child is None or _is_port(G.nodes[child]):
+            nxt = child(G, endpoint, step)
+            if nxt is None or is_port(G.nodes[nxt]):
                 break
-            endpoint, depth = child, depth + 1
+            endpoint, depth = nxt, depth + 1
         subpath = resolved[depth:]
     return endpoint, port_is_source, {"resolved": resolved, "subpath": subpath, "error": error}
 
@@ -273,7 +275,8 @@ def _add_wire(G, port, wire):
 
 # --- graph -> document -------------------------------------------------------
 
-def _wire_edges(G, port):
+def wire_edges(G, port):
+    """The core wire edges ``(u, v, attrs)`` at ``port``."""
     return ([(u, v, d) for u, v, k, d in G.in_edges(port, keys=True, data=True)
              if k == WIRE and _is_core(d)]
             + [(u, v, d) for u, v, k, d in G.out_edges(port, keys=True, data=True)
@@ -300,7 +303,7 @@ def _build(G, node):
         return out
     if "value" in attrs:
         return attrs["value"]
-    edges = _wire_edges(G, node)
+    edges = wire_edges(G, node)
     if len(edges) != 1:
         raise GraphError(f"port {node!r} has {len(edges)} wire edges, not exactly one")
     return edges[0][2]["wire"]
@@ -502,10 +505,10 @@ def placeholders_view(G, core=None):
         for path, text in _changed_strings(document[key], new, [key]):
             node, depth = "", 0
             for step in path:
-                child = _child(G, node, step) if type(step) is str else None
-                if child is None:
+                nxt = child(G, node, step) if type(step) is str else None
+                if nxt is None:
                     break
-                node, depth = child, depth + 1
+                node, depth = nxt, depth + 1
             sub = path[depth:]
             for name, s in sentinels.items():
                 if s in text:
@@ -548,22 +551,22 @@ def bridges_view(G, core=None):
     for node, attrs in list(G.nodes(data=True)):
         if attrs.get("kind") != "link":
             continue
-        config = _child(G, node, "config")
-        bridge = _child(G, config, "bridge") if config else None
+        config = child(G, node, "config")
+        bridge = child(G, config, "bridge") if config else None
         if bridge is None:
             continue
         for slot, side in BRIDGE_SIDES.items():
-            outer, inner = _child(G, node, side), _child(G, bridge, slot)
+            outer, inner = child(G, node, side), child(G, bridge, slot)
             if outer and inner:
                 _cross(G, outer, inner, side)
 
 
 def _cross(G, outer, inner, side):
     for slot in G.nodes[outer].get("slots", []):
-        o, i = _child(G, outer, slot), _child(G, inner, slot)
+        o, i = child(G, outer, slot), child(G, inner, slot)
         if o is None or i is None:
             continue
-        if _is_port(G.nodes[o]) and _is_port(G.nodes[i]):
+        if is_port(G.nodes[o]) and is_port(G.nodes[i]):
             u, v = (o, i) if side == "inputs" else (i, o)
             G.add_edge(u, v, key="crosses", view="bridges", side=side)
         elif "slots" in G.nodes[o] and "slots" in G.nodes[i]:
@@ -606,7 +609,9 @@ def _derived(G):
 
 
 def check_views(G, views: Mapping[str, Callable] = VIEWS, core=None):
-    """Raise ``GraphError`` unless every applied view equals its recomputation."""
+    """Raise ``GraphError`` unless every applied view equals its recomputation
+    with ``core`` (pass the core the views were built with: which addresses
+    resolve depends on it)."""
     unknown = [n for n in G.graph.get("views", []) if n not in views]
     if unknown:
         raise GraphError(f"unknown view(s) {unknown}")
