@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "viva-expressions"
-version = "0.3.4"
+version = "0.4.0"
 description = "Assemble process-bigraph models of dynamical systems from expected outputs and behavior"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -25,6 +25,7 @@ dependencies = [
     "viva_tellurium",
     "viva_biomodels",
     "python-libsbml>=5.20",
+    "networkx>=3.4",
 ]
 
 [project.optional-dependencies]
@@ -40,6 +41,7 @@ dev = [
     "pytest>=8",
     "pytest-json-report>=1.5",
     "libroadrunner",
+    "hypothesis>=6.168.4",
 ]
 
 [dependency-groups]
@@ -48,6 +50,7 @@ dev = [
     "pytest>=8",
     "pytest-json-report>=1.5",   # the workbench's study-test runner (POST /api/study-tests-run)
     "libroadrunner",
+    "hypothesis>=6.168.4",
 ]
 
 [tool.hatch.build.targets.wheel]
