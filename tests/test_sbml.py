@@ -783,3 +783,46 @@ def test_equivalence_check_separates_near_misses(a, b):
     from viva_expressions.expressions import parse
     from viva_expressions.sbml.read import _same_function
     assert not _same_function(parse(a, ["t", "x"]), parse(b, ["t", "x"]))
+
+
+# Review of v0.3.x's equivalence check (2026-10-05). Mixed-sign sample rows made
+# every row of a many-parameter fractional-power expression NaN, so valid models
+# were rejected ("undefined at every sample point"; e.g. BIOMD633). Its absolute
+# tolerance also made tiny-valued expressions pass unchecked.
+
+def _many_fractional_powers(m, n=16):
+    _compartment(m, "c", 1.0)
+    _species(m, "X", "c", conc=1.0)
+    for i in range(n):
+        _parameter(m, f"k{i}", 1.0 + 0.01 * i)
+    product = " * ".join(f"k{i}^0.5" for i in range(n))
+    _reaction(m, "r", [("X", 1)], [], f"0.01 * {product} * X")
+
+
+def test_many_fractional_powers_import_and_match():
+    assert_matches_roadrunner(_l3_model(_many_fractional_powers))
+
+
+@pytest.mark.parametrize("a,b", [("1e-16*x", "2e-16*x"), ("1e-30*x**2", "1.0000001e-30*x**2")])
+def test_equivalence_check_is_relative(a, b):
+    from viva_expressions.expressions import parse
+    from viva_expressions.sbml.read import _same_function
+    assert not _same_function(parse(a, ["x"]), parse(b, ["x"]))
+
+
+def test_equivalence_check_accepts_cancellation_and_infinity():
+    """A sum that cancels to ~0 at a sample point, or two equal infinities, are
+    the same function, not a false rejection."""
+    from viva_expressions.expressions import parse
+    from viva_expressions.sbml.read import _same_function
+    assert _same_function(parse("(x + 1e8) - 1e8", ["x"]), parse("x", ["x"]))
+    assert _same_function(parse("exp(1000*x)", ["x"]), parse("exp(1000*x)", ["x"]))
+
+
+def test_biomd633_imports():
+    """Regression: BIOMD633 (Hill terms raised to sampled exponents, 260
+    parameters) was rejected as "undefined at every sample point". It now
+    imports. Only import is tested: integrating it hits LSODA istate errors, a
+    separate, known limitation."""
+    model = read_sbml(DATA / "BIOMD0000000633.xml")
+    assert len(model.rhs) == 30
