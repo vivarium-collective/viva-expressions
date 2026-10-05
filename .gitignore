@@ -44,3 +44,5 @@ workspace/investigations/*/studies/*/viz/
 # SQLite write-ahead / shared-memory sidecars of study runs.db (transient)
 workspace/investigations/*/studies/*/runs.db-wal
 workspace/investigations/*/studies/*/runs.db-shm
+CURRENT.md
+Makefile
