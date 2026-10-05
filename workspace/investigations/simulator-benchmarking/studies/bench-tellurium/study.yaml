@@ -1374,6 +1374,7 @@ findings:
     (see amendments), and the integrated-clock importer defect hid wrong time-switched
     outputs.
   tier: interpretation
+  mechanism_origin: engineered
 - id: h3-negative-control
   kind: methodological
   status: confirms
@@ -1460,6 +1461,7 @@ findings:
       (v1 17 + v2 24)'
     observed: min 3.38 orders (BIOMD400), max 4.36 (BIOMD10)
   tier: interpretation
+  mechanism_origin: engineered
 - id: v2-h3-median-controls
   kind: methodological
   status: confirms
@@ -1503,7 +1505,8 @@ findings:
     observed: runs_meta completed_at - started_at, one run per entry
   tier: observation
 limitations:
-- "Shared-misreading risk: agreement with one comparator cannot exclude an SBML interpretation that the importer and libroadrunner share. bench-copasi addresses this."
+- 'Shared-misreading risk: agreement with one comparator cannot exclude an SBML interpretation
+  that the importer and libroadrunner share. bench-copasi addresses this.'
 - 'Platform: libroadrunner 2.10.0 / tellurium 2.2.13.1 on macOS arm64. The lock pins
   libroadrunner 2.10.0, which has no Linux aarch64 wheel (PyPI only ever shipped one
   for 2.7.0), so `uv sync` of this lock FAILS on Linux arm64 and no linux/arm64 image
@@ -1661,76 +1664,96 @@ amendments:
     v0.3.0. The first pass stays in history, and the v2 re-run, from one environment,
     carries the study''s evidence.'
 last_test_run:
-  timestamp: '2026-10-05T17:39:21+00:00'
+  timestamp: '2026-10-05T17:58:05+00:00'
   passed: 41
   failed: 0
   skipped: 0
-  duration_s: 1.264070749282837
-falsifiability: |
-  The claim is overturned by any failure of the pre-registered v2 criteria (542bf96):
+  duration_s: 1.2326891422271729
+falsifiability: 'The claim is overturned by any failure of the pre-registered v2 criteria
+  (542bf96):
+
   H1 - any compared state or Tellurium-emitted output of any model exceeds tau_m
+
   (1e-8; 1e-7 for BIOMD5) at rtol 1e-12 / atol 1e-14, or any value is non-finite.
+
   H2 - log10(worst default / worst tight) < 2.5 for any model: the default-tolerance
+
   gap would then be a semantic difference, not integrator error.
-  H3 - a +1% change of any model's oracle-side median-sensitivity parameter does not
+
+  H3 - a +1% change of any model''s oracle-side median-sensitivity parameter does
+  not
+
   exceed tau_m: the metric would then fail to detect a typical modelling error.
 
+  '
 controls:
-  - name: biomd12_eff_plus_0p1pct
-    kind: negative
-    rung: known_fail
-    description: v1 control. BIOMD12 eff 20 -> 20.02 (+0.1%) in the OdeProcess import only.
-    expectation: disagreement exceeds tau_m
-    observed: 1.09e-3
-  - name: median_sensitivity_plus_1pct
-    kind: negative
-    rung: known_fail
-    description: >
-      v2 H3. One control per model (8): the median-sensitivity global parameter, ranked
-      by roadrunner sensitivity on the original SBML (analysis/select_controls.py,
-      committed before the v2 runs), raised by +1% in the OdeProcess import.
-    expectation: disagreement exceeds tau_m in every model
-    observed: 2.17e-3 (BIOMD41 MMCK_Kib_3) to 4.93e-1 (BIOMD400 kr8); 8/8 detected
-  - name: planted_semantic_error
-    kind: negative
-    rung: stress
-    description: Adversarial-panel planted semantic error, used to check the H2 convergence criterion.
-    expectation: default/tight ratio collapses below 2.5 orders
-    observed: ratio 3-21x (about 0.5-1.3 orders)
-  - name: default_tolerance_pairs
-    kind: borderline
-    rung: borderline
-    description: All 8 models at default tolerances (rtol 1e-8, atol 1e-10).
-    expectation: above tau_m, but converging away by >= 2.5 orders at tight tolerance (H2)
-    observed: worst 2.5e-8 to 1.28e-5; convergence 3.38-4.36 orders
-  - name: tight_tolerance_pairs
-    kind: positive
-    rung: known_pass
-    description: All 8 models at rtol 1e-12 / atol 1e-14 (v2 H1).
-    expectation: every compared variable within tau_m
-    observed: worst 4.62e-9 (BIOMD5, tau 1e-7); <= 3.45e-9 for the rest (tau 1e-8)
+- name: biomd12_eff_plus_0p1pct
+  kind: negative
+  rung: known_fail
+  description: v1 control. BIOMD12 eff 20 -> 20.02 (+0.1%) in the OdeProcess import
+    only.
+  expectation: disagreement exceeds tau_m
+  observed: 0.00109
+- name: median_sensitivity_plus_1pct
+  kind: negative
+  rung: known_fail
+  description: 'v2 H3. One control per model (8): the median-sensitivity global parameter,
+    ranked by roadrunner sensitivity on the original SBML (analysis/select_controls.py,
+    committed before the v2 runs), raised by +1% in the OdeProcess import.
 
+    '
+  expectation: disagreement exceeds tau_m in every model
+  observed: 2.17e-3 (BIOMD41 MMCK_Kib_3) to 4.93e-1 (BIOMD400 kr8); 8/8 detected
+- name: planted_semantic_error
+  kind: negative
+  rung: stress
+  description: Adversarial-panel planted semantic error, used to check the H2 convergence
+    criterion.
+  expectation: default/tight ratio collapses below 2.5 orders
+  observed: ratio 3-21x (about 0.5-1.3 orders)
+- name: default_tolerance_pairs
+  kind: borderline
+  rung: borderline
+  description: All 8 models at default tolerances (rtol 1e-8, atol 1e-10).
+  expectation: above tau_m, but converging away by >= 2.5 orders at tight tolerance
+    (H2)
+  observed: worst 2.5e-8 to 1.28e-5; convergence 3.38-4.36 orders
+- name: tight_tolerance_pairs
+  kind: positive
+  rung: known_pass
+  description: All 8 models at rtol 1e-12 / atol 1e-14 (v2 H1).
+  expectation: every compared variable within tau_m
+  observed: worst 4.62e-9 (BIOMD5, tau 1e-7); <= 3.45e-9 for the rest (tau 1e-8)
 calibration_ladder:
-  known_fail: [biomd12_eff_plus_0p1pct, median_sensitivity_plus_1pct]
-  stress: [planted_semantic_error]
-  borderline: [default_tolerance_pairs]
-  known_pass: [tight_tolerance_pairs]
-
+  known_fail:
+  - biomd12_eff_plus_0p1pct
+  - median_sensitivity_plus_1pct
+  stress:
+  - planted_semantic_error
+  borderline:
+  - default_tolerance_pairs
+  known_pass:
+  - tight_tolerance_pairs
 alternative_hypotheses:
-  - hypothesis: Agreement is an artefact of an insensitive metric.
-    status: excluded
-    excluded_by: H3 controls. A +1% median-sensitivity change is detected in 8/8 models at >= 2e5 x tau_m.
-  - hypothesis: The default-tolerance gap is a semantic modelling difference, not integrator error.
-    status: excluded
-    excluded_by: H2 convergence (3.38-4.36 orders vs >= 2.5) and the planted-error stress control (collapses to 3-21x).
-  - hypothesis: Both simulators share the same misreading of the SBML, so they agree while both are wrong.
-    status: not_excluded
-    note: libroadrunner is an independent implementation, which lowers but does not remove this risk. A second comparator (bench-copasi follow-up) addresses it.
-
+- hypothesis: Agreement is an artefact of an insensitive metric.
+  status: excluded
+  excluded_by: H3 controls. A +1% median-sensitivity change is detected in 8/8 models
+    at >= 2e5 x tau_m.
+- hypothesis: The default-tolerance gap is a semantic modelling difference, not integrator
+    error.
+  status: excluded
+  excluded_by: H2 convergence (3.38-4.36 orders vs >= 2.5) and the planted-error stress
+    control (collapses to 3-21x).
+- hypothesis: Both simulators share the same misreading of the SBML, so they agree
+    while both are wrong.
+  status: not_excluded
+  note: libroadrunner is an independent implementation, which lowers but does not
+    remove this risk. A second comparator (bench-copasi follow-up) addresses it.
 generality:
   axes_tested:
-    - models: 8 BioModels chosen for SBML-feature coverage (5, 10, 12, 41, 254, 400, 700, 1000)
-    - tolerance: default (rtol 1e-8) and tight (rtol 1e-12)
+  - models: 8 BioModels chosen for SBML-feature coverage (5, 10, 12, 41, 254, 400,
+      700, 1000)
+  - tolerance: default (rtol 1e-8) and tight (rtol 1e-12)
   axes_not_tested:
-    - a random corpus sample (corpus-coverage follow-up)
-    - libroadrunner versions other than 2.10.0; platforms other than macOS arm64
+  - a random corpus sample (corpus-coverage follow-up)
+  - libroadrunner versions other than 2.10.0; platforms other than macOS arm64
