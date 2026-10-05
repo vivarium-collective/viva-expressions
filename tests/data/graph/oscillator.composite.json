@@ -1,0 +1,65 @@
+{
+  "global_time_precision": 2,
+  "state": {
+    "x": 1.0,
+    "v": 0.0,
+    "ode": {
+      "_type": "process",
+      "address": "local:!viva_expressions.processes.ode.OdeProcess",
+      "config": {
+        "rhs": {
+          "x": "v",
+          "v": "-omega**2*x"
+        },
+        "params": {
+          "omega": 1.0000047638165006
+        },
+        "state_vars": [
+          "x",
+          "v"
+        ],
+        "input_vars": []
+      },
+      "interval": 0.02,
+      "inputs": {
+        "x": [
+          "x"
+        ],
+        "v": [
+          "v"
+        ]
+      },
+      "outputs": {
+        "x": [
+          "x"
+        ],
+        "v": [
+          "v"
+        ]
+      }
+    },
+    "emitter": {
+      "_type": "step",
+      "address": "local:RAMEmitter",
+      "config": {
+        "emit": {
+          "x": "node",
+          "v": "node",
+          "global_time": "node"
+        }
+      },
+      "inputs": {
+        "x": [
+          "x"
+        ],
+        "v": [
+          "v"
+        ],
+        "global_time": [
+          "global_time"
+        ]
+      }
+    },
+    "global_time": 0.0
+  }
+}

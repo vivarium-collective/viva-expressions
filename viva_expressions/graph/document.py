@@ -50,10 +50,328 @@ become strings, and a dict whose keys are the codec's tags (``__numpy__``,
 """
 from __future__ import annotations
 
+import json
 import struct
 
+import networkx as nx
 import numpy as np
 import pint
+from bigraph_schema.json_codec import BigraphJSONEncoder, bigraph_json_hook
+from bigraph_schema.schema import resolve_path
+
+FORMAT = "process-bigraph-document-graph/1"
+CONTAINS, WIRE = "contains", "wire"
+LINK_TYPES = frozenset({"process", "step", "composite", "edge"})
+KINDS = frozenset({"document", "scope", "store", "link", "config", "bridge",
+                   "ports", "port", "tree"})
+BRIDGE_SIDES = {"inputs": "inputs", "outputs": "outputs", "conduits": "outputs"}
+
+
+class GraphError(ValueError):
+    """A graph that ``to_graph`` could not have produced, or a stale view."""
+
+
+# --- JSON Pointer (RFC 6901) -------------------------------------------------
+
+def escape(token: str) -> str:
+    return token.replace("~", "~0").replace("/", "~1")
+
+
+def pointer(tokens) -> str:
+    """The JSON Pointer for a path of string keys."""
+    return "".join("/" + escape(t) for t in tokens)
+
+
+def pointer_tokens(ptr: str) -> list[str]:
+    """The keys of a JSON Pointer; raises ``GraphError`` if it is not one."""
+    if not isinstance(ptr, str) or (ptr and not ptr.startswith("/")):
+        raise GraphError(f"node id {ptr!r} is not a JSON Pointer")
+    if ptr == "":
+        return []
+    return [t.replace("~1", "/").replace("~0", "~") for t in ptr[1:].split("/")]
+
+
+# --- classification (annotation only) ----------------------------------------
+
+def is_link(value) -> bool:
+    """A process-bigraph link node: a typed ``process``/``step``/... dict, or an
+    untyped one with an ``address`` and ports (a realized serialization drops
+    ``_type`` into the schema)."""
+    if type(value) is not dict:
+        return False
+    if "_type" in value:
+        return isinstance(value["_type"], str) and value["_type"] in LINK_TYPES
+    return "address" in value and ("inputs" in value or "outputs" in value)
+
+
+def root_kind(document) -> str:
+    if type(document) is not dict:
+        return "tree"
+    return "document" if type(document.get("state")) is dict else "scope"
+
+
+def child_kind(parent_kind: str, slot: str, value) -> str | None:
+    """The kind of ``value`` under ``slot`` of a ``parent_kind`` node, or
+    ``None`` for a link field (kept verbatim, not a node)."""
+    plain = type(value) is dict
+    if parent_kind in ("scope", "store"):
+        return "link" if is_link(value) else "store"
+    if parent_kind in ("document", "config"):
+        if plain and slot == "state":
+            return "scope"
+        if plain and slot == "bridge":
+            return "bridge"
+        return "tree"
+    if parent_kind == "link":
+        if plain and slot in ("inputs", "outputs"):
+            return "ports"
+        if plain and slot == "config" and type(value.get("state")) is dict:
+            return "config"
+        return None
+    if parent_kind == "bridge":
+        return "ports" if plain and slot in BRIDGE_SIDES else "tree"
+    if parent_kind == "ports":
+        return "ports" if plain else "port"
+    return "tree"
+
+
+# --- document -> graph -------------------------------------------------------
+
+def _is_core(attrs) -> bool:
+    return "view" not in attrs
+
+
+def _is_port(attrs) -> bool:
+    return "slots" not in attrs and "value" not in attrs
+
+
+def to_graph(document) -> nx.MultiDiGraph:
+    """The directed graph of ``document`` (see the module docstring)."""
+    G = nx.MultiDiGraph(format=FORMAT, views=[])
+    ports = []
+    _add(G, document, "", root_kind(document), ports)
+    for port, wire in ports:
+        _add_wire(G, port, wire)
+    return G
+
+
+def _add(G, value, ptr, kind, ports):
+    if kind == "port":
+        G.add_node(ptr, kind=kind)
+        ports.append((ptr, value))
+        return
+    if type(value) is not dict:
+        G.add_node(ptr, kind=kind, value=value)
+        return
+    for key in value:
+        if type(key) is not str:
+            raise TypeError(f"{ptr or '(root)'}: key {key!r} is not a string; "
+                            "node ids are JSON Pointers, which need string keys")
+    G.add_node(ptr, kind=kind, slots=list(value))
+    children, fields = [], {}
+    for key, child in value.items():
+        ck = child_kind(kind, key, child)
+        if ck is None:
+            fields[key] = child
+        else:
+            children.append((key, child, ck))
+    if fields:
+        G.nodes[ptr]["fields"] = fields
+    for key, child, ck in children:
+        cptr = ptr + "/" + escape(key)
+        G.add_edge(ptr, cptr, key=CONTAINS, slot=key)
+        _add(G, child, cptr, ck, ports)
+
+
+def _parent(G, node):
+    for u, _, k, d in G.in_edges(node, keys=True, data=True):
+        if k == CONTAINS and _is_core(d):
+            return u, d["slot"]
+    return None, None
+
+
+def _child(G, node, slot):
+    child = node + "/" + escape(slot)
+    if child in G and G.has_edge(node, child, key=CONTAINS) and _is_core(G.nodes[child]):
+        return child
+    return None
+
+
+def _enclosing_scope(G, node):
+    while node is not None:
+        if G.nodes[node].get("kind") == "scope":
+            return node
+        node, _ = _parent(G, node)
+    return ""
+
+
+def _resolution(G, port, wire):
+    """``(endpoint, port_is_source, attrs)`` for ``port`` carrying ``wire``."""
+    top, side = port, None
+    parent, slot = _parent(G, top)
+    while parent is not None and G.nodes[parent].get("kind") == "ports":
+        top = parent
+        parent, slot = _parent(G, top)
+    owner_kind = None if parent is None else G.nodes[parent].get("kind")
+    error = None
+    if owner_kind == "link":
+        side = slot
+        scope = _enclosing_scope(G, parent)
+        base = pointer_tokens(parent)[len(pointer_tokens(scope)):-1]
+        port_is_source = side == "outputs"
+    elif owner_kind == "bridge":
+        side = BRIDGE_SIDES.get(slot)
+        holder, _ = _parent(G, parent)
+        scope = _child(G, holder, "state") if holder is not None else None
+        if scope is None or G.nodes[scope].get("kind") != "scope":
+            scope, error = _enclosing_scope(G, parent), "bridge has no state scope"
+        base = []
+        port_is_source = side == "inputs"
+    else:
+        scope, base, port_is_source = _enclosing_scope(G, port), [], True
+        error = "port group is not under a link or a bridge"
+    if side not in ("inputs", "outputs") and error is None:
+        error = f"port group {slot!r} is neither inputs nor outputs"
+
+    resolved = subpath = None
+    if error is None:
+        if isinstance(wire, str):
+            steps = [wire]
+        elif isinstance(wire, (list, tuple)):
+            steps = list(wire)
+        else:
+            steps, error = None, f"not a wire: {type(wire).__name__} {wire!r}"
+        if steps is not None:
+            try:
+                resolved = list(resolve_path(list(base) + steps))
+            except Exception as e:   # resolve_path raises a bare Exception
+                error = str(e)
+    endpoint = scope
+    if resolved is not None:
+        depth = 0
+        for step in resolved:
+            if type(step) is not str or step == "*":
+                break
+            child = _child(G, endpoint, step)
+            if child is None or _is_port(G.nodes[child]):
+                break
+            endpoint, depth = child, depth + 1
+        subpath = resolved[depth:]
+    return endpoint, port_is_source, {"resolved": resolved, "subpath": subpath, "error": error}
+
+
+def _add_wire(G, port, wire):
+    endpoint, port_is_source, attrs = _resolution(G, port, wire)
+    u, v = (port, endpoint) if port_is_source else (endpoint, port)
+    G.add_edge(u, v, key=WIRE, wire=wire, **attrs)
+
+
+# --- graph -> document -------------------------------------------------------
+
+def _wire_edges(G, port):
+    return ([(u, v, d) for u, v, k, d in G.in_edges(port, keys=True, data=True)
+             if k == WIRE and _is_core(d)]
+            + [(u, v, d) for u, v, k, d in G.out_edges(port, keys=True, data=True)
+               if k == WIRE and _is_core(d)])
+
+
+def _build(G, node):
+    attrs = G.nodes[node]
+    if "slots" in attrs:
+        fields = attrs.get("fields", {})
+        kids = {d["slot"]: c for _, c, k, d in G.out_edges(node, keys=True, data=True)
+                if k == CONTAINS and _is_core(d)}
+        out = {}
+        for slot in attrs["slots"]:
+            if slot in fields:
+                out[slot] = fields[slot]
+            elif slot in kids:
+                if kids[slot] != node + "/" + escape(slot):
+                    raise GraphError(f"node {kids[slot]!r} under {node!r} slot {slot!r} "
+                                     "is not at its JSON Pointer")
+                out[slot] = _build(G, kids[slot])
+            else:
+                raise GraphError(f"node {node!r}: slot {slot!r} has no field and no child")
+        return out
+    if "value" in attrs:
+        return attrs["value"]
+    edges = _wire_edges(G, node)
+    if len(edges) != 1:
+        raise GraphError(f"port {node!r} has {len(edges)} wire edges, not exactly one")
+    return edges[0][2]["wire"]
+
+
+def from_graph(G: nx.MultiDiGraph, strict: bool = True):
+    """The document ``G`` represents.
+
+    ``strict`` (default) raises ``GraphError`` unless ``G``'s core (everything
+    but view-derived elements) is exactly what ``to_graph`` produces for the
+    rebuilt document: a tree of JSON Pointer ids, every port with exactly one
+    wire, every endpoint and derived wire attribute equal to its
+    re-resolution, every kind and field as classified.
+    """
+    if G.graph.get("format") != FORMAT:
+        raise GraphError(f"not a document graph: format {G.graph.get('format')!r}, "
+                         f"expected {FORMAT!r}")
+    if "" not in G or not _is_core(G.nodes[""]):
+        raise GraphError("no root node ''")
+    document = _build(G, "")
+    if strict:
+        _check_canonical(G, to_graph(document))
+    return document
+
+
+def _core_nodes(G):
+    return {n: a for n, a in G.nodes(data=True) if _is_core(a)}
+
+
+def _core_edges(G):
+    return {(u, v, k): d for u, v, k, d in G.edges(keys=True, data=True) if _is_core(d)}
+
+
+def _same_node(a, b) -> bool:
+    keys = {"kind", "slots", "fields", "value"}
+    if {k for k in a if k in keys} != {k for k in b if k in keys} \
+            or set(a) - keys - {"annotations"}:
+        return False
+    if a["kind"] != b["kind"] or a.get("slots") != b.get("slots"):
+        return False
+    if "value" in a and a["value"] is not b["value"]:
+        return False
+    fa, fb = a.get("fields", {}), b.get("fields", {})
+    return set(fa) == set(fb) and all(fa[k] is fb[k] for k in fa)
+
+
+def _same_edge(key, a, b) -> bool:
+    if set(a) != set(b):
+        return False
+    if key == WIRE:
+        return a["wire"] is b["wire"] and all(a[k] == b[k] for k in a if k != "wire")
+    return a == b
+
+
+def _check_canonical(G, canon):
+    nodes, want = _core_nodes(G), _core_nodes(canon)
+    for n in nodes.keys() - want.keys():
+        raise GraphError(f"node {n!r} is not part of the document's graph "
+                         "(not reachable from the root at its JSON Pointer)")
+    for n in want.keys() - nodes.keys():
+        raise GraphError(f"node {n!r} is missing")
+    for n, a in nodes.items():
+        if not _same_node(a, want[n]):
+            raise GraphError(f"node {n!r} differs from to_graph's: "
+                             f"kind {a.get('kind')!r} (expected {want[n]['kind']!r}), "
+                             f"attributes {sorted(a)} (expected {sorted(want[n])})")
+    edges, want_edges = _core_edges(G), _core_edges(canon)
+    for e in edges.keys() - want_edges.keys():
+        raise GraphError(f"edge {e!r} is not one to_graph produces "
+                         "(not a tree edge, or a wire to the wrong endpoint or direction)")
+    for e in want_edges.keys() - edges.keys():
+        raise GraphError(f"edge {e!r} is missing")
+    for e, d in edges.items():
+        if not _same_edge(e[2], d, want_edges[e]):
+            raise GraphError(f"edge {e!r} attributes differ from their re-resolution: "
+                             f"{ {k: v for k, v in d.items() if k != 'wire'} }")
 
 
 # --- equality ----------------------------------------------------------------
@@ -90,3 +408,17 @@ def document_equal(a, b) -> bool:
     if isinstance(eq, (bool, np.bool_)):
         return bool(eq)
     raise TypeError(f"cannot compare {type(a).__name__} values exactly")
+
+
+# --- JSON carrier ------------------------------------------------------------
+
+def dumps_graph(G: nx.MultiDiGraph, **kwargs) -> str:
+    """Node-link JSON of ``G`` through process-bigraph's native codec."""
+    data = nx.node_link_data(G, edges="edges")
+    return json.dumps(data, cls=BigraphJSONEncoder, **kwargs)
+
+
+def loads_graph(text: str) -> nx.MultiDiGraph:
+    """Inverse of ``dumps_graph``."""
+    data = json.loads(text, object_hook=bigraph_json_hook)
+    return nx.node_link_graph(data, directed=True, multigraph=True, edges="edges")
