@@ -31,6 +31,7 @@ from viva_expressions.graph.document import (
     annotate,
     child,
     derived_id,
+    field_map,
     is_port,
     link_class,
     to_graph,
@@ -69,7 +70,7 @@ def expression_view(G, core=None):
     for link, attrs in list(G.nodes(data=True)):
         if attrs.get("kind") != "link":
             continue
-        fields = attrs.get("fields", {})
+        fields = field_map(attrs)
         cls, _ = link_class(fields, core)
         if not (isinstance(cls, type) and issubclass(cls, (OdeProcess, MathExpressionStep))):
             continue

@@ -67,6 +67,23 @@ def test_invalid_inputs_exit_1(tmp_path, capsys):
     assert "differs from to_graph's" in capsys.readouterr().err
 
 
+def test_forged_derived_elements_and_cycles_exit_1(tmp_path, capsys):
+    """Falsifies: from-graph accepts derived elements no applied view produced, or a
+    cyclic YAML document escapes the exit-code contract with a traceback."""
+    graph = tmp_path / "g.json"
+    assert main(["to-graph", str(LV), "--out", str(graph), "--bare"]) == 0
+    G = loads_graph(graph.read_text(encoding="utf-8"))
+    G.add_node("forged", view="expressions")
+    graph.write_text(dumps_graph(G), encoding="utf-8")
+    assert main(["from-graph", str(graph), "--out", str(tmp_path / "x.yaml")]) == 1
+    assert "stale" in capsys.readouterr().err
+
+    cyclic = tmp_path / "cyclic.yaml"
+    cyclic.write_text("a: &x\n  b: *x\n", encoding="utf-8")
+    assert main(["check", str(cyclic)]) == 1
+    assert "cyclic" in capsys.readouterr().err
+
+
 @pytest.fixture
 def ascii_locale():
     """The C locale: text I/O that relies on the locale default becomes ASCII

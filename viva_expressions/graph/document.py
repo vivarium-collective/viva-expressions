@@ -11,7 +11,8 @@ The contract is a pure change of representation::
 **Graph.** A ``networkx.MultiDiGraph``. Every node id is the RFC 6901 JSON
 Pointer of what it stands for (``""`` is the root). One node per plain
 ``dict`` (``type(x) is dict``); every other value is kept verbatim, as the
-same object, on a leaf node's ``value`` or a link node's ``fields``. Every
+same object, on a leaf node's ``value`` or a link node's ``fields`` (a list
+of ``[key, value]`` pairs, so the JSON codec never reads the keys). Every
 dict node keeps ``slots``, its keys in their original order. Lists are
 values: a dict inside a list is part of that list's value.
 
@@ -43,10 +44,17 @@ pointer), and per-node ``annotations[<name>]``. ``from_graph`` ignores them;
 **JSON.** ``dumps_graph``/``loads_graph`` use networkx node-link data
 (``edges="edges"``) with process-bigraph's native codec,
 ``BigraphJSONEncoder``/``bigraph_json_hook``. The JSON path is exact up to
-that codec's own losses: tuples load as lists, numpy scalars as Python
-scalars, a NaN loses its sign and payload, non-string keys inside values
-become strings, and a dict whose keys are the codec's tags (``__numpy__``,
-``__pint__``, ``__set__``, ...) is read back as the tagged type.
+that codec's own losses, all inside verbatim values: tuples load as lists,
+numpy scalars as Python scalars, a NaN loses its sign and payload,
+non-string keys become strings, a dict subclass loads as a plain dict, and a
+dict whose keys are the codec's tags (``__numpy__``, ``__pint__``,
+``__set__``, ...) is read back as the tagged type. (Document dicts are nodes,
+not values, so none of these touch the document's own structure.) A
+dict-subclass value comes back as a plain dict, which ``to_graph`` would have
+expanded into nodes, so strict ``from_graph`` rejects that graph.
+
+Shared references (YAML anchors) are rebuilt as copies; a cyclic document
+cannot be converted (Python's recursion limit also bounds nesting depth).
 """
 from __future__ import annotations
 
@@ -174,11 +182,11 @@ def _add(G, value, ptr, kind, ports):
             raise TypeError(f"{ptr or '(root)'}: key {key!r} is not a string; "
                             "node ids are JSON Pointers, which need string keys")
     G.add_node(ptr, kind=kind, slots=list(value))
-    children, fields = [], {}
+    children, fields = [], []
     for key, child in value.items():
         ck = child_kind(kind, key, child)
         if ck is None:
-            fields[key] = child
+            fields.append([key, child])
         else:
             children.append((key, child, ck))
     if fields:
@@ -286,7 +294,7 @@ def wire_edges(G, port):
 def _build(G, node):
     attrs = G.nodes[node]
     if "slots" in attrs:
-        fields = attrs.get("fields", {})
+        fields = field_map(attrs)
         kids = {d["slot"]: c for _, c, k, d in G.out_edges(node, keys=True, data=True)
                 if k == CONTAINS and _is_core(d)}
         out = {}
@@ -329,6 +337,15 @@ def from_graph(G: nx.MultiDiGraph, strict: bool = True):
     return document
 
 
+def field_map(attrs) -> dict:
+    """A node's ``fields`` pairs as a dict."""
+    pairs = attrs.get("fields", [])
+    if not (isinstance(pairs, list)
+            and all(isinstance(p, list) and len(p) == 2 and type(p[0]) is str for p in pairs)):
+        raise GraphError(f"'fields' is not a list of [key, value] pairs: {pairs!r}")
+    return {k: v for k, v in pairs}
+
+
 def _core_nodes(G):
     return {n: a for n, a in G.nodes(data=True) if _is_core(a)}
 
@@ -346,16 +363,18 @@ def _same_node(a, b) -> bool:
         return False
     if "value" in a and a["value"] is not b["value"]:
         return False
-    fa, fb = a.get("fields", {}), b.get("fields", {})
-    return set(fa) == set(fb) and all(fa[k] is fb[k] for k in fa)
+    fa, fb = a.get("fields", []), b.get("fields", [])
+    return (len(fa) == len(fb)
+            and all(type(x) is list and len(x) == 2 and x[0] == y[0] and type(x[0]) is str
+                    and x[1] is y[1] for x, y in zip(fa, fb)))
 
 
 def _same_edge(key, a, b) -> bool:
     if set(a) != set(b):
         return False
     if key == WIRE:
-        return a["wire"] is b["wire"] and all(a[k] == b[k] for k in a if k != "wire")
-    return a == b
+        return a["wire"] is b["wire"] and all(document_equal(a[k], b[k]) for k in a if k != "wire")
+    return document_equal(a, b)
 
 
 def _check_canonical(G, canon):
@@ -429,6 +448,10 @@ def dumps_graph(G: nx.MultiDiGraph, **kwargs) -> str:
 def loads_graph(text: str) -> nx.MultiDiGraph:
     """Inverse of ``dumps_graph``."""
     data = json.loads(text, object_hook=bigraph_json_hook)
+    if not (isinstance(data, dict) and isinstance(data.get("graph"), dict)
+            and {"nodes", "edges"} <= set(data)):
+        raise GraphError("not node-link graph data (expected an object with "
+                         "'graph', 'nodes' and 'edges')")
     return nx.node_link_graph(data, directed=True, multigraph=True, edges="edges")
 
 
@@ -537,7 +560,7 @@ def emitters_view(G, core=None):
     for node, attrs in list(G.nodes(data=True)):
         if attrs.get("kind") != "link":
             continue
-        cls, error = link_class(attrs.get("fields", {}), core)
+        cls, error = link_class(field_map(attrs), core)
         annotate(G, node, "emitters", {
             "emitter": None if cls is None else (isinstance(cls, type) and issubclass(cls, Emitter)),
             "class": None if cls is None else f"{cls.__module__}.{cls.__qualname__}",
@@ -612,9 +635,12 @@ def check_views(G, views: Mapping[str, Callable] = VIEWS, core=None):
     """Raise ``GraphError`` unless every applied view equals its recomputation
     with ``core`` (pass the core the views were built with: which addresses
     resolve depends on it)."""
-    unknown = [n for n in G.graph.get("views", []) if n not in views]
+    applied = G.graph.get("views")
+    if not isinstance(applied, list):
+        raise GraphError(f"graph attribute 'views' is {applied!r}, not a list")
+    unknown = [n for n in applied if n not in views]
     if unknown:
         raise GraphError(f"unknown view(s) {unknown}")
-    fresh = add_views(strip_views(G), list(G.graph["views"]), views, core)
+    fresh = add_views(strip_views(G), list(applied), views, core)
     if _derived(fresh) != _derived(G):
         raise GraphError(f"stale view(s): {G.graph['views']} differ from their recomputation")

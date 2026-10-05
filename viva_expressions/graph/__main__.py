@@ -76,8 +76,7 @@ def _to_graph(args, core) -> int:
 def _from_graph(args, core) -> int:
     G = loads_graph(args.graph.read_text(encoding="utf-8"))
     document = from_graph(G, strict=True)
-    if G.graph["views"]:
-        check_views(G, VIEWS, core)
+    check_views(G, VIEWS, core)      # also rejects derived elements no applied view made
     write_document(document, args.out)
     print(args.out)
     return 0
@@ -163,6 +162,10 @@ def main(argv=None) -> int:
     except (GraphError, ValueError, KeyError, TypeError, FileNotFoundError,
             yaml.YAMLError) as e:   # GraphError and JSONDecodeError are ValueErrors
         print(f"error: {e}", file=sys.stderr)
+        return 1
+    except RecursionError:
+        print("error: the document is cyclic (e.g. a self-referencing YAML anchor) "
+              "or nested deeper than Python's recursion limit", file=sys.stderr)
         return 1
 
 

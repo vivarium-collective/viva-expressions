@@ -304,6 +304,18 @@ def _unknown_edge(G):
     G.add_edge("/state/stores/x", "/state/stores/y", key="flows")
 
 
+def _subpath_type(G):
+    G.edges["/state", "/state/emitter/inputs/time", "wire"]["subpath"] = [b"global_time"]
+
+
+def _field_extra(G):
+    G.nodes["/state/predation"]["fields"].append(["hidden", 1.0])   # not in slots
+
+
+def _fields_shape(G):
+    G.nodes["/state/predation"]["fields"] = {"interval": 0.1}
+
+
 TAMPER = {
     "wire to another endpoint": (_move_wire, "edge"),
     "port with two wires": (_second_wire, "2 wire edges"),
@@ -315,6 +327,9 @@ TAMPER = {
     "unreachable node": (_orphan, "not part of the document's graph"),
     "no format": (_format, "not a document graph"),
     "unknown core edge": (_unknown_edge, "not one to_graph produces"),
+    "subpath of another type": (_subpath_type, "re-resolution"),
+    "field outside the slots": (_field_extra, "differs from to_graph's"),
+    "fields not pairs": (_fields_shape, "not a list of"),
 }
 
 
@@ -327,6 +342,18 @@ def test_strict_rejects_graphs_to_graph_could_not_produce(case):
     tamper(G)
     with pytest.raises(GraphError, match=message):
         from_graph(G)
+
+
+def test_strict_compares_derived_wire_attributes_by_type():
+    """Falsifies: strict mode accepts derived wire attributes that are == but not
+    what to_graph produces (False / 0.0 for the index step 0)."""
+    doc = {"state": {"s": {"a": 1.0}, "p": {"_type": "step", "address": "local:Nothing",
+                                           "inputs": {"i": ["s", 0]}, "outputs": {}}}}
+    for attr, value in (("resolved", ["s", False]), ("subpath", [0.0])):
+        G = to_graph(doc)
+        G.edges["/state/s", "/state/p/inputs/i", "wire"][attr] = value
+        with pytest.raises(GraphError, match="re-resolution"):
+            from_graph(G)
 
 
 def test_non_strict_rebuilds_a_moved_wire_that_strict_rejects():
@@ -350,13 +377,13 @@ def test_placeholder_view_matches_substitute_parameters(path):
     """Falsifies: the placeholders view's sites are where substitute_parameters
     puts each parameter (oracle: two typed overrides per parameter, not sentinels)."""
     spec = workspace_spec(path)
+    first = next(iter(spec["parameters"]))
+    spec["schema"] = {"probe": {"_type": "string", "_default": f"[${{{first}}}]"}}  # an inline site
     G = to_graph(spec)
     add_views(G, ["placeholders"])
     params = spec["parameters"]
     for name, declared in params.items():
         lo, hi = _two_values(declared)
-        a = substitute_parameters(spec["state"], params, {name: lo})
-        b = substitute_parameters(spec["state"], params, {name: hi})
         oracle = set()
 
         def diff(x, y, path):
@@ -368,7 +395,9 @@ def test_placeholder_view_matches_substitute_parameters(path):
                     diff(p, q, path + [i])
             elif x != y:
                 oracle.add(tuple(path))
-        diff(a, b, ["state"])
+        for key in ("schema", "state"):
+            diff(substitute_parameters(spec[key], params, {name: lo}),
+                 substitute_parameters(spec[key], params, {name: hi}), [key])
         node = json.dumps(["placeholders", "", name])
         sites = {tuple(gd.pointer_tokens(v)) + tuple(d["subpath"])
                  for _, v, d in G.out_edges(node, data=True)}
@@ -490,6 +519,34 @@ def test_generated_documents_round_trip(doc):
     H = loads_graph(text)
     assert document_equal(from_graph(H), doc)
     assert dumps_graph(H) == text
+
+
+def test_codec_tag_keys_on_a_link_survive_json():
+    """Falsifies: a link key named like a codec tag (__set__) breaks the graph JSON
+    (fields are [key, value] pairs, so the codec never reads link keys)."""
+    doc = {"state": {"p": {"_type": "step", "address": "local:Nothing", "__set__": [1, 2],
+                           "__numpy__": True, "inputs": {}, "outputs": {}},
+                     "s": {"__set__": True, "data": [1]}}}
+    assert document_equal(from_graph(json_round_trip(to_graph(doc))), doc)
+
+
+def test_dict_subclass_values_are_exact_in_memory_and_rejected_by_strict_after_json():
+    """Falsifies: a dict subclass (kept verbatim) loses its type in memory, or its
+    JSON-flattened form passes strict mode as if to_graph had produced it."""
+    from collections import OrderedDict
+    doc = {"state": {"o": OrderedDict(a=1.0)}}
+    assert document_equal(from_graph(to_graph(doc)), doc)
+    H = json_round_trip(to_graph(doc))
+    with pytest.raises(GraphError, match="missing"):
+        from_graph(H)
+    assert from_graph(H, strict=False) == {"state": {"o": {"a": 1.0}}}
+
+
+def test_loads_graph_refuses_non_graph_json():
+    """Falsifies: JSON that is not node-link graph data is half-read instead of refused."""
+    for text in ("[]", "{}", '{"graph": {}, "nodes": []}'):
+        with pytest.raises(GraphError, match="not node-link"):
+            loads_graph(text)
 
 
 def test_non_string_keys_are_refused_not_corrupted():

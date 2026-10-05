@@ -56,21 +56,28 @@ m = to_matrices(G, kinds=("wire",))      # index, A, D, L (scipy.sparse)
    don't fix them yourself.
 2. **Convert** with `to-graph`; `--bare` when the user wants the document's
    structure without derived views.
-3. **Back:** `from-graph` accepts only graphs `to_graph` produces. A graph
-   edited by hand is rejected rather than half-read; regenerate it from the
-   edited document instead.
+3. **Back:** `from-graph` accepts only graphs `to_graph` produces. A hand
+   edit that leaves the graph inconsistent (a wire re-pointed but not
+   re-resolved, a node off its pointer, a stale view) is rejected rather than
+   half-read; to change a model, edit the document and regenerate the graph.
 
 ## Rules
 
 - The graph is lossless; the matrices are not. `to_matrices` keeps edge counts
   only; `index` maps rows back to node ids. Say so when you hand matrices over.
-- The JSON file is exact up to process-bigraph's own codec: tuples load as
-  lists, numpy scalars as Python numbers, a NaN loses its sign and payload,
-  non-string keys inside values become strings. `check` exits `2` if a document
-  hits one of these.
+- The JSON file is exact up to process-bigraph's own codec, whose losses
+  all fall inside values: tuples load as lists, numpy scalars as Python
+  numbers, a NaN loses its sign and payload, non-string keys become strings,
+  a dict subclass becomes a plain dict (strict `from-graph` then rejects the
+  graph), a dict keyed by a codec tag (`__set__`, ...) loads as that type.
+  `check` exits `2` if a document read from a file hits one of these.
 - `depends` edges are syntactic (the names in the text). `compiled: false` means
   parsing cancels the name (`x - x`). Say which one you are quoting.
 - An in-memory `Composite` converts only its **realized** document
   (`composite_graph`, labelled `origin: realized`), never the authored one.
 - Keys must be strings (JSON Pointer ids); a document with other keys is refused,
-  not mangled.
+  not mangled. A cyclic document (a self-referencing YAML anchor) is refused;
+  shared anchors come back as copies.
+- A link is recognized by `_type` (process/step/composite/edge) or, untyped,
+  by `address` plus `inputs`/`outputs`. A plain store shaped like that is
+  treated as a link: still lossless, but its wires and views are wrong.

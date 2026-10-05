@@ -41,8 +41,11 @@ decisions:
     summary: >-
       The JSON carrier is process-bigraph's native codec, with its losses
       documented (tuple -> list, numpy scalar -> Python scalar, NaN sign and
-      payload, non-string keys inside values -> strings, codec tag keys read
-      as tagged values) rather than a stricter codec of our own.
+      payload, non-string keys -> strings, dict subclass -> dict, codec tag
+      keys read as tagged values) rather than a stricter codec of our own.
+      Link fields are stored as [key, value] pairs, not a dict, so the codec's
+      object hook never reads a link's own keys: every loss falls inside a
+      verbatim value, never on the document's structure.
     source: .todo/plans/document-graph.md (decision 4); bigraph_schema/json_codec.py
   - timestamp: "2026-10-05"
     skill: graph-system
