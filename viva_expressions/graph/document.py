@@ -429,6 +429,23 @@ def loads_graph(text: str) -> nx.MultiDiGraph:
     return nx.node_link_graph(data, directed=True, multigraph=True, edges="edges")
 
 
+# --- in-memory Composite -----------------------------------------------------
+
+def composite_document(composite) -> dict:
+    """A Composite's **realized** document (``serialize_state``,
+    ``serialize_schema``), as ``Composite.save`` writes it. Not the authored
+    document: realization fills configs with defaults and adds stores, and
+    the authored form is not recoverable from a Composite."""
+    return {"state": composite.serialize_state(), "schema": composite.serialize_schema()}
+
+
+def composite_graph(composite) -> nx.MultiDiGraph:
+    """``to_graph(composite_document(composite))``, labelled ``origin: realized``."""
+    G = to_graph(composite_document(composite))
+    G.graph["origin"] = "realized"
+    return G
+
+
 # --- views -------------------------------------------------------------------
 
 def derived_id(view: str, ptr: str, name: str) -> str:

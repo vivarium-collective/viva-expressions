@@ -34,6 +34,8 @@ from viva_expressions.graph.document import (
     GraphError,
     add_views,
     check_views,
+    composite_document,
+    composite_graph,
     document_equal,
     dumps_graph,
     from_graph,
@@ -523,3 +525,21 @@ def test_non_string_keys_are_refused_not_corrupted():
     """Falsifies: a dict key that has no JSON Pointer is silently mangled."""
     with pytest.raises(TypeError, match="not a string"):
         to_graph({"state": {1: 2.0}})
+
+
+# --- 13: realized documents --------------------------------------------------
+
+def test_composite_document_round_trips_and_is_not_the_authored_document():
+    """Falsifies: a Composite's realized document round-trips (and is labelled as
+    realized, because it is not the authored one)."""
+    authored = ode_document(rhs={"x": "-k*x"}, params={"k": 1.0}, initial={"x": 1.0}, interval=0.5)
+    composite = Composite(copy.deepcopy(authored), core=allocate_core())
+    composite.run(1.0)
+    realized = composite_document(composite)
+    assert document_equal(from_graph(to_graph(realized)), realized)
+    assert document_equal(from_graph(json_round_trip(to_graph(realized))), realized)
+    assert not document_equal(realized, authored)
+    assert realized["state"]["ode"]["config"]["max_abs"] == 1e12   # a filled default
+    G = composite_graph(composite)
+    assert G.graph["origin"] == "realized"
+    assert G.nodes["/state/ode"]["kind"] == "link"                  # untyped, by address + ports
