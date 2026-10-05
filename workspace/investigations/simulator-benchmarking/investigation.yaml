@@ -36,8 +36,83 @@ executive:
     after an importer clock bug found by the adversarial panel was fixed (viva-expressions v0.3.0). 
     COPASI and PySCeS are not yet installed.
   decisions_needed:
+  - question: Review and merge viva-template#65 and viva-superpowers#309 (branch protection requires
+      an approving review).
+    context: "#65 unblocks the amd64-only container image; #309 corrects /viva-study's documented write
+      routes."
   - question: Install viva-copasi and viva-pysces for the next comparator studies?
-    context: bench-tellurium's design (models, settings, tests) is reusable as is.
+    context: bench-tellurium's design (models, settings, tests) is reusable as is; use the v3 
+      threshold rule.
+  handoff:
+    as_of: '2026-10-05'
+    state: >
+      bench-tellurium v2 is complete: 41 single-environment runs (commit d719575), 41/41 study tests pass
+      through POST /api/study-tests-run, and an adversarial panel reviewed it. The user's decisions on
+      that
+      panel: (1) amend the study narrative, dated, without a re-run; (2) add a labelled POST-HOC resolution
+      analysis and keep the v2 verdicts; (3) fix the importer's equivalence-check sampling (viva-expressions
+      v0.3.3); (4) adopt the v3 threshold rule for future studies; (5) next study: corpus coverage on
+      a
+      seeded random sample of 100 curated BioModels.
+    next_steps:
+    - step: 'Land viva-expressions PR #9 (v0.3.3, equivalence-check sampling): once CI is green, merge,
+        tag v0.3.3 + GitHub Release, merge main into this branch, uv sync, restart the workbench.'
+      who: coding session (git/gh); not doable through the workbench API
+    - step: Run studies/bench-tellurium/analysis/posthoc_resolution.py (writes 
+        posthoc_resolution.json) and commit both.
+      who: coding session (runs a script)
+    - step: "Amend bench-tellurium study.yaml: append dated `amendments` entries (never edit `preregistration`)
+        and fix the flagged statements; the full list is in this handoff's `amendment_checklist`. Add
+        a `posthoc_resolution` block labelled POST-HOC, citing posthoc_resolution.json."
+      who: VivaChat (study PATCH for overview/objective/narrative) + direct YAML for 
+        findings/limitations/amendments, or a coding session
+    - step: "Add the v3 rule to this investigation's `guidelines`: tau_m = 10 x each model's measured
+        self-convergence floor (both solvers) + a planted-error power test, pre-registered for bench-copasi,
+        bench-pysces and the corpus study."
+      who: VivaChat or a coding session
+    - step: Create the corpus-coverage study under this investigation (POST /api/study-create with 
+        investigation=simulator-benchmarking, no source). Pre-register a seeded random sample of 100
+        curated BioModels (seed + list committed before any run), its metrics 
+        (import/reject/agreement rates with CIs) and the v3 thresholds, THEN fetch and import 
+        (scripts/fetch_biomodels.py, /sbml-system import with a binary-exact --interval), then run.
+      who: VivaChat for study creation and runs; a coding session to fetch, import and commit
+    amendment_checklist:
+    - 'v2-h1: BIOMD400 like-for-like is default 1.8e-2 (v1) -> 8.2e-6 (v2); at tight tolerance v1 was
+      already 3.42e-9. Also give 129 as 93 states + 20 dynamic + 16 constant outputs.'
+    - "v2-h3: '2e5 x tau' -> '1e5 x tau'; state that it is a wiring check (response ~0.01 x sensitivity),
+      not a power test."
+    - v2 evidence 'manifest identical' -> the environment fields are identical; 25 variant manifests
+      have null package fields (workbench variant path).
+    - "claim / report.main_insight / investigation executive.verdict / scientific_argument.main_claim:
+      'states and outputs' -> 'states and the 36 of 45 assignment outputs Tellurium emits'; claim 'v0.3.0'
+      -> 'v0.3.0 code, installed as 0.3.1'."
+    - "limitations: 'panel: 9 of 199' -> '5 of 201 (posthoc_resolution.json)'; other panel-only figures
+      -> posthoc_resolution.json."
+    - "new amendment: v1 runs were cleared from HEAD runs.db before v2 (preserved at commit b06fd83),
+      so the '6 extra records' entry refers to b06fd83."
+    - "new amendment: preregistration v2's 'tau sits a factor 10 above each floor' holds only for BIOMD5
+      (posthoc: 3.2x for BIOMD400 up to 1312x for BIOMD41); its compared_set's unqualified 1.8e-2 is the
+      default-tolerance figure."
+    - 'new amendment: both test files now fail on a non-finite value on either side (verdicts unchanged,
+      41/41).'
+    facts_for_agents:
+    - 'Workbench locked at 8a30a092: study PATCH, observable-check, tests-run and readouts resolve nested
+      studies.'
+    - 'study-run-baseline/variant `steps` is a TIME HORIZON (steps: 100 at interval 0.5 gives t = 0..100,
+      201 rows).'
+    - Time-dependent composite specs need a binary-exact interval (0.5, 0.25, 0.125).
+    - TelluriumProcess's t = 0 row is empty (viva-tellurium#7); comparisons start at t = 0.5.
+    - Study runs.db is committed evidence; workbench-generated sims/ and viz/ are gitignored 
+      (machine-local paths).
+    awaiting_review:
+    - viva-template#65 (IMAGE_PLATFORMS; then regenerate build-and-push here and set 
+      IMAGE_PLATFORMS=linux/amd64)
+    - viva-superpowers#309 (stale /viva-study routes; verified)
+    open_issues:
+    - process-bigraph#222
+    - 'vivarium-workbench#1275 #1276 #1280'
+    - viva-superpowers#310
+    - viva-tellurium#7
 scientific_argument:
   main_claim: The expression layer, fed by /sbml-system imports, reproduces libroadrunner's 
     integration of the same SBML (states and outputs) up to integrator error, on 8 feature-chosen 

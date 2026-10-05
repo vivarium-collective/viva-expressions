@@ -81,7 +81,7 @@ def errors(model_id: int, ode: Run, tel: Run) -> dict[str, float]:
             ref = tel.observable(f"parameters.{sid}")
         ours = ode.observable(name)[1:]
         assert len(ours) == len(ref) == len(t_tel), f"{name}: missing samples"
-        out[name] = (math.inf if not np.all(np.isfinite(ours)) else
+        out[name] = (math.inf if not (np.all(np.isfinite(ours)) and np.all(np.isfinite(ref))) else
                      float(np.max(np.abs(ours - ref)) / max(float(np.max(np.abs(ref))), 1e-10)))
     return out
 
