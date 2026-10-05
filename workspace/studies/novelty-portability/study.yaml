@@ -1,0 +1,22 @@
+schema_version: 4
+name: novelty-portability
+created: '2026-10-05'
+status: planned
+phase: Design
+baseline:
+- name: baseline
+  composite: replace_me.composites.placeholder
+  params: {}
+variants: []
+objective: 'On Linux arm64, install a lock without libroadrunner and rerun the 8 imported
+  bench-tellurium models with OdeProcess. Compare against the macOS arm64 v2 trajectories,
+  and attempt the tellurium lock on the same platform as the control. First step:
+  check whether libroadrunner now ships a Linux aarch64 wheel. If it does, the advantage
+  is gone and the study records that.'
+question: Does the scipy-only OdeProcess path install and reproduce the bench-tellurium
+  reference trajectories on Linux arm64, where the libroadrunner 2.10.0 lock fails
+  to install (viva-template#65)?
+hypothesis: On Linux arm64 the scipy-only lock installs and all 8 models reproduce
+  the macOS arm64 trajectories within the bench-tellurium tight-tolerance thresholds,
+  while the tellurium lock fails to install. Refuted if the scipy path fails on that
+  platform, or if a current libroadrunner release installs there.
