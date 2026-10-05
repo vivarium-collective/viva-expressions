@@ -24,7 +24,7 @@ from bigraph_schema.units import units as ureg
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 from process_bigraph import Composite, Step, allocate_core, gather_emitter_results
-from process_bigraph.composite_spec import CompositeSpec
+from process_bigraph.composite_spec import CompositeSpec, substitute_parameters
 from process_bigraph.processes.growth_division import grow_divide_agent
 
 from viva_expressions.composites import ode_document, run_document
@@ -32,10 +32,13 @@ from viva_expressions.core import build_core
 from viva_expressions.graph import document as gd
 from viva_expressions.graph.document import (
     GraphError,
+    add_views,
+    check_views,
     document_equal,
     dumps_graph,
     from_graph,
     loads_graph,
+    strip_views,
     to_graph,
 )
 
@@ -361,6 +364,54 @@ def test_non_strict_rebuilds_a_moved_wire_that_strict_rejects():
                           workspace_spec(COMPOSITES / "lotka_volterra.composite.yaml"))
 
 
+# --- 8: placeholders view ----------------------------------------------------
+
+def _two_values(declared):
+    t = declared.get("type")
+    return {"float": (1.25, 2.5), "integer": (3, 4), "string": ("p", "q"),
+            "boolean": (True, False)}[t]
+
+
+@pytest.mark.parametrize("path", WORKSPACE, ids=lambda p: p.name)
+def test_placeholder_view_matches_substitute_parameters(path):
+    """Falsifies: the placeholders view's sites are where substitute_parameters
+    puts each parameter (oracle: two typed overrides per parameter, not sentinels)."""
+    spec = workspace_spec(path)
+    G = to_graph(spec)
+    add_views(G, ["placeholders"])
+    params = spec["parameters"]
+    for name, declared in params.items():
+        lo, hi = _two_values(declared)
+        a = substitute_parameters(spec["state"], params, {name: lo})
+        b = substitute_parameters(spec["state"], params, {name: hi})
+        oracle = set()
+
+        def diff(x, y, path):
+            if isinstance(x, dict):
+                for k in x:
+                    diff(x[k], y[k], path + [k])
+            elif isinstance(x, list):
+                for i, (p, q) in enumerate(zip(x, y)):
+                    diff(p, q, path + [i])
+            elif x != y:
+                oracle.add(tuple(path))
+        diff(a, b, ["state"])
+        node = json.dumps(["placeholders", "", name])
+        sites = {tuple(gd.pointer_tokens(v)) + tuple(d["subpath"])
+                 for _, v, d in G.out_edges(node, data=True)}
+        assert sites == oracle and oracle, name
+
+
+def test_undeclared_placeholder_is_reported_not_raised():
+    """Falsifies: a ${name} with no declaration fails the conversion."""
+    spec = {"parameters": {"a": {"type": "float", "default": 1.0}},
+            "state": {"x": "${a}", "y": "${missing}"}}
+    G = to_graph(spec)
+    add_views(G, ["placeholders"])
+    assert "missing" in G.nodes[""]["annotations"]["placeholders"]["error"]
+    assert document_equal(from_graph(G), spec)
+
+
 # --- 9: bit-identical re-runs ------------------------------------------------
 
 def _rows(spec):
@@ -395,6 +446,31 @@ def test_round_tripped_oscillator_reruns_bit_identically_and_one_ulp_does_not():
     bumped["state"]["ode"]["config"]["params"]["omega"] = float(np.nextafter(omega, np.inf))
     _, c = run_document(bumped, 2.0)
     assert not document_equal(a, c)
+
+
+# --- 11: view isolation ------------------------------------------------------
+
+def test_views_are_isolated_from_the_document():
+    """Falsifies: derived elements influence from_graph, or check_views misses a stale view."""
+    doc = grow_divide_document()
+    G = add_views(to_graph(doc))
+    assert G.graph["views"] == ["placeholders", "emitters", "bridges"]
+    assert sum(1 for *_, k in G.edges(keys=True) if k == "crosses") == 3
+    check_views(G)
+    check_views(json_round_trip(G))
+    assert document_equal(from_graph(G), doc)
+    assert document_equal(from_graph(strip_views(G)), doc)
+    stale = G.copy()
+    stale.remove_edge(*next((u, v, k) for u, v, k in stale.edges(keys=True) if k == "crosses"))
+    assert document_equal(from_graph(stale), doc)
+    with pytest.raises(GraphError, match="stale"):
+        check_views(stale)
+
+    spec = workspace_spec(COMPOSITES / "lotka_volterra.composite.yaml")
+    H = add_views(to_graph(spec), ["placeholders"])
+    H.nodes["/state/stores/x"]["value"] = 10.0          # the document changed under the view
+    with pytest.raises(GraphError, match="stale"):
+        check_views(H)
 
 
 # --- 12: generated documents -------------------------------------------------

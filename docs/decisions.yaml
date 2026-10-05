@@ -1,2 +1,46 @@
 # Append-only decision log. Each entry: {timestamp, skill, target, summary, source}.
-decisions: []
+decisions:
+  - timestamp: "2026-10-05"
+    skill: graph-system
+    target: viva_expressions/graph/document.py
+    summary: >-
+      The document <-> graph conversion lives in this repo but is general and
+      uses public process-bigraph / bigraph-schema APIs only (resolve_path,
+      normalize_address, load_protocol, substitute_parameters,
+      BigraphJSONEncoder / bigraph_json_hook, Emitter), so it can move upstream
+      unchanged.
+    source: .todo/plans/document-graph.md (decision 1)
+  - timestamp: "2026-10-05"
+    skill: graph-system
+    target: viva_expressions/graph/document.py placeholders_view
+    summary: >-
+      Placeholder sites come from substitute_parameters' own behavior, not
+      from the private _FULL_PLACEHOLDER/_INLINE_PLACEHOLDER patterns: each
+      declared parameter is substituted by a unique sentinel, declared without
+      a type so it is not coerced; a site is any string the substitution
+      changed, and the sentinels in it name its parameters. An undeclared
+      ${name} (substitute_parameters raises KeyError) is recorded on the root,
+      not raised. Checked against an independent oracle (two typed overrides
+      per parameter) on every workspace composite.
+    source: process_bigraph/composite_spec.py substitute_parameters, _resolve_value, _coerce (1.8.5)
+  - timestamp: "2026-10-05"
+    skill: graph-system
+    target: viva_expressions/graph/document.py emitters_view, link_class
+    summary: >-
+      A link is an emitter iff its class subclasses process_bigraph.Emitter,
+      with the class resolved exactly as realization resolves it:
+      normalize_address(address, default 'local:edge'), then
+      load_protocol(core, core.access(protocol), data), or the type of an
+      existing 'instance'. Replaces the private _node_is_emitter, and drops
+      its class-name-ends-in-'Emitter' fallback: an address the core cannot
+      resolve is reported as unresolved (emitter null, with the error).
+    source: bigraph_schema/methods/realize.py realize_link (1.6.0); process_bigraph/emitter.py _node_is_emitter (1.8.5)
+  - timestamp: "2026-10-05"
+    skill: graph-system
+    target: viva_expressions/graph/document.py dumps_graph / loads_graph
+    summary: >-
+      The JSON carrier is process-bigraph's native codec, with its losses
+      documented (tuple -> list, numpy scalar -> Python scalar, NaN sign and
+      payload, non-string keys inside values -> strings, codec tag keys read
+      as tagged values) rather than a stricter codec of our own.
+    source: .todo/plans/document-graph.md (decision 4); bigraph_schema/json_codec.py

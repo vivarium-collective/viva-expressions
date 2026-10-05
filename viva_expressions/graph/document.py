@@ -52,12 +52,17 @@ from __future__ import annotations
 
 import json
 import struct
+import uuid
+from collections.abc import Callable, Mapping
 
 import networkx as nx
 import numpy as np
 import pint
 from bigraph_schema.json_codec import BigraphJSONEncoder, bigraph_json_hook
-from bigraph_schema.schema import resolve_path
+from bigraph_schema.methods import load_protocol
+from bigraph_schema.schema import normalize_address, resolve_path
+from process_bigraph import Emitter, allocate_core
+from process_bigraph.composite_spec import substitute_parameters
 
 FORMAT = "process-bigraph-document-graph/1"
 CONTAINS, WIRE = "contains", "wire"
@@ -422,3 +427,172 @@ def loads_graph(text: str) -> nx.MultiDiGraph:
     """Inverse of ``dumps_graph``."""
     data = json.loads(text, object_hook=bigraph_json_hook)
     return nx.node_link_graph(data, directed=True, multigraph=True, edges="edges")
+
+
+# --- views -------------------------------------------------------------------
+
+def derived_id(view: str, ptr: str, name: str) -> str:
+    return json.dumps([view, ptr, name])
+
+
+def annotate(G, node, view, data):
+    G.nodes[node].setdefault("annotations", {})[view] = data
+
+
+def link_class(fields, core):
+    """``(class, error)`` for a link, resolved the way realization does:
+    ``normalize_address`` then the core's protocol through ``load_protocol``."""
+    if "instance" in fields:
+        return type(fields["instance"]), None
+    address = normalize_address(fields.get("address", "local:edge"))
+    if not (isinstance(address, dict) and "protocol" in address):
+        return None, f"not an address: {address!r}"
+    try:
+        cls = load_protocol(core, core.access(address["protocol"]), address["data"])
+    except Exception as e:   # any import/lookup failure is recorded, not raised
+        return None, f"{type(e).__name__}: {e}"
+    if cls is None:
+        return None, f"no link at address {address['protocol']}:{address['data']}"
+    return cls, None
+
+
+def placeholders_view(G, core=None):
+    """``param`` nodes for the root's ``parameters`` and ``references`` edges to
+    every ``${name}`` site in its ``schema``/``state``.
+
+    Sites are found from ``substitute_parameters``' own behavior, not a copy
+    of its pattern: each parameter is substituted by a unique sentinel
+    (declared without a type, so it is not coerced) and a site is any string
+    whose substitution changed; the sentinels it contains name its parameters.
+    """
+    view = "placeholders"
+    document = _build(G, "")
+    params = document.get("parameters") if type(document) is dict else None
+    if type(params) is not dict:
+        return
+    sentinels = {name: f"\x00{uuid.uuid4().hex}\x00" for name in params}
+    for name in params:
+        G.add_node(derived_id(view, "", name), kind="param", view=view, name=name,
+                   declaration=pointer(["parameters", name]))
+    try:
+        substituted = {key: substitute_parameters(
+            document[key], {n: {"default": s} for n, s in sentinels.items()})
+            for key in ("schema", "state") if key in document}
+    except KeyError as e:
+        annotate(G, "", view, {"error": str(e.args[0])})
+        return
+    for key, new in substituted.items():
+        for path, text in _changed_strings(document[key], new, [key]):
+            node, depth = "", 0
+            for step in path:
+                child = _child(G, node, step) if type(step) is str else None
+                if child is None:
+                    break
+                node, depth = child, depth + 1
+            sub = path[depth:]
+            for name, s in sentinels.items():
+                if s in text:
+                    G.add_edge(derived_id(view, "", name), node,
+                               key="references" + "".join(f"/{escape(str(t))}" for t in sub),
+                               view=view, subpath=sub)
+
+
+def _changed_strings(old, new, path):
+    if old is new:
+        return
+    if isinstance(old, dict):
+        for k in old:
+            yield from _changed_strings(old[k], new[k], path + [k])
+    elif isinstance(old, list):
+        for i, (o, n) in enumerate(zip(old, new)):
+            yield from _changed_strings(o, n, path + [i])
+    elif isinstance(old, str) and old != new:
+        yield path, new
+
+
+def emitters_view(G, core=None):
+    """Annotate each link: ``emitter`` is whether its class, resolved through
+    ``core``, subclasses ``process_bigraph.Emitter`` (``None`` if unresolved)."""
+    core = core if core is not None else allocate_core()
+    for node, attrs in list(G.nodes(data=True)):
+        if attrs.get("kind") != "link":
+            continue
+        cls, error = link_class(attrs.get("fields", {}), core)
+        annotate(G, node, "emitters", {
+            "emitter": None if cls is None else (isinstance(cls, type) and issubclass(cls, Emitter)),
+            "class": None if cls is None else f"{cls.__module__}.{cls.__qualname__}",
+            "error": error})
+
+
+def bridges_view(G, core=None):
+    """``crosses`` edges pairing a nested composite's outer ports with its
+    bridge's same-named ports, in dataflow direction (inputs outer -> inner,
+    outputs and conduits inner -> outer)."""
+    for node, attrs in list(G.nodes(data=True)):
+        if attrs.get("kind") != "link":
+            continue
+        config = _child(G, node, "config")
+        bridge = _child(G, config, "bridge") if config else None
+        if bridge is None:
+            continue
+        for slot, side in BRIDGE_SIDES.items():
+            outer, inner = _child(G, node, side), _child(G, bridge, slot)
+            if outer and inner:
+                _cross(G, outer, inner, side)
+
+
+def _cross(G, outer, inner, side):
+    for slot in G.nodes[outer].get("slots", []):
+        o, i = _child(G, outer, slot), _child(G, inner, slot)
+        if o is None or i is None:
+            continue
+        if _is_port(G.nodes[o]) and _is_port(G.nodes[i]):
+            u, v = (o, i) if side == "inputs" else (i, o)
+            G.add_edge(u, v, key="crosses", view="bridges", side=side)
+        elif "slots" in G.nodes[o] and "slots" in G.nodes[i]:
+            _cross(G, o, i, side)
+
+
+VIEWS: dict[str, Callable] = {
+    "placeholders": placeholders_view,
+    "emitters": emitters_view,
+    "bridges": bridges_view,
+}
+
+
+def add_views(G, names=None, views: Mapping[str, Callable] = VIEWS, core=None):
+    """Apply ``views[name](G, core)`` for each name (default: all), in place."""
+    for name in (list(views) if names is None else names):
+        if name in G.graph["views"]:
+            raise ValueError(f"view {name!r} is already applied")
+        views[name](G, core)
+        G.graph["views"].append(name)
+    return G
+
+
+def strip_views(G) -> nx.MultiDiGraph:
+    """A copy of ``G`` without any view-derived element."""
+    H = G.copy()
+    H.remove_edges_from([(u, v, k) for u, v, k, d in H.edges(keys=True, data=True)
+                         if not _is_core(d)])
+    H.remove_nodes_from([n for n, a in H.nodes(data=True) if not _is_core(a)])
+    for _, a in H.nodes(data=True):
+        a.pop("annotations", None)
+    H.graph["views"] = []
+    return H
+
+
+def _derived(G):
+    return ({n: a for n, a in G.nodes(data=True) if not _is_core(a)},
+            {(u, v, k): d for u, v, k, d in G.edges(keys=True, data=True) if not _is_core(d)},
+            {n: a["annotations"] for n, a in G.nodes(data=True) if "annotations" in a})
+
+
+def check_views(G, views: Mapping[str, Callable] = VIEWS, core=None):
+    """Raise ``GraphError`` unless every applied view equals its recomputation."""
+    unknown = [n for n in G.graph.get("views", []) if n not in views]
+    if unknown:
+        raise GraphError(f"unknown view(s) {unknown}")
+    fresh = add_views(strip_views(G), list(G.graph["views"]), views, core)
+    if _derived(fresh) != _derived(G):
+        raise GraphError(f"stale view(s): {G.graph['views']} differ from their recomputation")
