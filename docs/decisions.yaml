@@ -60,10 +60,14 @@ decisions:
     skill: graph-system
     target: viva_expressions/graph/document.py is_link
     summary: >-
-      A dict is a link exactly when its _type, or else the document's schema at
-      the same path (a realized serialization keeps link types only there), is
-      a type process-bigraph's core resolves to a Link (core.access -> Link
-      instance). This replaces a hard-coded {process, step, composite, edge}
+      A dict is a link exactly when its type is one process-bigraph's core
+      resolves to a Link (core.access -> Link instance). Its type is its own
+      _type (with its _-prefixed siblings), else the type the document's
+      schema declares for its path, followed as realize does: a Map's _value
+      for every entry, a struct's field for its key, never a Tree's leaves (a
+      realized serialization keeps link types only in its schema, e.g. an
+      agents map). Types come from allocate_core(), so a Link type that only a
+      custom core registers is not recognized. This replaces a hard-coded {process, step, composite, edge}
       set plus an address-and-ports shape rule: the shape rule called an
       untyped state dict a link although realization never runs one, missed
       realized links whose wires hold an integer index, and the set disagreed

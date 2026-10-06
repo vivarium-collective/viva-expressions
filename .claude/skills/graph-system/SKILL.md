@@ -78,8 +78,9 @@ m = to_matrices(G, kinds=("wire",))      # index, A, D, L (scipy.sparse)
 - Keys must be strings (JSON Pointer ids); a document with other keys is refused,
   not mangled. A cyclic document (a self-referencing YAML anchor) is refused;
   shared anchors come back as copies.
-- A link is what process-bigraph realizes as one: a dict whose `_type`, or
-  else the document's `schema` at the same path (realized documents), the core
-  resolves to a `Link` (`process`, `step`, `composite`, `link`, ...; not
-  `edge`). An untyped dict with no such schema is a store; process-bigraph
-  never runs it either.
+- A link is what process-bigraph realizes as one: a dict whose own `_type`, or
+  else the type the document's `schema` declares for its path (realized
+  documents; followed through a map's `_value` and a struct's keys, not a
+  tree's leaves), the core resolves to a `Link` (`process`, `step`,
+  `composite`, `link`, ...; not `edge`). An untyped dict with no declared link
+  type is a store; process-bigraph never runs it either.

@@ -576,6 +576,7 @@ def test_composite_document_round_trips_and_is_not_the_authored_document():
 
 _EMITTER = {"address": "local:RAMEmitter", "config": {"emit": {"x": "float"}},
             "inputs": {"x": ["x"]}}
+_INNER = dict(_EMITTER, inputs={"x": ["..", "x"]})      # one level down, under a map
 
 
 @pytest.mark.parametrize("document", [
@@ -584,11 +585,19 @@ _EMITTER = {"address": "local:RAMEmitter", "config": {"emit": {"x": "float"}},
     {"schema": {"emitter": {"_type": "step"}}, "state": {"x": 1.0, "emitter": _EMITTER}},
     *({"state": {"x": 1.0, "emitter": dict(_EMITTER, _type=t)}}
       for t in ("step", "link", "StepLink", "edge")),
-], ids=["untyped", "schema-str", "schema-dict", "step", "link", "StepLink", "edge"])
+    {"schema": {"emitter": "map[step]"}, "state": {"x": 1.0, "emitter": {"e": _INNER}}},
+    {"schema": {"emitter": {"_type": "map", "_value": "step"}},
+     "state": {"x": 1.0, "emitter": {"e": _INNER}}},
+    {"schema": {"emitter": "tree[step]"}, "state": {"x": 1.0, "emitter": {"e": _INNER}}},
+    {"state": {"x": 1.0, "emitter": {"_type": "map[step]", "e": _INNER}}},
+    {"state": {"x": 1.0, "emitter": {"_type": "map", "_value": "step", "e": _INNER}}},
+], ids=["untyped", "schema-str", "schema-dict", "step", "link", "StepLink", "edge",
+        "schema-map-str", "schema-map-dict", "schema-tree", "own-map-str", "own-map-value"])
 def test_link_ness_is_what_process_bigraph_realizes(document):
     """Falsifies: a dict is a link here exactly when a real Composite realizes it
-    as one (oracle: it emits). Untyped dicts are links only by the document's
-    ``schema``; ``edge`` is not a registered link type."""
+    as one (oracle: it emits). Untyped dicts are links only by their declared
+    type, followed through containers as realization follows it (a map's
+    ``_value``, not a tree's leaves); ``edge`` is not a registered link type."""
     try:
         composite = Composite(copy.deepcopy(document), core=allocate_core())
         composite.run(1.0)
@@ -596,7 +605,8 @@ def test_link_ness_is_what_process_bigraph_realizes(document):
     except Exception:
         realized = False
     G = to_graph(document)
-    assert (G.nodes["/state/emitter"]["kind"] == "link") is realized
+    ptr = "/state/emitter/e" if "/state/emitter/e" in G else "/state/emitter"
+    assert (G.nodes[ptr]["kind"] == "link") is realized
     assert bool([k for *_, k in G.edges(keys=True) if k == "wire"]) is realized
     assert document_equal(from_graph(G), document)
 
@@ -612,6 +622,20 @@ class _Inc(Step):
 
     def update(self, state):
         return {"c": state["a"] + 1.0}
+
+
+def test_a_realized_nested_composite_under_a_map_schema_is_a_link():
+    """Falsifies: a realized agent (untyped in ``state``, typed through the
+    schema's ``map`` ``_value``) is read as a store, while process-bigraph runs
+    it as a live link (oracle: the Composite holds an Edge there)."""
+    composite = Composite(copy.deepcopy(grow_divide_document()), core=allocate_core())
+    composite.run(1.0)
+    assert isinstance(composite.state["agents"]["0"]["instance"], Composite)
+    realized = composite_document(composite)
+    assert "_type" not in realized["state"]["agents"]["0"]
+    G = to_graph(realized)
+    assert G.nodes["/state/agents/0"]["kind"] == "link"
+    assert document_equal(from_graph(G), realized)
 
 
 def test_a_realized_link_with_an_index_wire_is_a_link():

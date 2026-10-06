@@ -70,7 +70,7 @@ import numpy as np
 import pint
 from bigraph_schema.json_codec import BigraphJSONEncoder, bigraph_json_hook
 from bigraph_schema.methods import load_protocol
-from bigraph_schema.schema import Link, normalize_address, resolve_path
+from bigraph_schema.schema import Link, Map, normalize_address, resolve_path
 from process_bigraph import Emitter, allocate_core
 from process_bigraph.composite_spec import substitute_parameters
 
@@ -113,20 +113,31 @@ def _link_core():
     return allocate_core()
 
 
+def _resolve(schema):
+    """The core's type for ``schema`` (idempotent on a type), or ``None``."""
+    if schema is None:
+        return None
+    try:
+        return _link_core().access(schema)
+    except Exception:   # an unparseable type: access raises a bare Exception
+        return None
+
+
+def _own_type(value, declared):
+    """The type of a plain dict: its own type keys (``_type`` with its
+    ``_``-prefixed siblings, e.g. ``_value``), else its declared type."""
+    if "_type" not in value:
+        return _resolve(declared)
+    own = _resolve({k: v for k, v in value.items() if k.startswith("_")})
+    return own if own is not None else _resolve(value["_type"])
+
+
 def is_link(value, declared=None) -> bool:
     """A process-bigraph link node: a plain dict whose type (its own ``_type``,
-    else ``declared``, the document's ``schema`` at its path, as in a realized
-    serialization) the core resolves to a ``Link``. Realization decides the
-    same way: an untyped dict with no declared link type never runs."""
-    if type(value) is not dict:
-        return False
-    schema = value["_type"] if "_type" in value else declared
-    if schema is None:
-        return False
-    try:
-        return isinstance(_link_core().access(schema), Link)
-    except Exception:   # an unparseable type: access raises a bare Exception
-        return False
+    else ``declared``, the type the document's ``schema`` gives its path, as in
+    a realized serialization) the core resolves to a ``Link``. Realization
+    decides the same way: an untyped dict with no declared link type never runs."""
+    return type(value) is dict and isinstance(_own_type(value, declared), Link)
 
 
 def root_kind(document) -> str:
@@ -183,15 +194,19 @@ def to_graph(document) -> nx.MultiDiGraph:
 
 
 def _child_schema(kind, value, schema, key):
-    """The declared schema under ``key``: a ``state``'s is its sibling
-    ``schema``; inside a scope it follows the same keys."""
+    """The declared type under ``key``, followed as realization follows it: a
+    ``state``'s is its sibling ``schema``; inside a scope or store, the
+    dict's own type (``_type``, else ``schema``) gives a map's ``_value`` to
+    every key and a struct's field to its own key. ``None`` when undeclared."""
     if kind in ("document", "config") and key == "state":
-        declared = value.get("schema")
-    elif kind in ("scope", "store") and type(schema) is dict:
-        declared = schema.get(key)
-    else:
-        return None
-    return declared if type(declared) in (dict, str) else None
+        return _resolve(value.get("schema"))
+    if kind in ("scope", "store"):
+        container = _own_type(value, schema)
+        if isinstance(container, Map):
+            return container._value
+        if type(container) is dict:
+            return container.get(key)
+    return None
 
 
 def _add(G, value, ptr, kind, ports, schema=None):
