@@ -571,3 +571,28 @@ def test_composite_document_round_trips_and_is_not_the_authored_document():
     G = composite_graph(composite)
     assert G.graph["origin"] == "realized"
     assert G.nodes["/state/ode"]["kind"] == "link"                  # untyped, by address + ports
+
+
+@pytest.mark.parametrize("store", [
+    {"address": "12 Main St", "inputs": {"a": 1.0}},                  # ports are not wirings
+    {"address": "12 Main St", "inputs": {"a": ["x"]}, "zip": "02139"},  # a key no link has
+    {"address": 7, "outputs": {"a": ["x"]}},                          # not a link address
+])
+def test_a_store_shaped_like_an_untyped_link_stays_a_store(store):
+    """Falsifies: an untyped dict counts as a link on ``address`` + ports alone
+    (the earlier rule, which misread these stores' contents as wires)."""
+    document = {"state": {"s": store}}
+    G = to_graph(document)
+    assert G.nodes["/state/s"]["kind"] == "store"
+    assert not [k for *_, k in G.edges(keys=True) if k == "wire"]
+    assert document_equal(from_graph(G), document)
+
+
+def test_an_untyped_authored_link_is_still_a_link():
+    """Falsifies: the narrowed rule drops a real untyped link (string address,
+    wiring ports, only link fields)."""
+    link = {"address": "local:RAMEmitter", "config": {"emit": {"x": "float"}},
+            "inputs": {"x": ["x"]}, "_contract": {}}
+    G = to_graph({"state": {"x": 1.0, "emitter": link}})
+    assert G.nodes["/state/emitter"]["kind"] == "link"
+    assert [k for *_, k in G.edges(keys=True) if k == "wire"] == ["wire"]

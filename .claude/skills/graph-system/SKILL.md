@@ -79,5 +79,7 @@ m = to_matrices(G, kinds=("wire",))      # index, A, D, L (scipy.sparse)
   not mangled. A cyclic document (a self-referencing YAML anchor) is refused;
   shared anchors come back as copies.
 - A link is recognized by `_type` (process/step/composite/edge) or, untyped,
-  by `address` plus `inputs`/`outputs`. A plain store shaped like that is
-  treated as a link: still lossless, but its wires and views are wrong.
+  by a link `address`, wiring `inputs`/`outputs`, and only link-schema fields
+  (`ProcessLink`/`StepLink`/`CompositeLink`) or `_` metadata. A plain store
+  matching all of that is treated as a link: still lossless, but its wires and
+  views are wrong.

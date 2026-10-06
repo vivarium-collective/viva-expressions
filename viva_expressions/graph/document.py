@@ -58,6 +58,7 @@ cannot be converted (Python's recursion limit also bounds nesting depth).
 """
 from __future__ import annotations
 
+import dataclasses
 import json
 import struct
 import uuid
@@ -71,10 +72,13 @@ from bigraph_schema.methods import load_protocol
 from bigraph_schema.schema import normalize_address, resolve_path
 from process_bigraph import Emitter, allocate_core
 from process_bigraph.composite_spec import substitute_parameters
+from process_bigraph.types.process import CompositeLink, ProcessLink, StepLink
 
 FORMAT = "process-bigraph-document-graph/1"
 CONTAINS, WIRE = "contains", "wire"
 LINK_TYPES = frozenset({"process", "step", "composite", "edge"})
+LINK_FIELDS = frozenset(f.name for cls in (ProcessLink, StepLink, CompositeLink)
+                        for f in dataclasses.fields(cls) if not f.name.startswith("_"))
 KINDS = frozenset({"document", "scope", "store", "link", "config", "bridge",
                    "ports", "port", "tree"})
 BRIDGE_SIDES = {"inputs": "inputs", "outputs": "outputs", "conduits": "outputs"}
@@ -106,15 +110,36 @@ def pointer_tokens(ptr: str) -> list[str]:
 
 # --- classification (annotation only) ----------------------------------------
 
+def _is_wiring(value) -> bool:
+    """A ports dict: every leaf is a wire (a path string or a list of them)."""
+    if type(value) is not dict:
+        return False
+    for wire in value.values():
+        if type(wire) is dict:
+            if not _is_wiring(wire):
+                return False
+        elif not (isinstance(wire, str)
+                  or (type(wire) is list and all(isinstance(t, str) for t in wire))):
+            return False
+    return True
+
+
 def is_link(value) -> bool:
     """A process-bigraph link node: a typed ``process``/``step``/... dict, or an
-    untyped one with an ``address`` and ports (a realized serialization drops
-    ``_type`` into the schema)."""
+    untyped one (a realized serialization drops ``_type`` into the schema) whose
+    ``address`` is a link address, whose ports are wirings, and whose every
+    other key is a link field or ``_`` metadata."""
     if type(value) is not dict:
         return False
     if "_type" in value:
         return isinstance(value["_type"], str) and value["_type"] in LINK_TYPES
-    return "address" in value and ("inputs" in value or "outputs" in value)
+    address = normalize_address(value.get("address"))
+    return (isinstance(address, dict)
+            and isinstance(address.get("protocol"), str)
+            and isinstance(address.get("data"), str)
+            and any(slot in value for slot in ("inputs", "outputs"))
+            and all(_is_wiring(value[slot]) for slot in ("inputs", "outputs") if slot in value)
+            and all(key.startswith("_") or key in LINK_FIELDS for key in value))
 
 
 def root_kind(document) -> str:

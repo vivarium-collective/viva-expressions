@@ -32,6 +32,18 @@ def test_check_reruns_bit_identically(source, capsys):
     assert "bit-identical: True" in out
 
 
+def test_check_run_loads_both_sides_from_a_temporary_copy(monkeypatch, capsys):
+    """Falsifies: `check --run` loads the original spec from where it lives
+    while the round trip loads from a temporary directory."""
+    from process_bigraph.composite_spec import CompositeSpec
+    loaded, real = [], CompositeSpec.from_file.__func__
+    monkeypatch.setattr(CompositeSpec, "from_file",
+                        classmethod(lambda cls, path: loaded.append(path) or real(cls, path)))
+    assert main(["check", str(LV), "--run", "0.5"]) == 0
+    assert len(loaded) == 2
+    assert all(p.name == LV.name and p.parent != LV.parent for p in loaded)
+
+
 def test_check_exits_2_when_the_json_path_loses_something(tmp_path, capsys):
     """Falsifies: a document the JSON carrier cannot hold (an integer key inside a
     value, which JSON turns into a string) is reported lossless."""

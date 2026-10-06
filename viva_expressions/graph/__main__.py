@@ -20,6 +20,7 @@ import argparse
 import contextlib
 import copy
 import json
+import shutil
 import sys
 import tempfile
 from collections import Counter
@@ -86,15 +87,19 @@ def _emitted(document, spec_file: Path, written: bool, t_end: float, core):
     """Emitter results of ``document`` run to ``t_end`` in a temporary directory.
 
     A workspace spec (``name`` + ``state``) goes through
-    ``CompositeSpec.from_file``: ``spec_file`` itself, or, when ``written``,
-    a copy of ``document`` written under ``spec_file``'s name.
+    ``CompositeSpec.from_file`` on a file under ``spec_file``'s name in that
+    directory: a byte copy of ``spec_file``, or, when ``written``, ``document``
+    written there. Both sides of a ``check --run`` thus load from the same
+    place, so a difference comes from the documents, not from where they live.
     """
     with tempfile.TemporaryDirectory() as tmp, contextlib.chdir(tmp):
         if "name" in document and "state" in document:
+            local = Path(tmp) / spec_file.name
             if written:
-                spec_file = Path(tmp) / spec_file.name
-                write_document(document, spec_file)
-            config = CompositeSpec.from_file(spec_file).to_document()
+                write_document(document, local)
+            else:
+                shutil.copyfile(spec_file, local)
+            config = CompositeSpec.from_file(local).to_document()
         else:
             config = copy.deepcopy(document)     # Composite fills its config in place
         composite = Composite(config, core=core)
