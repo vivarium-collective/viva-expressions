@@ -76,10 +76,493 @@ variants:
   base_composite: quadratic_blowup
   parameter_overrides:
     x0: 2
-question: Does the expression-defined OdeProcess reproduce closed-form solutions and
-  conserved quantities within numeric error bands across solver methods, tolerances
-  and stiff regimes, and does its max_abs guard fail loudly at a finite-time singularity?
-hypothesis: At the default tolerances (rtol=1e-8, atol=1e-10) every analytic baseline
-  lands within a relative error of 1e-6 of its oracle for every method. Error grows
-  with rtol but stays inside a band set by that rtol. dx/dt = x**2 raises the max_abs
-  RuntimeError at t = 1/x0 instead of stalling.
+question: Does the expression-defined OdeProcess reproduce closed-form solutions and conserved quantities 
+  within numeric error bands across solver methods, tolerances and stiff regimes, and does its max_abs guard 
+  fail loudly at a finite-time singularity?
+hypothesis: At the default tolerances (rtol=1e-8, atol=1e-10) every analytic baseline lands within a relative 
+  error of 1e-6 of its oracle for every method. Error grows with rtol but stays inside a band set by that 
+  rtol. dx/dt = x**2 raises the max_abs RuntimeError at t = 1/x0 instead of stalling.
+runs:
+- name: viva_expressions.composites.logistic_growth__1791229161__5b90cc
+  status: completed
+  timestamp: 1791229164.47383
+  emitter:
+    kind: unknown
+  env_id: 0b31aa627b92ab14
+  params: '{}'
+  computed_outcomes:
+    _status: store_unresolved
+  provenance:
+    params: {}
+    params_captured_at: '2026-10-05'
+    params_source: dashboard-runner
+- name: viva_expressions.composites.michaelis_menten__1791229174__37ebda
+  status: completed
+  timestamp: 1791229176.444107
+  emitter:
+    kind: unknown
+  env_id: 0b31aa627b92ab14
+  params: '{}'
+  computed_outcomes:
+    _status: store_unresolved
+  provenance:
+    params: {}
+    params_captured_at: '2026-10-05'
+    params_source: dashboard-runner
+- name: viva_expressions.composites.lotka_volterra__1791229228__2409a9
+  status: completed
+  timestamp: 1791229230.864506
+  emitter:
+    kind: unknown
+  env_id: 0b31aa627b92ab14
+  params: '{}'
+  computed_outcomes:
+    _status: store_unresolved
+  provenance:
+    params: {}
+    params_captured_at: '2026-10-05'
+    params_source: dashboard-runner
+- name: viva_expressions.composites.quadratic_blowup__1791229344__ee0dda
+  status: completed
+  timestamp: 1791229346.461149
+  emitter:
+    kind: unknown
+  env_id: 0b31aa627b92ab14
+  params: '{}'
+  computed_outcomes:
+    _status: store_unresolved
+  provenance:
+    params: {}
+    params_captured_at: '2026-10-05'
+    params_source: dashboard-runner
+- name: viva_expressions.composites.logistic_growth__1791229720__2726ad
+  status: completed
+  timestamp: 1791229721.9641778
+  emitter:
+    kind: unknown
+  env_id: 0b31aa627b92ab14
+  params: '{"method": "RK45"}'
+  computed_outcomes:
+    _status: store_unresolved
+  provenance:
+    params:
+      method:
+        value: RK45
+        source: override
+    params_captured_at: '2026-10-05'
+    params_source: dashboard-runner
+- name: viva_expressions.composites.logistic_growth__1791229728__33eb2b
+  status: completed
+  timestamp: 1791229729.934103
+  emitter:
+    kind: unknown
+  env_id: 0b31aa627b92ab14
+  params: '{"method": "Radau"}'
+  computed_outcomes:
+    _status: store_unresolved
+  provenance:
+    params:
+      method:
+        value: Radau
+        source: override
+    params_captured_at: '2026-10-05'
+    params_source: dashboard-runner
+- name: viva_expressions.composites.logistic_growth__1791229735__92acb3
+  status: completed
+  timestamp: 1791229736.912487
+  emitter:
+    kind: unknown
+  env_id: 0b31aa627b92ab14
+  params: '{"rtol": 0.0001, "atol": 1e-06}'
+  computed_outcomes:
+    _status: store_unresolved
+  provenance:
+    params:
+      atol:
+        value: 1e-06
+        source: override
+      rtol:
+        value: 0.0001
+        source: override
+    params_captured_at: '2026-10-05'
+    params_source: dashboard-runner
+- name: viva_expressions.composites.logistic_growth__1791229772__9758ef
+  status: completed
+  timestamp: 1791229774.61731
+  emitter:
+    kind: unknown
+  env_id: 0b31aa627b92ab14
+  params: '{"rtol": 1e-11, "atol": 1e-13}'
+  computed_outcomes:
+    _status: store_unresolved
+  provenance:
+    params:
+      atol:
+        value: 1e-13
+        source: override
+      rtol:
+        value: 1e-11
+        source: override
+    params_captured_at: '2026-10-05'
+    params_source: dashboard-runner
+- name: viva_expressions.composites.michaelis_menten__1791229784__17b043
+  status: completed
+  timestamp: 1791229786.0927129
+  emitter:
+    kind: unknown
+  env_id: 0b31aa627b92ab14
+  params: '{"method": "BDF"}'
+  computed_outcomes:
+    _status: store_unresolved
+  provenance:
+    params:
+      method:
+        value: BDF
+        source: override
+    params_captured_at: '2026-10-05'
+    params_source: dashboard-runner
+- name: viva_expressions.composites.michaelis_menten__1791230060__8e8287
+  status: completed
+  timestamp: 1791230062.868165
+  emitter:
+    kind: unknown
+  env_id: 0b31aa627b92ab14
+  params: '{"Km": 0.0001}'
+  computed_outcomes:
+    _status: store_unresolved
+  provenance:
+    params:
+      Km:
+        value: 0.0001
+        source: override
+    params_captured_at: '2026-10-05'
+    params_source: dashboard-runner
+- name: viva_expressions.composites.michaelis_menten__1791230193__3c72bb
+  status: completed
+  timestamp: 1791230195.747604
+  emitter:
+    kind: unknown
+  env_id: 0b31aa627b92ab14
+  params: '{"Km": 0.0001, "method": "Radau"}'
+  computed_outcomes:
+    _status: store_unresolved
+  provenance:
+    params:
+      Km:
+        value: 0.0001
+        source: override
+      method:
+        value: Radau
+        source: override
+    params_captured_at: '2026-10-05'
+    params_source: dashboard-runner
+- name: viva_expressions.composites.michaelis_menten__1791230304__0d8634
+  status: completed
+  timestamp: 1791230306.650526
+  emitter:
+    kind: unknown
+  env_id: 0b31aa627b92ab14
+  params: '{"Km": 0.0001, "method": "RK45"}'
+  computed_outcomes:
+    _status: store_unresolved
+  provenance:
+    params:
+      Km:
+        value: 0.0001
+        source: override
+      method:
+        value: RK45
+        source: override
+    params_captured_at: '2026-10-05'
+    params_source: dashboard-runner
+- name: viva_expressions.composites.lotka_volterra__1791230322__6e2786
+  status: completed
+  timestamp: 1791230324.470855
+  emitter:
+    kind: unknown
+  env_id: 0b31aa627b92ab14
+  params: '{"method": "DOP853"}'
+  computed_outcomes:
+    _status: store_unresolved
+  provenance:
+    params:
+      method:
+        value: DOP853
+        source: override
+    params_captured_at: '2026-10-05'
+    params_source: dashboard-runner
+- name: viva_expressions.composites.lotka_volterra__1791230404__8e3b9d
+  status: completed
+  timestamp: 1791230406.34868
+  emitter:
+    kind: unknown
+  env_id: 0b31aa627b92ab14
+  params: '{"method": "RK45", "rtol": 0.0001, "atol": 1e-06}'
+  computed_outcomes:
+    _status: store_unresolved
+  provenance:
+    params:
+      atol:
+        value: 1e-06
+        source: override
+      method:
+        value: RK45
+        source: override
+      rtol:
+        value: 0.0001
+        source: override
+    params_captured_at: '2026-10-05'
+    params_source: dashboard-runner
+- name: viva_expressions.composites.lotka_volterra__1791230411__5b81ef
+  status: completed
+  timestamp: 1791230413.263465
+  emitter:
+    kind: unknown
+  env_id: 0b31aa627b92ab14
+  params: '{"rtol": 1e-11, "atol": 1e-13}'
+  computed_outcomes:
+    _status: store_unresolved
+  provenance:
+    params:
+      atol:
+        value: 1e-13
+        source: override
+      rtol:
+        value: 1e-11
+        source: override
+    params_captured_at: '2026-10-05'
+    params_source: dashboard-runner
+- name: viva_expressions.composites.quadratic_blowup__1791230421__debfc2
+  status: completed
+  timestamp: 1791230422.982217
+  emitter:
+    kind: unknown
+  env_id: 0b31aa627b92ab14
+  params: '{"max_abs": 1000}'
+  computed_outcomes:
+    _status: store_unresolved
+  provenance:
+    params:
+      max_abs:
+        value: 1000
+        source: override
+    params_captured_at: '2026-10-05'
+    params_source: dashboard-runner
+- name: viva_expressions.composites.quadratic_blowup__1791230427__c041b9
+  status: completed
+  timestamp: 1791230429.459151
+  emitter:
+    kind: unknown
+  env_id: 0b31aa627b92ab14
+  params: '{"x0": 2}'
+  computed_outcomes:
+    _status: store_unresolved
+  provenance:
+    params:
+      x0:
+        value: 2
+        source: override
+    params_captured_at: '2026-10-05'
+    params_source: dashboard-runner
+simulation_set:
+- name: logistic-baseline
+  kind: single
+  base_model: viva_expressions.composites.logistic_growth
+  is_baseline: true
+  status: ran
+- name: michaelis_menten-baseline
+  kind: single
+  base_model: viva_expressions.composites.michaelis_menten
+  is_baseline: true
+  status: ran
+- name: lotka_volterra-baseline
+  kind: single
+  base_model: viva_expressions.composites.lotka_volterra
+  is_baseline: true
+  status: ran
+- name: quadratic_blowup-baseline
+  kind: single
+  base_model: viva_expressions.composites.quadratic_blowup
+  is_baseline: true
+  status: ran
+- name: logistic_rk45
+  kind: single
+  base_model: logistic
+  perturbation:
+    method: RK45
+  status: ran
+- name: logistic_radau
+  kind: single
+  base_model: logistic
+  perturbation:
+    method: Radau
+  status: ran
+- name: logistic_rtol_loose
+  kind: single
+  base_model: logistic
+  perturbation:
+    rtol: 0.0001
+    atol: 1e-06
+  status: ran
+- name: logistic_rtol_tight
+  kind: single
+  base_model: logistic
+  perturbation:
+    rtol: 1e-11
+    atol: 1e-13
+  status: ran
+- name: mm_bdf
+  kind: single
+  base_model: michaelis_menten
+  perturbation:
+    method: BDF
+  status: ran
+- name: mm_stiff_lsoda
+  kind: single
+  base_model: michaelis_menten
+  perturbation:
+    Km: 0.0001
+  status: ran
+- name: mm_stiff_radau
+  kind: single
+  base_model: michaelis_menten
+  perturbation:
+    Km: 0.0001
+    method: Radau
+  status: ran
+- name: mm_stiff_rk45
+  kind: single
+  base_model: michaelis_menten
+  perturbation:
+    Km: 0.0001
+    method: RK45
+  status: ran
+- name: lv_dop853
+  kind: single
+  base_model: lotka_volterra
+  perturbation:
+    method: DOP853
+  status: ran
+- name: lv_rk45_loose
+  kind: single
+  base_model: lotka_volterra
+  perturbation:
+    method: RK45
+    rtol: 0.0001
+    atol: 1e-06
+  status: ran
+- name: lv_rtol_tight
+  kind: single
+  base_model: lotka_volterra
+  perturbation:
+    rtol: 1e-11
+    atol: 1e-13
+  status: ran
+- name: blowup_low_guard
+  kind: single
+  base_model: quadratic_blowup
+  perturbation:
+    max_abs: 1000
+  status: ran
+- name: blowup_x0_2
+  kind: single
+  base_model: quadratic_blowup
+  perturbation:
+    x0: 2
+  status: ran
+pipeline_gate:
+  gate_evaluator:
+    result: not_started
+    blocked_by: []
+    evaluated_by: code
+    diverges_from_authored: false
+last_test_run:
+  timestamp: '2026-10-06T14:07:08+00:00'
+  passed: 21
+  failed: 1
+  skipped: 0
+  duration_s: 2.077867031097412
+amendments:
+- date: '2026-10-06'
+  what: quadratic_blowup runs superseded (pre-#1292 records)
+  detail: 'The 3 quadratic_blowup runs of 2026-10-05 (quadratic_blowup__1791229344__ee0dda, blowup_low_guard __1791230421__debfc2,
+    blowup_x0_2 __1791230427__c041b9) are recorded completed (n_steps 5), but the composite raised the OdeProcess
+    max_abs RuntimeError: vivarium-workbench before ea66f51b (#1293, fixing #1292) treated any raise as division
+    and recorded the run completed. They are kept as evidence of that bug, not used. Re-run 2026-10-06 on workbench
+    ea66f51b as __1791290688__5fc1bd, __1791290692__b5b395 and __1791290694__a14f23: all three are status failed
+    in runs.db runs_meta, with the expected error (|state| exceeded max_abs = 1e12 / 1000 / 1e12, raised at global_time
+    0.9 / 0.9 / 0.4, consistent with the analytic blow-up time 1/x0 = 1 / 1 / 0.5). The workbench writes failed
+    runs to runs.db only (not to runs[] here). Their n_steps 0 is correct: n_steps counts whole time units of global_time
+    completed, and each run raised before t = 1.'
+- date: '2026-10-06'
+  what: analysis choices made after the runs (metric, band, readouts, tests)
+  detail: 'The 2026-10-05 runs predate tests/test_analytic.py. Fixed before any error was computed, with the user:
+    (1) metric = pointwise relative error max_t |q - q*| / |q*| over every emitted time (the hypothesis names "relative
+    error"; every compared oracle stays away from zero on t = 0..5); MM P is checked through S + P = S0 because
+    P(0) = 0; LV is checked through its first integral V against V(0); MM S* uses Km*wrightomega(.) = Km*W(e^u)
+    to avoid overflow at Km = 1e-4. (2) band = err <= 100*rtol (the multiplier the hypothesis implies: 1e-6 at rtol
+    1e-8), plus err(tight) <= err(default) <= err(loose) per model for "error grows with rtol". readouts[] added;
+    /api/study-observable-check validates only against baseline[0] (vivarium-workbench observables_views.py:244),
+    so mm_*/lv_*/blowup_x read not_in_structure there although /api/observables lists stores.S, stores.P, stores.x,
+    stores.y, stores.x as emitted leaves of their own composites.'
+- date: '2026-10-06'
+  what: H2 ordering fails for Lotka-Volterra (confounded ladder)
+  detail: 'The LV rtol ladder is (lv_rtol_tight LSODA 1e-11, lotka_volterra LSODA 1e-8, lv_rk45_loose RK45 1e-4).
+    Worst relative error over x, y (against a DOP853 rtol 1e-13 reference) and V: 1.59e-10, 1.81e-7, 2.58e-9, so
+    err(default) > err(loose) (V drift alone: 3.29e-11, 4.51e-8, 1.63e-10). Reproduced outside the workbench with
+    scipy solve_ivp restarted on 0.1-wide intervals as OdeProcess does: RK45 rtol 1e-4 gives 1.629e-10 (matches),
+    i.e. with 0.1-long restarts RK45 accuracy is bounded by the interval, not by rtol. The loose rung also switches
+    method, so this ladder does not isolate rtol. Reported as a failed test and an open question, not patched. Every
+    run is inside its 100*rtol band; H1 and H3 pass.'
+- date: '2026-10-06'
+  what: adversarial review of tests/test_analytic.py (scope and fixes)
+  detail: "A fresh-context review found the LV checks used only the first integral V, which a frozen or time-rescaled
+    trajectory also conserves (mutations passed). Fixed before any finding was written: LV x and y are now compared
+    with a DOP853 rtol 1e-13 reference solve (no closed form exists), and both mutations fail. The recorded blow-up
+    runs are now tied to t* through their stored history (last time < 1/x0 <= last time + interval; last state matches
+    x0/(1-x0 t)), not only their failed status. Scope limits: on t = 0..5 the mm_stiff_* variants are not yet stiff
+    (|dS'/dS| <= 4e-6; stiffness appears near t ~ 10); S + P = S0 is a structural check (exact-negative right-hand
+    sides), not accuracy evidence; LV with RK45 at default tolerances is not run. A stalled guard would hang the
+    in-process H3 test rather than fail it, because no pytest timeout is configured."
+readouts:
+- name: logistic_N
+  description: Population N of the logistic baseline and its variants, compared with N(t) = 
+    K/(1+((K-N0)/N0)*exp(-r*t)).
+  store_path: stores.N
+  units: dimensionless
+  status: available
+  blocked_by_requirements: []
+- name: mm_S
+  description: Substrate S of the Michaelis-Menten baseline and variants, compared with S(t) = 
+    Km*W((S0/Km)*exp((S0-Vmax*t)/Km)), evaluated as Km*wrightomega(ln(S0/Km) + (S0-Vmax*t)/Km).
+  store_path: stores.S
+  units: concentration
+  status: available
+  blocked_by_requirements: []
+- name: mm_P
+  description: Product P of the Michaelis-Menten runs; checked through the conservation law S + P = S0 (P(0) =
+    0, so a pointwise relative error on P alone is undefined).
+  store_path: stores.P
+  units: concentration
+  status: available
+  blocked_by_requirements: []
+- name: lv_x
+  description: Prey x of the Lotka-Volterra runs; enters the first integral V(x,y) = d*x - g*ln(x) + b*y - 
+    a*ln(y).
+  store_path: stores.x
+  units: dimensionless
+  status: available
+  blocked_by_requirements: []
+- name: lv_y
+  description: Predator y of the Lotka-Volterra runs; enters the first integral V(x,y).
+  store_path: stores.y
+  units: dimensionless
+  status: available
+  blocked_by_requirements: []
+- name: blowup_x
+  description: State x of dx/dt = x**2 (exact x0/(1-x0*t)); the runs must fail with the OdeProcess max_abs 
+    RuntimeError at the singularity t* = 1/x0.
+  store_path: stores.x
+  units: dimensionless
+  status: available
+  blocked_by_requirements: []
