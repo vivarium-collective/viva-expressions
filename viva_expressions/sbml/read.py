@@ -303,25 +303,39 @@ def read_sbml(source: str | Path) -> OdeModel:
                     notes=tuple(notes), time_var=time_name if uses_time else None)
 
 
-# Identity test on seeded sample points: a wide box (positive, negative and
-# log-spaced values) plus every numeric constant of the expression and its
-# neighbours, so Piecewise thresholds (t > 30) are straddled. Agreement is to
-# double-precision rounding. Seeded, so imports are deterministic.
+# Identity test on seeded sample points, in four blocks: all-positive rows of
+# moderate size (0.5..2), where fractional powers, logs and Hill terms (x**n
+# with n itself sampled) are defined and finite whatever the number of symbols;
+# all-positive log-spaced rows (1e-3..1e3) for scale; mixed-sign rows
+# (-50..50); and rows drawn from each numeric constant and its neighbours,
+# which straddle Piecewise thresholds (t > 30). Seeded, so imports are
+# deterministic.
 _RNG_SEED = 0
-_N_POINTS = 24
+_ROWS_PER_BLOCK = 8
 _RTOL = 1e-12
 
 
 def _probe_rows(expr: sp.Basic, n_symbols: int) -> np.ndarray:
     rng = np.random.default_rng(_RNG_SEED)
+    shape = (_ROWS_PER_BLOCK, n_symbols)
     constants = sorted({float(c) for c in expr.atoms(sp.Number)
                         if math.isfinite(float(c))})[:64]
     special = np.array([v for c in constants
                         for v in (c, c * (1 + 1e-3), c * (1 - 1e-3), c + 1e-3, c - 1e-3, -c)]
                        or [1.0])
-    box = np.concatenate([rng.uniform(0.5, 2.0, 64), rng.uniform(-50.0, 50.0, 64),
-                          10.0 ** rng.uniform(-3, 3, 64), special])
-    return rng.choice(box, size=(_N_POINTS, n_symbols))
+    return np.concatenate([
+        rng.uniform(0.5, 2.0, shape),
+        10.0 ** rng.uniform(-3, 3, shape),
+        rng.uniform(-50.0, 50.0, shape),
+        rng.choice(np.concatenate([special, rng.uniform(0.5, 2.0, 16)]), size=shape),
+    ])
+
+
+def _scale(expr: sp.Basic):
+    """|largest additive term|, the magnitude rounding differences are relative to,
+    so a sum that cancels to ~0 isn't compared against its own rounding noise."""
+    terms = expr.args if expr.is_Add else (expr,)
+    return [sp.Abs(t) for t in terms]
 
 
 def _names(expr: sp.Basic) -> set:
@@ -337,14 +351,20 @@ def _same_function(a: sp.Basic, b: sp.Basic) -> bool:
     must be evaluable; an expression undefined at every point can't be checked)."""
     symbols = sorted(a.free_symbols | b.free_symbols, key=lambda x: x.name)
     fa, fb = (sp.lambdify(symbols, e, modules="numpy") for e in (a, b))
+    fs = sp.lambdify(symbols, _scale(a), modules="numpy")
     checked = 0
     with np.errstate(all="ignore"):
         for row in _probe_rows(a, len(symbols)):
             va, vb = complex(fa(*row)), complex(fb(*row))
             if cmath.isnan(va) and cmath.isnan(vb):    # outside both domains
                 continue
-            if not (math.isclose(va.real, vb.real, rel_tol=_RTOL, abs_tol=_RTOL)
-                    and math.isclose(va.imag, vb.imag, rel_tol=_RTOL, abs_tol=_RTOL)):
+            if va == vb:                               # identical, incl. equal infinities
+                checked += 1
+                continue
+            # relative to the expression's own magnitude, never an absolute floor:
+            # 1e-16*x and 2e-16*x must differ
+            scale = max([abs(va), abs(vb)] + [abs(complex(t)) for t in fs(*row)])
+            if not abs(va - vb) <= _RTOL * scale:
                 return False
             checked += 1
     if not checked:

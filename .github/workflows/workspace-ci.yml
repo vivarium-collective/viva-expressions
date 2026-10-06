@@ -8,7 +8,7 @@
 # re-scaffolding, or by copying the current source from
 #   vivarium-collective/viva-template/template/.github/workflows/<template>
 # template: workspace-ci.yml.j2
-# sha256: 12577c7a4f0e0f732a6ac0c14fcd4e964c4a56a96f19f82ed3ec528bd64a6ee6
+# sha256: ad4f8305fdc983ea06399ce9f5d73cb1f0810a78389da45ee6aa5e1fe3d138de
 # <<< viva-template-provenance <<<
 
 name: workspace-ci
@@ -95,6 +95,20 @@ jobs:
           else
             echo "No root pyproject.toml/setup.py found — installing dev tooling only."
             uv pip install pytest
+          fi
+      - name: Check uv.lock is committed and current
+        # A committed uv.lock is what makes a workspace reproducible: every checkout, CI run and remote
+        # run (the workbench forwards the lock's framework pins to the backend) gets the same versions.
+        # Present -> it must match pyproject.toml (`uv lock --check` fails on a stale lock; refresh with
+        # `uv lock` and commit). Absent -> a warning, so a workspace scaffolded before this check keeps a
+        # green CI until it commits one (`uv lock`, then commit uv.lock).
+        run: |
+          if [ ! -f pyproject.toml ]; then
+            echo "No pyproject.toml — no lock to check."
+          elif [ -f uv.lock ]; then
+            uv lock --check
+          else
+            echo "::warning title=No committed uv.lock::This workspace has no committed uv.lock, so its dependency versions are not reproducible. Run 'uv lock' and commit uv.lock."
           fi
       - name: Lint workspace
         run: |

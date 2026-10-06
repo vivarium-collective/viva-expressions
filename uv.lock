@@ -4660,7 +4660,7 @@ xarray = [
 
 [[package]]
 name = "viva-expressions"
-version = "0.3.2"
+version = "0.3.4"
 source = { editable = "." }
 dependencies = [
     { name = "bigraph-schema" },
@@ -4803,7 +4803,7 @@ dependencies = [
 [[package]]
 name = "vivarium-workbench"
 version = "0.4.0"
-source = { git = "https://github.com/vivarium-collective/vivarium-workbench.git?branch=main#2adc44f7eda3d3ba01f793033c946ab327a95c4d" }
+source = { git = "https://github.com/vivarium-collective/vivarium-workbench.git?branch=main#ea66f51bdf9e829a3d9b452962292e5e0bdee09d" }
 dependencies = [
     { name = "bigraph-schema" },
     { name = "boto3" },

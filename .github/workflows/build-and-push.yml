@@ -8,7 +8,7 @@
 # re-scaffolding, or by copying the current source from
 #   vivarium-collective/viva-template/template/.github/workflows/<template>
 # template: build-and-push.yml
-# sha256: 73b641f347d62392b255d46c3f8377e01dd9696eba8cc10f8883e6faa5889617
+# sha256: b664233a93356f4ad1ea4bcf610ba9b538c33a774131285c27124eaf13672559
 # <<< viva-template-provenance <<<
 
 name: Build and Push Workspace Image
@@ -79,7 +79,10 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          platforms: linux/amd64,linux/arm64
+          # Override per repository with the IMAGE_PLATFORMS Actions variable
+          # (e.g. `gh variable set IMAGE_PLATFORMS --body linux/amd64`) when a
+          # dependency has no wheels for one platform. Unset keeps both.
+          platforms: ${{ vars.IMAGE_PLATFORMS || 'linux/amd64,linux/arm64' }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
