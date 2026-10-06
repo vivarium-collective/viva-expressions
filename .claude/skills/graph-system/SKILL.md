@@ -78,8 +78,8 @@ m = to_matrices(G, kinds=("wire",))      # index, A, D, L (scipy.sparse)
 - Keys must be strings (JSON Pointer ids); a document with other keys is refused,
   not mangled. A cyclic document (a self-referencing YAML anchor) is refused;
   shared anchors come back as copies.
-- A link is recognized by `_type` (process/step/composite/edge) or, untyped,
-  by a link `address`, wiring `inputs`/`outputs`, and only link-schema fields
-  (`ProcessLink`/`StepLink`/`CompositeLink`) or `_` metadata. A plain store
-  matching all of that is treated as a link: still lossless, but its wires and
-  views are wrong.
+- A link is what process-bigraph realizes as one: a dict whose `_type`, or
+  else the document's `schema` at the same path (realized documents), the core
+  resolves to a `Link` (`process`, `step`, `composite`, `link`, ...; not
+  `edge`). An untyped dict with no such schema is a store; process-bigraph
+  never runs it either.

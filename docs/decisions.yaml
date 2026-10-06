@@ -56,3 +56,17 @@ decisions:
       labelled origin 'realized' by composite_graph: the authored document is
       not recoverable, because an Edge stores core.fill(config_schema, config).
     source: .todo/plans/document-graph.md (decision 5); bigraph_schema/edge.py
+  - timestamp: "2026-10-06"
+    skill: graph-system
+    target: viva_expressions/graph/document.py is_link
+    summary: >-
+      A dict is a link exactly when its _type, or else the document's schema at
+      the same path (a realized serialization keeps link types only there), is
+      a type process-bigraph's core resolves to a Link (core.access -> Link
+      instance). This replaces a hard-coded {process, step, composite, edge}
+      set plus an address-and-ports shape rule: the shape rule called an
+      untyped state dict a link although realization never runs one, missed
+      realized links whose wires hold an integer index, and the set disagreed
+      with the core's registered Link types (link, StepLink, ProcessLink,
+      CompositeLink in; edge out).
+    source: bigraph_schema/schema.py Link; process_bigraph/types/process.py (1.8.5); adversarial review of feat/document-graph, 2026-10-06

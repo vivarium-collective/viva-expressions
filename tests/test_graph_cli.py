@@ -44,6 +44,33 @@ def test_check_run_loads_both_sides_from_a_temporary_copy(monkeypatch, capsys):
     assert all(p.name == LV.name and p.parent != LV.parent for p in loaded)
 
 
+def test_check_run_exits_2_when_the_round_trip_re_runs_differently(monkeypatch, capsys):
+    """Falsifies: `check --run` passes when the round-tripped document it runs
+    differs from the original (here x0 one ulp up), or runs the original twice."""
+    import math
+
+    from viva_expressions.graph import __main__ as cli
+    real = cli.write_document
+
+    def nudged(document, path):
+        x0 = document["parameters"]["x0"]
+        x0["default"] = math.nextafter(x0["default"], math.inf)
+        real(document, path)
+
+    monkeypatch.setattr(cli, "write_document", nudged)
+    assert main(["check", str(LV), "--run", "0.5"]) == 2
+    assert "bit-identical: False" in capsys.readouterr().out
+
+
+def test_check_exits_2_when_the_json_codec_cannot_write_a_value(tmp_path, capsys):
+    """Falsifies: a valid document holding a value the JSON codec cannot write
+    (a YAML date) is reported as invalid input (1) rather than not lossless (2)."""
+    spec = tmp_path / LV.name
+    spec.write_text("created: 2026-10-06\n" + LV.read_text(encoding="utf-8"), encoding="utf-8")
+    assert main(["check", str(spec)]) == 2
+    assert "lossless in memory: True; through JSON: False" in capsys.readouterr().out
+
+
 def test_check_exits_2_when_the_json_path_loses_something(tmp_path, capsys):
     """Falsifies: a document the JSON carrier cannot hold (an integer key inside a
     value, which JSON turns into a string) is reported lossless."""

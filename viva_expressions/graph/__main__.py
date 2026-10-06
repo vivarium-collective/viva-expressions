@@ -110,10 +110,14 @@ def _emitted(document, spec_file: Path, written: bool, t_end: float, core):
 def _check(args, core) -> int:
     document = read_document(args.document)
     G = system_graph(document, core)
-    text = dumps_graph(G)
+    in_memory = document_equal(from_graph(G), document)
+    try:
+        text = dumps_graph(G)
+    except TypeError as e:      # a value the JSON codec cannot write at all (e.g. a YAML date)
+        print(f"lossless in memory: {in_memory}; through JSON: False ({e})")
+        return 2
     H = loads_graph(text)
     check_views(H, VIEWS, core)
-    in_memory = document_equal(from_graph(G), document)
     through_json = document_equal(from_graph(H), document) and dumps_graph(H) == text
 
     kinds = Counter(k.split("/")[0] for *_, k in G.edges(keys=True))   # references/<subpath>

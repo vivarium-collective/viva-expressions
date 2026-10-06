@@ -17,7 +17,8 @@ dict node keeps ``slots``, its keys in their original order. Lists are
 values: a dict inside a list is part of that list's value.
 
 * ``contains`` edges (key ``"contains"``, attribute ``slot``) form the tree.
-* A link (process/step) keeps every key except dict ``inputs``/``outputs`` in
+* A link is a dict whose ``_type``, or else the document's ``schema`` at the
+  same path, the core resolves to a ``Link`` (``is_link``). It keeps every key except dict ``inputs``/``outputs`` in
   ``fields``, verbatim (configs are opaque). Its ``inputs``/``outputs`` are
   ``ports`` nodes whose leaves are ``port`` nodes. A link whose ``config``
   holds a dict ``state`` (a nested composite) gets a ``config`` node instead,
@@ -58,7 +59,7 @@ cannot be converted (Python's recursion limit also bounds nesting depth).
 """
 from __future__ import annotations
 
-import dataclasses
+import functools
 import json
 import struct
 import uuid
@@ -69,16 +70,12 @@ import numpy as np
 import pint
 from bigraph_schema.json_codec import BigraphJSONEncoder, bigraph_json_hook
 from bigraph_schema.methods import load_protocol
-from bigraph_schema.schema import normalize_address, resolve_path
+from bigraph_schema.schema import Link, normalize_address, resolve_path
 from process_bigraph import Emitter, allocate_core
 from process_bigraph.composite_spec import substitute_parameters
-from process_bigraph.types.process import CompositeLink, ProcessLink, StepLink
 
 FORMAT = "process-bigraph-document-graph/1"
 CONTAINS, WIRE = "contains", "wire"
-LINK_TYPES = frozenset({"process", "step", "composite", "edge"})
-LINK_FIELDS = frozenset(f.name for cls in (ProcessLink, StepLink, CompositeLink)
-                        for f in dataclasses.fields(cls) if not f.name.startswith("_"))
 KINDS = frozenset({"document", "scope", "store", "link", "config", "bridge",
                    "ports", "port", "tree"})
 BRIDGE_SIDES = {"inputs": "inputs", "outputs": "outputs", "conduits": "outputs"}
@@ -110,36 +107,26 @@ def pointer_tokens(ptr: str) -> list[str]:
 
 # --- classification (annotation only) ----------------------------------------
 
-def _is_wiring(value) -> bool:
-    """A ports dict: every leaf is a wire (a path string or a list of them)."""
-    if type(value) is not dict:
-        return False
-    for wire in value.values():
-        if type(wire) is dict:
-            if not _is_wiring(wire):
-                return False
-        elif not (isinstance(wire, str)
-                  or (type(wire) is list and all(isinstance(t, str) for t in wire))):
-            return False
-    return True
+@functools.cache
+def _link_core():
+    """The core whose types decide link-ness: process-bigraph's own."""
+    return allocate_core()
 
 
-def is_link(value) -> bool:
-    """A process-bigraph link node: a typed ``process``/``step``/... dict, or an
-    untyped one (a realized serialization drops ``_type`` into the schema) whose
-    ``address`` is a link address, whose ports are wirings, and whose every
-    other key is a link field or ``_`` metadata."""
+def is_link(value, declared=None) -> bool:
+    """A process-bigraph link node: a plain dict whose type (its own ``_type``,
+    else ``declared``, the document's ``schema`` at its path, as in a realized
+    serialization) the core resolves to a ``Link``. Realization decides the
+    same way: an untyped dict with no declared link type never runs."""
     if type(value) is not dict:
         return False
-    if "_type" in value:
-        return isinstance(value["_type"], str) and value["_type"] in LINK_TYPES
-    address = normalize_address(value.get("address"))
-    return (isinstance(address, dict)
-            and isinstance(address.get("protocol"), str)
-            and isinstance(address.get("data"), str)
-            and any(slot in value for slot in ("inputs", "outputs"))
-            and all(_is_wiring(value[slot]) for slot in ("inputs", "outputs") if slot in value)
-            and all(key.startswith("_") or key in LINK_FIELDS for key in value))
+    schema = value["_type"] if "_type" in value else declared
+    if schema is None:
+        return False
+    try:
+        return isinstance(_link_core().access(schema), Link)
+    except Exception:   # an unparseable type: access raises a bare Exception
+        return False
 
 
 def root_kind(document) -> str:
@@ -148,12 +135,13 @@ def root_kind(document) -> str:
     return "document" if type(document.get("state")) is dict else "scope"
 
 
-def child_kind(parent_kind: str, slot: str, value) -> str | None:
-    """The kind of ``value`` under ``slot`` of a ``parent_kind`` node, or
-    ``None`` for a link field (kept verbatim, not a node)."""
+def child_kind(parent_kind: str, slot: str, value, declared=None) -> str | None:
+    """The kind of ``value`` under ``slot`` of a ``parent_kind`` node (whose
+    declared schema there is ``declared``), or ``None`` for a link field (kept
+    verbatim, not a node)."""
     plain = type(value) is dict
     if parent_kind in ("scope", "store"):
-        return "link" if is_link(value) else "store"
+        return "link" if is_link(value, declared) else "store"
     if parent_kind in ("document", "config"):
         if plain and slot == "state":
             return "scope"
@@ -194,7 +182,19 @@ def to_graph(document) -> nx.MultiDiGraph:
     return G
 
 
-def _add(G, value, ptr, kind, ports):
+def _child_schema(kind, value, schema, key):
+    """The declared schema under ``key``: a ``state``'s is its sibling
+    ``schema``; inside a scope it follows the same keys."""
+    if kind in ("document", "config") and key == "state":
+        declared = value.get("schema")
+    elif kind in ("scope", "store") and type(schema) is dict:
+        declared = schema.get(key)
+    else:
+        return None
+    return declared if type(declared) in (dict, str) else None
+
+
+def _add(G, value, ptr, kind, ports, schema=None):
     if kind == "port":
         G.add_node(ptr, kind=kind)
         ports.append((ptr, value))
@@ -209,17 +209,18 @@ def _add(G, value, ptr, kind, ports):
     G.add_node(ptr, kind=kind, slots=list(value))
     children, fields = [], []
     for key, child in value.items():
-        ck = child_kind(kind, key, child)
+        declared = _child_schema(kind, value, schema, key)
+        ck = child_kind(kind, key, child, declared)
         if ck is None:
             fields.append([key, child])
         else:
-            children.append((key, child, ck))
+            children.append((key, child, ck, declared))
     if fields:
         G.nodes[ptr]["fields"] = fields
-    for key, child, ck in children:
+    for key, child, ck, declared in children:
         cptr = ptr + "/" + escape(key)
         G.add_edge(ptr, cptr, key=CONTAINS, slot=key)
-        _add(G, child, cptr, ck, ports)
+        _add(G, child, cptr, ck, ports, declared)
 
 
 def _parent(G, node):

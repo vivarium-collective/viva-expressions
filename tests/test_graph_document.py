@@ -240,7 +240,7 @@ def test_forced_misclassification_still_round_trips(monkeypatch):
     """Falsifies: losslessness depends on kinds (rebuilding reads none of them)."""
     kinds = ["link", "store", "ports", "port", "tree", "scope", "config", "bridge", None]
 
-    def scrambled(parent_kind, slot, value):
+    def scrambled(parent_kind, slot, value, declared=None):
         return kinds[sum(map(ord, slot)) % len(kinds)]
 
     for name in ("lotka_volterra.composite.yaml", "grow_divide_agent", "v2ecoli baseline"):
@@ -573,26 +573,63 @@ def test_composite_document_round_trips_and_is_not_the_authored_document():
     assert G.nodes["/state/ode"]["kind"] == "link"                  # untyped, by address + ports
 
 
-@pytest.mark.parametrize("store", [
-    {"address": "12 Main St", "inputs": {"a": 1.0}},                  # ports are not wirings
-    {"address": "12 Main St", "inputs": {"a": ["x"]}, "zip": "02139"},  # a key no link has
-    {"address": 7, "outputs": {"a": ["x"]}},                          # not a link address
-])
-def test_a_store_shaped_like_an_untyped_link_stays_a_store(store):
-    """Falsifies: an untyped dict counts as a link on ``address`` + ports alone
-    (the earlier rule, which misread these stores' contents as wires)."""
-    document = {"state": {"s": store}}
+
+_EMITTER = {"address": "local:RAMEmitter", "config": {"emit": {"x": "float"}},
+            "inputs": {"x": ["x"]}}
+
+
+@pytest.mark.parametrize("document", [
+    {"state": {"x": 1.0, "emitter": _EMITTER}},                              # untyped
+    {"schema": {"emitter": "step"}, "state": {"x": 1.0, "emitter": _EMITTER}},  # schema-typed
+    {"schema": {"emitter": {"_type": "step"}}, "state": {"x": 1.0, "emitter": _EMITTER}},
+    *({"state": {"x": 1.0, "emitter": dict(_EMITTER, _type=t)}}
+      for t in ("step", "link", "StepLink", "edge")),
+], ids=["untyped", "schema-str", "schema-dict", "step", "link", "StepLink", "edge"])
+def test_link_ness_is_what_process_bigraph_realizes(document):
+    """Falsifies: a dict is a link here exactly when a real Composite realizes it
+    as one (oracle: it emits). Untyped dicts are links only by the document's
+    ``schema``; ``edge`` is not a registered link type."""
+    try:
+        composite = Composite(copy.deepcopy(document), core=allocate_core())
+        composite.run(1.0)
+        realized = bool(gather_emitter_results(composite))
+    except Exception:
+        realized = False
     G = to_graph(document)
-    assert G.nodes["/state/s"]["kind"] == "store"
-    assert not [k for *_, k in G.edges(keys=True) if k == "wire"]
+    assert (G.nodes["/state/emitter"]["kind"] == "link") is realized
+    assert bool([k for *_, k in G.edges(keys=True) if k == "wire"]) is realized
     assert document_equal(from_graph(G), document)
 
 
-def test_an_untyped_authored_link_is_still_a_link():
-    """Falsifies: the narrowed rule drops a real untyped link (string address,
-    wiring ports, only link fields)."""
-    link = {"address": "local:RAMEmitter", "config": {"emit": {"x": "float"}},
-            "inputs": {"x": ["x"]}, "_contract": {}}
-    G = to_graph({"state": {"x": 1.0, "emitter": link}})
-    assert G.nodes["/state/emitter"]["kind"] == "link"
-    assert [k for *_, k in G.edges(keys=True) if k == "wire"] == ["wire"]
+class _Inc(Step):
+    config_schema = {}
+
+    def inputs(self):
+        return {"a": "float"}
+
+    def outputs(self):
+        return {"c": "float"}
+
+    def update(self, state):
+        return {"c": state["a"] + 1.0}
+
+
+def test_a_realized_link_with_an_index_wire_is_a_link():
+    """Falsifies: a realized link (untyped in ``state``, typed in ``schema``)
+    whose wire holds an integer index is read as a store."""
+    core = allocate_core()
+    core.register_link("Inc", _Inc)
+    document = {"schema": {"m": "list[float]"},
+                "state": {"m": [1.0, 2.0], "y": 0.0,
+                          "p": {"_type": "step", "address": "local:Inc",
+                                "inputs": {"a": ["m", 1]}, "outputs": {"c": ["y"]}}}}
+    composite = Composite(copy.deepcopy(document), core=core)
+    composite.run(1.0)
+    assert composite.state["y"] == 3.0
+    realized = composite_document(composite)
+    assert "_type" not in realized["state"]["p"]
+    G = to_graph(realized)
+    assert G.nodes["/state/p"]["kind"] == "link"
+    wires = {d["wire"][0]: d for *_, k, d in G.edges(keys=True, data=True) if k == "wire"}
+    assert wires["m"]["error"] is None and wires["m"]["subpath"] == [1]
+    assert document_equal(from_graph(G), realized)
