@@ -125,7 +125,11 @@ def _resolve(schema):
 
 def _own_type(value, declared):
     """The type of a plain dict: its own type keys (``_type`` with its
-    ``_``-prefixed siblings, e.g. ``_value``), else its declared type."""
+    ``_``-prefixed siblings, e.g. ``_value``), else its declared type. A
+    document whose own ``_type`` contradicts its ``schema`` (``_type: node``
+    under a ``step`` schema) is classified by the own type, while
+    process-bigraph lets the schema's link type win; ``core.resolve`` does not
+    unify every such pair (map against map raises), so none is attempted."""
     if "_type" not in value:
         return _resolve(declared)
     own = _resolve({k: v for k, v in value.items() if k.startswith("_")})
