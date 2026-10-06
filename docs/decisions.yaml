@@ -1,2 +1,76 @@
 # Append-only decision log. Each entry: {timestamp, skill, target, summary, source}.
-decisions: []
+decisions:
+  - timestamp: "2026-10-05"
+    skill: graph-system
+    target: viva_expressions/graph/document.py
+    summary: >-
+      The document <-> graph conversion lives in this repo but is general and
+      uses public process-bigraph / bigraph-schema APIs only (resolve_path,
+      normalize_address, load_protocol, substitute_parameters,
+      BigraphJSONEncoder / bigraph_json_hook, Emitter), so it can move upstream
+      unchanged.
+    source: .todo/plans/document-graph.md (decision 1)
+  - timestamp: "2026-10-05"
+    skill: graph-system
+    target: viva_expressions/graph/document.py placeholders_view
+    summary: >-
+      Placeholder sites come from substitute_parameters' own behavior, not
+      from the private _FULL_PLACEHOLDER/_INLINE_PLACEHOLDER patterns: each
+      declared parameter is substituted by a unique sentinel, declared without
+      a type so it is not coerced; a site is any string the substitution
+      changed, and the sentinels in it name its parameters. An undeclared
+      ${name} (substitute_parameters raises KeyError) is recorded on the root,
+      not raised. Checked against an independent oracle (two typed overrides
+      per parameter) on every workspace composite.
+    source: process_bigraph/composite_spec.py substitute_parameters, _resolve_value, _coerce (1.8.5)
+  - timestamp: "2026-10-05"
+    skill: graph-system
+    target: viva_expressions/graph/document.py emitters_view, link_class
+    summary: >-
+      A link is an emitter iff its class subclasses process_bigraph.Emitter,
+      with the class resolved exactly as realization resolves it:
+      normalize_address(address, default 'local:edge'), then
+      load_protocol(core, core.access(protocol), data), or the type of an
+      existing 'instance'. Replaces the private _node_is_emitter, and drops
+      its class-name-ends-in-'Emitter' fallback: an address the core cannot
+      resolve is reported as unresolved (emitter null, with the error).
+    source: bigraph_schema/methods/realize.py realize_link (1.6.0); process_bigraph/emitter.py _node_is_emitter (1.8.5)
+  - timestamp: "2026-10-05"
+    skill: graph-system
+    target: viva_expressions/graph/document.py dumps_graph / loads_graph
+    summary: >-
+      The JSON carrier is process-bigraph's native codec, with its losses
+      documented (tuple -> list, numpy scalar -> Python scalar, NaN sign and
+      payload, non-string keys -> strings, dict subclass -> dict, codec tag
+      keys read as tagged values) rather than a stricter codec of our own.
+      Link fields are stored as [key, value] pairs, not a dict, so the codec's
+      object hook never reads a link's own keys: every loss falls inside a
+      verbatim value, never on the document's structure.
+    source: .todo/plans/document-graph.md (decision 4); bigraph_schema/json_codec.py
+  - timestamp: "2026-10-05"
+    skill: graph-system
+    target: viva_expressions/graph/document.py composite_document
+    summary: >-
+      An in-memory Composite converts its realized serialization
+      (serialize_state, serialize_schema, as Composite.save writes it),
+      labelled origin 'realized' by composite_graph: the authored document is
+      not recoverable, because an Edge stores core.fill(config_schema, config).
+    source: .todo/plans/document-graph.md (decision 5); bigraph_schema/edge.py
+  - timestamp: "2026-10-06"
+    skill: graph-system
+    target: viva_expressions/graph/document.py is_link
+    summary: >-
+      A dict is a link exactly when its type is one process-bigraph's core
+      resolves to a Link (core.access -> Link instance). Its type is its own
+      _type (with its _-prefixed siblings), else the type the document's
+      schema declares for its path, followed as realize does: a Map's _value
+      for every entry, a struct's field for its key, never a Tree's leaves (a
+      realized serialization keeps link types only in its schema, e.g. an
+      agents map). Types come from allocate_core(), so a Link type that only a
+      custom core registers is not recognized. This replaces a hard-coded {process, step, composite, edge}
+      set plus an address-and-ports shape rule: the shape rule called an
+      untyped state dict a link although realization never runs one, missed
+      realized links whose wires hold an integer index, and the set disagreed
+      with the core's registered Link types (link, StepLink, ProcessLink,
+      CompositeLink in; edge out).
+    source: bigraph_schema/schema.py Link; process_bigraph/types/process.py (1.8.5); adversarial review of feat/document-graph, 2026-10-06
