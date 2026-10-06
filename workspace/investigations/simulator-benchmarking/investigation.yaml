@@ -1,130 +1,149 @@
-# simulator-benchmarking/investigation.yaml — schema v2
-#
-# An investigation groups Studies under a shared research question. A
-# complete investigation pairs the study list with a narrative spine that
-# mirrors the per-study spine at a level up: executive panel, scientific
-# argument, biological story, evaluator guides, glossary, investigation-
-# wide guidelines.
-#
-# The required fields (schema_version, name, title) are populated below;
-# the rest of the narrative spine is commented out — uncomment + fill the
-# sections that matter as the investigation matures. See NEXT_STEPS.md
-# and docs/concepts/vivarium-dashboard-model.md for the full pattern.
-
 schema_version: 2
 name: simulator-benchmarking
-title: "simulator-benchmarking"
+title: Does the expression layer reproduce established simulators?
 created: '2026-10-03'
-status: planning
-
-# runtime — execution defaults inherited by this investigation's studies.
-# default_emitter is the persistence backend every run uses so its trajectory
-# is recorded (not just a summary). sqlite is the portable default; xarray
-# suits large ensembles. A per-study runtime.emitter overrides this.
+status: running
 runtime:
-  default_emitter: sqlite           # sqlite | xarray
-
-# object_of_evaluation: model       # critique #1 — what this investigation
-#                                    # primarily evaluates: method | model |
-#                                    # hypothesis | composition-protocol. Names the
-#                                    # thing the investigation's rigor section judges
-#                                    # ("how well the method defends its claims").
-
-# ─── Front matter ────────────────────────────────────────────────────
-#
-# question: |
-#   (the overarching research question)
-#
-# hypothesis: |
-#   (predicted outcome across the full study sequence)
-#
-# lead: |
-#   (3-4 sentence front-of-textbook intro — first thing a reader sees)
-
-description: |
-  Does the expression layer reproduce established simulators? Compares OdeProcess (viva-expressions) against viva-tellurium, viva-copasi and viva-pysces on the same models, ideally sourced from BioModels via viva-biomodels. One study per model class: kinetics, oscillator, and a stiff case. Shared question: trajectory agreement and computational cost. Practical outcome: guidance on when users should write expressions vs. wrap an SBML model.
-
-
-# ─── Narrative spine ─────────────────────────────────────────────────
-#
-# REQUIRED (lint-gated): executive · scientific_argument · biological_story.
-# A reviewer-ready investigation report must carry these three authored
-# sections. The linter (investigation_narrative_spine_required) emits a
-# warning for each missing one. For a GENUINELY SLIM investigation you may
-# explicitly opt out per-section:
-#
-#   narrative_spine_skip: [scientific_argument, biological_story]
-#   narrative_spine_skip_reason: "single-study screen; full narrative not warranted"
-#
-# (executive / scientific_argument / biological_story are the AUTHORED
-#  sections; "Decisions needed" + "Suggested additions" are framework-computed
-#  and never author-required.)
-#
-# executive:                        # ★REQUIRED — headline panel at the top of the report
-#   what_is_this: ""
-#   verdict: ""
-#   verdict_status: in-progress     # in-progress | passing | passing-with-caveats | failing | inconclusive | not-yet-run
-#   decisions_needed: []
-#
-# scientific_argument:              # ★REQUIRED — structured claim/evidence
-#   main_claim: ""
-#   evidence_for: []
-#   evidence_against: []
-#   key_figures: []
-#   caveats: []
-#   interpretation_ref: ""
-#
-# biological_story: |               # ★REQUIRED — multi-paragraph plain-English mechanism narrative
-#   (multi-paragraph plain-English mechanism narrative)
-#
-# at_a_glance:                      # one-line role per member study
-#   - {study: study-slug, role: "what this study contributes"}
-#
-# how_to_read: |
-#   (evaluator tips: how to read the report, which study to start with)
-#
-# glossary:
-#   - {term: "TERM", definition: "one-sentence definition"}
-#
-# guidelines:                       # investigation-wide rules
-#   literature_anchors: []
-#   parameter_catalog: []
-#   calibration_targets: []
-#   naming_conventions: ""
-
-# ─── RIGOR (the comparative-framing dimension; the rigor scorecard reads this).
-#     An investigation scores a comparative_framing GAP until it names the
-#     competing frameworks it discriminates AND includes >=1 adversarial study.
-#
-# competing_frameworks:             # rival models/hypotheses this investigation tests against
-#   - name: ""                      # e.g. "alternative mechanism / null model X"
-#     prediction: ""                # what it would predict, that we discriminate
-#     discriminated_by: ""          # which study/control rules it out
-#
-# hypotheses:                       # critique #6/#16 — the competing hypotheses this
-#                                   # investigation discriminates. `statement` +
-#                                   # `predictions` are AUTHORED; `support_log` is
-#                                   # COMPUTED (folded from each study's findings +
-#                                   # discovery_implications.alternate_hypotheses that
-#                                   # carry a matching hypothesis_id).
-#   - id: H1
-#     statement: ""                 # one-line competing explanation
-#     predictions:                  # what this hypothesis predicts, per observable
-#       - observable: closure_gap   # an emitted measure / finding-evidence key
-#         expected: ""              # e.g. "< 0.1" / "increases with rate" / a band
-#     required_controls: []         # controls[].name needed to test it
-#     failure_modes: []             # what observation would weaken/exclude it
-#     status: open                  # open | supported | weakened | excluded
-#     # support_log: []             # COMPUTED — list of per-study entries
-#     #                             #   (study, observation, delta) where
-#     #                             #   delta is supports | weakens | excludes
-#
-# NOTE: include at least one member study with `kind: adversarial` (a study
-# designed to break the main claim) so the investigation satisfies the
-# adversarial-study rigor dimension.
-
+  default_emitter: sqlite
+description: >
+  One study per comparator, all on the same 8 pinned BioModels (inputs/models, SHA-256 pinned) and the
+  same settings: 0.5 interval, t = 0..100, default tolerances (rtol 1e-8, atol 1e-10) and tight ones (1e-12
+  / 1e-14). The OdeProcess side is the /sbml-system import of each model. The comparator runs the original
+  SBML. Started with bench-tellurium (viva-tellurium is installed). bench-copasi and bench-pysces follow
+  once their wrappers are installed. Practical outcome: guidance on when to write expressions and when
+  to wrap an SBML model.
 studies: []
-
 expert_docs: []
-
 acceptance_criteria: []
+members:
+- bench-tellurium
+question: >
+  Does a model defined in the viva-expressions layer (OdeProcess), here imported from BioModels SBML with
+  /sbml-system, reproduce established SBML simulators (viva-tellurium, viva-copasi, viva-pysces) on the
+  same models, and at what cost?
+hypothesis: >
+  Each comparator agrees with OdeProcess within 1e-6 of scale at tight tolerances, with any default-tolerance
+  gap explained by integrator error. Each comparator study pre-registers its own thresholds.
+executive:
+  what_is_this: Simulator benchmarking of the expression layer against established SBML simulators, 
+    one study per comparator.
+  verdict: bench-tellurium v2 passes its pre-registered tests. On 8 BioModels the imported 
+    OdeProcess models match libroadrunner, states and model outputs, within 1e-8 of scale (1e-7 for 
+    BIOMD5) at tight tolerances. The default-tolerance gap converges away (3.4-4.4 orders), so it is
+    integrator error.
+  verdict_status: in-progress
+  verdict_detail: 1 of 3 comparator studies done (Tellurium), on a second, single-environment pass 
+    after an importer clock bug found by the adversarial panel was fixed (viva-expressions v0.3.0). 
+    COPASI and PySCeS are not yet installed.
+  decisions_needed:
+  - question: Review and merge viva-template#65 and viva-superpowers#309 (branch protection requires
+      an approving review).
+    context: "#65 unblocks the amd64-only container image; #309 corrects /viva-study's documented write
+      routes."
+  - question: Install viva-copasi and viva-pysces for the next comparator studies?
+    context: bench-tellurium's design (models, settings, tests) is reusable as is; use the v3 
+      threshold rule.
+  handoff:
+    as_of: '2026-10-05'
+    state: >
+      bench-tellurium v2 is complete: 41 single-environment runs (commit d719575), 41/41 study tests pass
+      through POST /api/study-tests-run, and an adversarial panel reviewed it. The user's decisions on
+      that
+      panel: (1) amend the study narrative, dated, without a re-run; (2) add a labelled POST-HOC resolution
+      analysis and keep the v2 verdicts; (3) fix the importer's equivalence-check sampling (viva-expressions
+      v0.3.3); (4) adopt the v3 threshold rule for future studies; (5) next study: corpus coverage on
+      a
+      seeded random sample of 100 curated BioModels.
+    next_steps:
+    - step: 'Land viva-expressions PR #9 (v0.3.3, equivalence-check sampling): once CI is green, merge,
+        tag v0.3.3 + GitHub Release, merge main into this branch, uv sync, restart the workbench.'
+      who: coding session (git/gh); not doable through the workbench API
+    - step: Run studies/bench-tellurium/analysis/posthoc_resolution.py (writes 
+        posthoc_resolution.json) and commit both.
+      who: coding session (runs a script)
+    - step: "Amend bench-tellurium study.yaml: append dated `amendments` entries (never edit `preregistration`)
+        and fix the flagged statements; the full list is in this handoff's `amendment_checklist`. Add
+        a `posthoc_resolution` block labelled POST-HOC, citing posthoc_resolution.json."
+      who: VivaChat (study PATCH for overview/objective/narrative) + direct YAML for 
+        findings/limitations/amendments, or a coding session
+    - step: "Add the v3 rule to this investigation's `guidelines`: tau_m = 10 x each model's measured
+        self-convergence floor (both solvers) + a planted-error power test, pre-registered for bench-copasi,
+        bench-pysces and the corpus study."
+      who: VivaChat or a coding session
+    - step: Create the corpus-coverage study under this investigation (POST /api/study-create with 
+        investigation=simulator-benchmarking, no source). Pre-register a seeded random sample of 100
+        curated BioModels (seed + list committed before any run), its metrics 
+        (import/reject/agreement rates with CIs) and the v3 thresholds, THEN fetch and import 
+        (scripts/fetch_biomodels.py, /sbml-system import with a binary-exact --interval), then run.
+      who: VivaChat for study creation and runs; a coding session to fetch, import and commit
+    amendment_checklist:
+    - 'v2-h1: BIOMD400 like-for-like is default 1.8e-2 (v1) -> 8.2e-6 (v2); at tight tolerance v1 was
+      already 3.42e-9. Also give 129 as 93 states + 20 dynamic + 16 constant outputs.'
+    - "v2-h3: '2e5 x tau' -> '1e5 x tau'; state that it is a wiring check (response ~0.01 x sensitivity),
+      not a power test."
+    - v2 evidence 'manifest identical' -> the environment fields are identical; 25 variant manifests
+      have null package fields (workbench variant path).
+    - "claim / report.main_insight / investigation executive.verdict / scientific_argument.main_claim:
+      'states and outputs' -> 'states and the 36 of 45 assignment outputs Tellurium emits'; claim 'v0.3.0'
+      -> 'v0.3.0 code, installed as 0.3.1'."
+    - "limitations: 'panel: 9 of 199' -> '5 of 201 (posthoc_resolution.json)'; other panel-only figures
+      -> posthoc_resolution.json."
+    - "new amendment: v1 runs were cleared from HEAD runs.db before v2 (preserved at commit b06fd83),
+      so the '6 extra records' entry refers to b06fd83."
+    - "new amendment: preregistration v2's 'tau sits a factor 10 above each floor' holds only for BIOMD5
+      (posthoc: 3.2x for BIOMD400 up to 1312x for BIOMD41); its compared_set's unqualified 1.8e-2 is the
+      default-tolerance figure."
+    - 'new amendment: both test files now fail on a non-finite value on either side (verdicts unchanged,
+      41/41).'
+    facts_for_agents:
+    - 'Workbench locked at 8a30a092: study PATCH, observable-check, tests-run and readouts resolve nested
+      studies.'
+    - 'study-run-baseline/variant `steps` is a TIME HORIZON (steps: 100 at interval 0.5 gives t = 0..100,
+      201 rows).'
+    - Time-dependent composite specs need a binary-exact interval (0.5, 0.25, 0.125).
+    - TelluriumProcess's t = 0 row is empty (viva-tellurium#7); comparisons start at t = 0.5.
+    - Study runs.db is committed evidence; workbench-generated sims/ and viz/ are gitignored 
+      (machine-local paths).
+    - At checkpoint the working tree had uncommitted user edits to Makefile/uv.lock (workbench 
+      2f2dc5ac, bigraph-schema 1.7.0). Decide which lock is canonical before step 2, and regenerate 
+      posthoc_resolution.json in that ONE environment; the JSON on disk is not evidence.
+    awaiting_review:
+    - viva-template#65 (IMAGE_PLATFORMS; then regenerate build-and-push here and set 
+      IMAGE_PLATFORMS=linux/amd64)
+    - viva-superpowers#309 (stale /viva-study routes; verified)
+    open_issues:
+    - process-bigraph#222
+    - 'vivarium-workbench#1275 #1276 #1280'
+    - viva-superpowers#310
+    - viva-tellurium#7
+scientific_argument:
+  main_claim: The expression layer, fed by /sbml-system imports, reproduces libroadrunner's 
+    integration of the same SBML (states and outputs) up to integrator error, on 8 feature-chosen 
+    BioModels.
+  evidence_for:
+  - 'bench-tellurium v2 H1: 8/8 models within tau (1e-8, or 1e-7 for BIOMD5) at tight tolerances over
+    129 states and outputs; worst 4.6e-9.'
+  - 'bench-tellurium v2 H2: the default-to-tight drop is 3.38-4.36 orders (pre-registered >= 2.5), so
+    the gap is integrator error.'
+  - 'bench-tellurium v2 H3: +1% median-sensitivity parameter changes are detected in 8/8 models (>= 2.2e-3).'
+  evidence_against:
+  - "First pass (superseded): with the integrated clock, BIOMD400's time-switched outputs were off by
+    1.8e-2. Fixed in v0.3.0, and the v2 runs confirm the fix (3.5e-9)."
+  key_figures: []
+  caveats:
+  - 'arm64 disparity: all results use libroadrunner 2.10.0 on macOS arm64. The lock pins 2.10.0, which
+    has no Linux aarch64 wheel (PyPI only ever shipped one for 2.7.0), so the lock does not install on
+    Linux arm64 and no linux/arm64 image is built (viva-template#65). Other libroadrunner versions are
+    untested.'
+  - 8 models chosen for SBML-feature coverage, not sampled (0/8 failures would bound a corpus 
+    failure rate at <= 31% even if they were sampled); the corpus-coverage study addresses this. The
+    importer rejects models with events, delays or algebraic rules.
+  - 'Cost is not yet measured: workbench wall time is dominated by process start-up.'
+  - 't = 0 is not compared under the workbench (viva-tellurium#7: empty first row).'
+narrative_spine_skip:
+- biological_story
+narrative_spine_skip_reason: Methods investigation (simulator equivalence); it makes no biological 
+  claim.
+at_a_glance:
+- study: bench-tellurium
+  role: 'OdeProcess (SBML import) vs viva-tellurium on 8 BioModels: passes H1-H3.'

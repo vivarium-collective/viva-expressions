@@ -1,0 +1,57 @@
+{
+  "model_id": "Bier2000_GlycolyticOscillation",
+  "rhs": {
+    "G1": "-G1*T1*k1 + V_in",
+    "T1": "2*G1*T1*k1 - T1*kp/(T1 + km) + epsilon*(-T1 + T2)",
+    "G2": "-G2*T2*k1 + V_in",
+    "T2": "2*G2*T2*k1 - T2*kp/(T2 + km) - epsilon*(-T1 + T2)"
+  },
+  "params": {
+    "compartment": 1.0,
+    "V_in": 0.36,
+    "k1": 0.02,
+    "kp": 6.0,
+    "km": 13.0,
+    "epsilon": 0.01
+  },
+  "initial": {
+    "G1": 6.6,
+    "T1": 7.6,
+    "G2": 10.3,
+    "T2": 0.41
+  },
+  "assignments": {
+    "Tsum": "T1 + T2",
+    "Tdiff": "-T1 + T2"
+  },
+  "kinds": {
+    "G1": "concentration",
+    "T1": "concentration",
+    "G2": "concentration",
+    "T2": "concentration",
+    "compartment": "compartment",
+    "V_in": "parameter",
+    "k1": "parameter",
+    "kp": "parameter",
+    "km": "parameter",
+    "epsilon": "parameter",
+    "Tsum": "parameter",
+    "Tdiff": "parameter"
+  },
+  "sbml_ids": {
+    "G1": "G1",
+    "T1": "T1",
+    "G2": "G2",
+    "T2": "T2",
+    "Tsum": "Tsum",
+    "Tdiff": "Tdiff",
+    "compartment": "compartment",
+    "V_in": "V_in",
+    "k1": "k1",
+    "kp": "kp",
+    "km": "km",
+    "epsilon": "epsilon"
+  },
+  "notes": [],
+  "time_var": null
+}

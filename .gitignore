@@ -36,3 +36,13 @@ graphify-out/
 agenda.md
 # JSONEmitter run output (default out_dir, relative to the working directory)
 out/
+
+# Workbench-generated per-run scripts and viz caches (regenerable; they embed
+# machine-local temp paths that check-no-local-paths.sh rejects)
+workspace/investigations/*/studies/*/sims/
+workspace/investigations/*/studies/*/viz/
+# SQLite write-ahead / shared-memory sidecars of study runs.db (transient)
+workspace/investigations/*/studies/*/runs.db-wal
+workspace/investigations/*/studies/*/runs.db-shm
+CURRENT.md
+Makefile
