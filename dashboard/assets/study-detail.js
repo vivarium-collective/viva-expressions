@@ -104,26 +104,66 @@
     document.querySelectorAll('.study-tab-panel').forEach(function (p) {
       p.classList.toggle('active', p.dataset.kind === kind);
     });
-    if (kind === 'tests') { _loadTestsPanel(window._study); }
-    if (kind === 'readouts') { _loadReadouts(); _loadReadoutsDownloadPointer(); }
-    if (kind === 'visualize') { _loadCharts('viz-charts-panel'); _loadNativeGallery(); _loadRemoteFigures(); }
-    if (kind === 'compose') { _loadModelConfig(); _loadModelCards(); }
-    // Study-spine reorg (spec §1, §3.2/3.3/3.4): Simulations keeps only the
-    // runs table now; the analysis-files zip + raw-data bulk that used to
-    // trigger here moved onto their own Evidence panels (Analyses/Results).
-    if (kind === 'simulate') { _loadStudySims(); }
-    if (kind === 'analyses') { _loadAnalyses(); _loadRemoteAnalyses(); }
-    if (kind === 'results') { _loadResults(); }
-    // Study-spine reorg (spec §1, §3.7/§3.8): Audit + Build complete the
-    // Assurance trio — dispatched the same way as the other lazy-loaded
-    // panels above.
-    if (kind === 'audit') { _loadAudit(window._study); }
-    if (kind === 'build') { _loadBuild(window._study); }
+    // 5-tab study layout (Phase 1): removed tabs' loaders now fire from the tab
+    // that re-homed them, so every re-homed panel's content loads when its new
+    // home opens (and never shows an empty box on a subtab switch).
+    //  • Visualizations gallery  -> its own Visualizations tab (visualize)
+    //  • Readouts + Build        -> Model (compose)
+    //  • Results + Analyses      -> Simulations subtabs (simulate)
+    //  • Tests                   -> Audit
+    if (kind === 'visualize') {
+      _loadCharts('viz-charts-panel'); _loadNativeGallery(); _loadRemoteFigures();
+    }
+    if (kind === 'compose') {
+      _loadModelConfig(); _loadModelCards();
+      _loadReadouts(); _loadReadoutsDownloadPointer();
+      _loadBuild(window._study);
+    }
+    if (kind === 'simulate') {
+      _loadStudySims();
+      _loadResults();
+      _loadAnalyses(); _loadRemoteAnalyses();
+    }
+    if (kind === 'audit') {
+      _loadTestsPanel(window._study);
+      _loadAudit(window._study);
+    }
+    if (kind === 'conclusions') {
+      // Decide tab leads with the plan/lifecycle stepper (server-rendered) +
+      // the same readiness gaps as Audit, surfaced here at the top.
+      if (window._renderAuditReadiness) window._renderAuditReadiness(window._study);
+    }
     // Textareas measured 0 while their tab was hidden; re-fit the now-visible
     // panel's auto-grow boxes so they show all content without a scrollbar.
     if (window._autoGrowTextareas) window._autoGrowTextareas();
+    // Tell the parent workspace which tab is open, so stepping to the prev/next
+    // study (rail arrows / graph nav) can re-open it on the SAME tab.
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ _vwStudyTab: kind }, window.location.origin);
+      }
+    } catch (e) { /* cross-origin / no parent — ignore */ }
   }
   window._setStudyTab = _setStudyTab;
+
+  // Simulations secondary subtabs (Runs | Results | Analysis). The three inner
+  // panels all live inside #panel-simulate and their loaders already fire when
+  // the Simulations tab opens (see dispatch above), so this only toggles which
+  // inner panel is visible — vanilla show/hide, matching the top-level pillars.
+  function _setSimSubtab(sub) {
+    document.querySelectorAll('.sim-subtab').forEach(function (b) {
+      var on = b.dataset.subtab === sub;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    document.querySelectorAll('.sim-subpanel').forEach(function (p) {
+      var on = p.dataset.subpanel === sub;
+      p.classList.toggle('active', on);
+      p.hidden = !on;
+    });
+    if (window._autoGrowTextareas) window._autoGrowTextareas();
+  }
+  window._setSimSubtab = _setSimSubtab;
 
   // Cross-tab link helper (Fable §6 #15, Task C1): a link on any tab can
   // point at an anchor that lives inside a DIFFERENT, currently-hidden tab
@@ -132,11 +172,19 @@
   // target is inside a display:none panel. Reuses _setStudyTab for the
   // actual show/hide (no duplicated switch logic) and then scrolls once the
   // panel is visible. C2 (findings ledger) wires the primary callers.
+  // 5-tab layout: when the anchor lives inside a Simulations subpanel
+  // (Results/Analysis), also activate that subtab so the scroll target isn't
+  // left inside a hidden subpanel.
   function _gotoStudyTab(kind, anchor) {
     _setStudyTab(kind);
     if (!anchor) return;
     var el = document.getElementById(anchor);
-    if (!el || !el.scrollIntoView) return;
+    if (!el) return;
+    if (kind === 'simulate') {
+      var sp = el.closest && el.closest('.sim-subpanel');
+      if (sp && sp.dataset.subpanel) _setSimSubtab(sp.dataset.subpanel);
+    }
+    if (!el.scrollIntoView) return;
     try { el.scrollIntoView({behavior: 'smooth', block: 'start'}); } catch (e) {}
   }
   window._gotoStudyTab = _gotoStudyTab;
@@ -155,7 +203,6 @@
     _readoutsLoaded = true;
     var host = document.getElementById('readouts-table');
     var emitterHost = document.getElementById('readouts-emitter');
-    var shapesHost = document.getElementById('readouts-shapes');
     if (!host) return;
     var slug = host.getAttribute('data-study') || studyName();
     if (!slug) return;
@@ -169,16 +216,13 @@
         if (emitterHost) emitterHost.innerHTML = _renderEmitterBlock(j && j.emitter);
         if (!j || !Array.isArray(j.rows)) {
           host.innerHTML = '<p class="empty-message">Readouts unavailable.</p>';
-          if (shapesHost) shapesHost.innerHTML = '<p class="empty-message">Output shapes unavailable.</p>';
           return;
         }
         host.innerHTML = _renderReadoutsTable(j);
-        if (shapesHost) shapesHost.innerHTML = _renderReadoutsShapesTable(j.rows);
       })
       .catch(function() {
         host.innerHTML = '<p class="empty-message">Readouts unavailable.</p>';
         if (emitterHost) emitterHost.innerHTML = '<p class="empty-message">Emitter configuration unavailable.</p>';
-        if (shapesHost) shapesHost.innerHTML = '<p class="empty-message">Output shapes unavailable.</p>';
       });
   }
 
@@ -186,56 +230,27 @@
   // emit scope. `em` may be absent/partial (a study spec that failed to
   // parse never reaches the emitter block) — degrade to an empty note rather
   // than throw.
+  // Compact one-line emitter summary: kind · how often · what it emits → output.
+  // Auto-filled from the composite's resolved default emitter (always computable).
   function _renderEmitterBlock(em) {
     var e = escapeHtmlForTests;
-    var dash = '<span class="muted">—</span>';
     if (!em || !em.name) {
-      return '<p class="empty-message">No emitter configuration declared.</p>';
+      return '<p class="muted" style="font-size:0.88em">Emitter: default (unresolved).</p>';
     }
-    var errNote = em.error ? '<p class="muted" style="color:#92400e">' + e(em.error) + '</p>' : '';
-    var rows = [
-      ['Emitter', (em.class_name ? '<code>' + e(em.class_name) + '</code> (' + e(em.name) + ')' : '<code>' + e(em.name) + '</code>')],
-      ['Module', em.module ? '<code style="font-size:0.85em;">' + e(em.module) + '</code>' : dash],
-      ['Output kind', em.output_kind ? e(em.output_kind) : dash],
-      ['Emit interval', (em.interval === null || em.interval === undefined) ? dash : (e(String(em.interval)) + ' tick(s)')],
-      ['Buffer', (em.buffer === null || em.buffer === undefined) ? dash : (e(String(em.buffer)) + ' emits')],
-      ['Output dir', em.output_dir ? '<code style="font-size:0.85em;">' + e(em.output_dir) + '</code>' : dash],
-      ['Emit scope', em.scope ? e(em.scope) : dash],
-    ];
-    var body = rows.map(function (r) {
-      return '<tr style="border-bottom:1px solid #f1f5f9;">'
-        + '<td style="padding:6px; font-weight:600; width:140px; vertical-align:top;">' + r[0] + '</td>'
-        + '<td style="padding:6px; vertical-align:top;">' + r[1] + '</td></tr>';
-    }).join('');
-    return errNote + '<table class="observables-table" style="width:100%; border-collapse: collapse;"><tbody>' + body + '</tbody></table>';
-  }
-
-  // Block 3: Outputs & shapes — store path / dtype / shape / units / bytes,
-  // one row per confirmed emit leaf (rows without a `shape` — derived /
-  // not-in-plan / unverified — are omitted; they have no verified structure
-  // to describe, and already show up flagged in the Emitted paths block).
-  function _renderReadoutsShapesTable(rows) {
-    var e = escapeHtmlForTests;
-    var shaped = (rows || []).filter(function (o) { return o.store_path && Array.isArray(o.shape); });
-    if (!shaped.length) {
-      return '<p class="empty-message">No output shapes available (composite unbuilt, or no emitted paths).</p>';
-    }
-    var head = '<table class="observables-table" style="width:100%; border-collapse: collapse;"><thead><tr>'
-      + ['Store path', 'dtype', 'Shape', 'Units', 'Bytes'].map(function (h) {
-          return '<th style="text-align:left; padding:6px; border-bottom:1px solid #e2e8f0;">' + h + '</th>';
-        }).join('') + '</tr></thead><tbody>';
-    var body = shaped.map(function (o) {
-      var dims = o.shape.map(function (d) { return String(d); });
-      var shapeStr = '(' + dims.join(', ') + (dims.length === 1 ? ',' : '') + ')';
-      return '<tr style="border-bottom:1px solid #f1f5f9;">'
-        + '<td style="padding:6px;"><code style="font-size:0.85em;">' + e(o.store_path) + '</code></td>'
-        + '<td style="padding:6px;">' + e(o.dtype || '') + '</td>'
-        + '<td style="padding:6px;"><code style="font-size:0.85em;">' + e(shapeStr) + '</code></td>'
-        + '<td style="padding:6px;">' + e(o.units || '') + '</td>'
-        + '<td style="padding:6px;">' + (o.bytes != null ? e(_fmtBytes(o.bytes)) : '<span class="muted">—</span>') + '</td>'
-        + '</tr>';
-    }).join('');
-    return head + body + '</tbody></table>';
+    var kind = em.class_name || em.name;
+    var every = (em.interval === 1) ? 'every tick'
+      : (em.interval === null || em.interval === undefined) ? 'default cadence'
+      : ('every ' + e(String(em.interval)) + ' ticks');
+    var scope = (em.scope === 'declared') ? 'declared observables' : e(em.scope || 'declared observables');
+    var out = em.output_dir ? (' <span class="muted">&rarr;</span> <code style="font-size:0.82em">' + e(em.output_dir) + '</code>') : '';
+    var errNote = em.error ? ' <span class="muted" style="color:var(--warn-fg, #92400e)">(' + e(em.error) + ')</span>' : '';
+    var sep = '<span class="muted">·</span>';
+    return '<div style="font-size:0.9em;color:var(--text-muted, #475569);display:flex;align-items:center;gap:7px;flex-wrap:wrap">'
+      + '<span style="font-weight:600;color:var(--text-muted, #334155)">Emitter</span>'
+      + '<code style="font-size:0.82em">' + e(kind) + '</code>'
+      + sep + '<span>' + every + '</span>'
+      + sep + '<span>' + scope + '</span>'
+      + out + errNote + '</div>';
   }
 
   // ── Readouts tab: pointer to the raw-data downloads that live under Results ──
@@ -268,7 +283,7 @@
         var withData = sims.filter(function (s) { return s.run_id && (s.store_path || s.db_path); });
         host.innerHTML = withData.length
           ? '<p class="muted">⬇ Download this study\'s raw run data → '
-            + '<a href="#" onclick="_gotoStudyTab(\'results\',\'exports-downloads\');return false;">Results</a></p>'
+            + '<a href="#" onclick="_gotoStudyTab(\'simulate\',\'exports-downloads\');return false;">Simulations › Results</a></p>'
           : '';
       })
       .catch(function () { host.innerHTML = ''; });
@@ -288,8 +303,9 @@
     var e = escapeHtmlForTests;
     var files = (j && j.files) || [];
     if (!files.length) {
-      return '<p class="empty-message">No result files yet. Analysis steps write '
-        + '<code>.csv</code>/<code>.tsv</code> files here once this study has run.</p>';
+      return '<p class="empty-message">No derived result files. Analysis steps write '
+        + '<code>.csv</code>/<code>.tsv</code> tables here when a study runs them; this study’s '
+        + 'evidence is assessed by its behavior-test report cards — see <strong>Tests</strong>.</p>';
     }
     // Group by parent dir so ptools/ and per-run analysis tables read cleanly.
     var groups = {}, order = [];
@@ -308,7 +324,7 @@
         html += '<tr style="border-top:1px solid #eef2f6">'
           + '<td style="padding:5px 8px"><a href="' + e(f.download_url) + '">'
           + e(f.name) + '</a></td>'
-          + '<td style="padding:5px 8px;text-align:right;color:#64748b;white-space:nowrap">'
+          + '<td style="padding:5px 8px;text-align:right;color:var(--text-muted, #64748b);white-space:nowrap">'
           + e(_fmtBytes(f.size)) + '</td></tr>';
       });
       html += '</table></div>';
@@ -402,8 +418,8 @@
     var e = escapeHtmlForTests;
     var styles = {
       emitted:          {bg: '#d1fae5', fg: '#065f46', bd: '#6ee7b7', glyph: '✓', label: 'emitted'},
-      not_in_emit_plan: {bg: '#fee2e2', fg: '#991b1b', bd: '#fca5a5', glyph: '✗', label: 'not in emit plan'},
-      derived:          {bg: '#f1f5f9', fg: '#475569', bd: '#cbd5e1', glyph: '⏳', label: 'derived'},
+      not_in_emit_plan: {bg: 'var(--err-bg, #fee2e2)', fg: 'var(--err-fg, #991b1b)', bd: '#fca5a5', glyph: '✗', label: 'not in emit plan'},
+      derived:          {bg: 'var(--chip, #f1f5f9)', fg: 'var(--text-muted, #475569)', bd: 'var(--border, #cbd5e1)', glyph: '⏳', label: 'derived'},
     };
     var s = styles[status] || styles.derived;
     return '<span style="display:inline-block;padding:2px 8px;border-radius:9999px;background:'
@@ -412,7 +428,7 @@
 
   function _renderReadoutsTable(j) {
     var e = escapeHtmlForTests;
-    var note = j.note ? '<p class="muted" style="color:#92400e">' + e(j.note) + '</p>' : '';
+    var note = j.note ? '<p class="muted" style="color:var(--warn-fg, #92400e)">' + e(j.note) + '</p>' : '';
     var rows = j.rows || [];
     var idxHtml = function (o) {
       return o.index_by ? '<code style="font-size:0.85em;">' + e(o.index_by.type) + '=' + e(o.index_by.value) + '</code>'
@@ -437,7 +453,7 @@
     cols.forEach(function (c) { keep[c.id] = true; });
     var head = '<table class="observables-table" style="width:100%; border-collapse: collapse;"><thead><tr>'
       + cols.map(function(c) {
-          return '<th style="text-align:left; padding:6px; border-bottom:1px solid #e2e8f0;">' + c.label + '</th>';
+          return '<th style="text-align:left; padding:6px; border-bottom:1px solid var(--border, #e2e8f0);">' + c.label + '</th>';
         }).join('') + '</tr></thead><tbody>';
     var body = rows.map(function(o) {
       var tds = '';
@@ -447,7 +463,7 @@
       if (keep.indexed_by) tds += '<td style="padding:6px; vertical-align:top;">' + idxHtml(o) + '</td>';
       if (keep.units) tds += '<td style="padding:6px; vertical-align:top; font-size:0.9em;">' + e(o.units || '') + '</td>';
       if (keep.description) tds += '<td style="padding:6px; vertical-align:top; max-width:380px; font-size:0.9em;">' + e(o.description || '') + '</td>';
-      return '<tr style="border-bottom:1px solid #f1f5f9;" data-readout="' + e(o.name) + '">' + tds + '</tr>';
+      return '<tr style="border-bottom:1px solid var(--chip, #f1f5f9);" data-readout="' + e(o.name) + '">' + tds + '</tr>';
     }).join('');
     return note + head + body + '</tbody></table>';
   }
@@ -493,20 +509,66 @@
   // so continuous re-fitting is circular — a single measure is correct and safe.
   // Exposed on window so the server-rendered embed_visualizations iframes
   // (templates/study-detail.html) share ONE implementation and can't drift.
+  // True content height of a same-origin figure document, measured ROBUSTLY
+  // regardless of how the embedded HTML was written. The recurring runaway-
+  // whitespace bug: Plotly's write_html(full_html=True) injects
+  // `html,body{height:100%}`, so the body FILLS the iframe and body/html
+  // scrollHeight reports the iframe's own (growing) height, never the plot's.
+  // We neutralize that here — in the workbench embed layer — so NO workspace has
+  // to fix its write_html or regenerate charts: force html+body to height:auto
+  // (overriding the injected 100%), then measure the lowest rendered point of the
+  // body's children. documentElement.scrollHeight is deliberately NOT used — in a
+  // standalone figure doc it reports the viewport minimum, not the content.
+  function _measureFigureHeight(d, b, e) {
+    if (e) { e.style.overflow = 'hidden'; e.style.height = 'auto'; }
+    if (b) { b.style.margin = '0'; b.style.height = 'auto'; }
+    var h = 0;
+    if (b) {
+      var kids = b.children;
+      for (var i = 0; i < kids.length; i++) {
+        var bottom = kids[i].getBoundingClientRect().bottom;
+        if (bottom > h) h = bottom;
+      }
+      h = Math.ceil(h);
+      if (!(h > 0)) h = b.scrollHeight || 0;
+    }
+    return h;
+  }
+
   function _fitFigureFrame(f) {
     try {
       var d = f.contentDocument; if (!d) return;
       var b = d.body, e = d.documentElement;
-      if (b) b.style.margin = '0';
-      if (e) e.style.overflow = 'hidden';
       var bStyle = b && d.defaultView && d.defaultView.getComputedStyle ? d.defaultView.getComputedStyle(b) : null;
+      // A figure that DELIBERATELY pins a fixed body height with hidden overflow
+      // is honored as-is (no content measurement).
       var pinnedH = 0;
       if (bStyle && (bStyle.overflow || '').indexOf('hidden') >= 0) {
         var hm = (bStyle.height || '').match(/^(\d+(?:\.\d+)?)px$/);
         if (hm) pinnedH = Math.round(parseFloat(hm[1]));
       }
-      var h = pinnedH > 0 ? pinnedH : Math.max(e ? e.scrollHeight : 0, b ? b.scrollHeight : 0);
-      if (h > 0) f.style.height = h + 'px';
+      if (pinnedH > 0) {
+        if (b) b.style.margin = '0';
+        if (e) e.style.overflow = 'hidden';
+        f.style.height = pinnedH + 'px';
+        return;
+      }
+      // Otherwise neutralize elastic (height:100%) content and fit to the plot.
+      // Re-measure a few times: Plotly/Vega lay out asynchronously, so the onload
+      // measure can precede the final plot height. Forcing height:auto removes the
+      // elasticity, so these re-measures CONVERGE instead of running away (the
+      // reason the earlier one-shot version couldn't use a resizer).
+      var apply = function () {
+        var h = _measureFigureHeight(d, b, e);
+        if (h > 0) f.style.height = h + 'px';
+      };
+      apply();
+      var w = f.ownerDocument && f.ownerDocument.defaultView;
+      if (w) {
+        w.requestAnimationFrame(apply);
+        w.setTimeout(apply, 250);
+        w.setTimeout(apply, 700);
+      }
     } catch (e) {}
   }
   window.__fitFigureFrame = _fitFigureFrame;
@@ -531,7 +593,14 @@
         + '></iframe>'
       : (c.img
         ? '<img class="chart-img figure-media" src="' + c.img + '" alt="' + (c.key || 'chart') + '" loading="lazy">'
-        : (c.svg ? _svgImg(c) : '')));
+        : (c.svg ? _svgImg(c)
+        : (c.snapshot_unavailable
+          // A declared interactive figure that couldn't be materialized into
+          // this static snapshot (publish._inline_declared_iframe_figures). Show
+          // a placeholder instead of a dead iframe that 404s.
+          ? '<div class="figure-media figure-unavailable"><p class="empty-message">'
+            + 'Interactive visualization — available in the live workbench.</p></div>'
+          : ''))));
     var desc = c.caption ? '<div class="chart-caption">' + c.caption + '</div>' : '';
     var runLink = c.run_id
       ? '<a href="#" class="figure-run-link" data-run-id="' + escapeHtmlForTests(String(c.run_id)) + '">from run '
@@ -564,6 +633,8 @@
   // silently did nothing. Define it here (the shell loads study-detail.js).
   // Probe first: the zip only holds declared IMAGE files, and in a snapshot an
   // absent file 404s; a bare <a download> to a 404 reads as a broken button.
+  // (The "↓ Figures" jump button + _vivStudyJumpToFigures were removed — the
+  // figures now live in their own Visualizations tab, opened via _setStudyTab.)
   window._vivStudyFiguresFromCard = function (ev, slug) {
     if (ev && ev.stopPropagation) ev.stopPropagation();
     var c = window.__DASH_CONFIG__ || {};
@@ -680,7 +751,7 @@
       _loadCharts('viz-charts-panel');
       return {
         count: 0,
-        html: '<p class="muted" style="margin:0;font-size:0.85em">figures load on the Visualizations tab</p>',
+        html: '<p class="muted" style="margin:0;font-size:0.85em">figures load on the Overview tab</p>',
       };
     }
     return {
@@ -715,7 +786,7 @@
     }
     return '<p class="muted" style="margin:0;font-size:0.85em">' + n + ' report card'
       + (n === 1 ? '' : 's') + ' for this study — '
-      + '<a href="#" onclick="_gotoStudyTab(\'tests\');return false;">view on the Tests tab</a></p>';
+      + '<a href="#" onclick="_gotoStudyTab(\'audit\');return false;">view on the Audit tab</a></p>';
   }
 
   // Task E3: compact results/analysis line — surfaces values already known
@@ -799,12 +870,75 @@
       .catch(function () { panel.innerHTML = ''; _remoteFiguresLoaded = false; });
   }
   window._loadRemoteFigures = _loadRemoteFigures;
+  // Overview "key figure": embed this study's first native-gallery panel (the
+  // headline plotly) inline on the Overview, isolated in an iframe so its
+  // bundled plotly doesn't touch the page. Degrades to hidden when no run/panel.
+  var _overviewKeyFigureLoaded = false;
+  function _loadOverviewKeyFigure() {
+    var host = document.getElementById('overview-key-figure');
+    if (!host || _overviewKeyFigureLoaded) return;
+    _overviewKeyFigureLoaded = true;
+    fetch(window.DataSource.nativeGalleryUrl(studyName()))
+      .then(function (r) { return r.ok ? r.json() : { panels: {} }; })
+      .then(function (d) {
+        var panels = (d && d.panels) || {};
+        var names = Object.keys(panels);
+        if (!names.length) { host.style.display = 'none'; return; }
+        var ifr = document.createElement('iframe');
+        ifr.setAttribute('title', names[0]);
+        ifr.setAttribute('loading', 'lazy');
+        ifr.srcdoc = panels[names[0]];
+        host.innerHTML = '';
+        host.appendChild(ifr);
+        var cap = document.createElement('div');
+        cap.className = 'ov-keyfig-cap';
+        cap.textContent = 'Key figure — ' + names[0] + ' · full set in Visualizations';
+        host.appendChild(cap);
+      })
+      .catch(function () { host.style.display = 'none'; });
+  }
+
+  // Grow each native figure iframe to its full content height so the figure
+  // shows in full instead of scrolling inside a fixed-height window. srcdoc
+  // iframes are same-origin, so we can read the rendered height; Plotly lays out
+  // asynchronously, so we re-measure on load, after a few delays, and via a
+  // ResizeObserver on the iframe body.
+  function _autosizeNativeFrames(host) {
+    var frames = host.querySelectorAll('iframe.figure-media-frame--native');
+    Array.prototype.forEach.call(frames, function (ifr) {
+      function fit() {
+        try {
+          var doc = ifr.contentDocument || (ifr.contentWindow && ifr.contentWindow.document);
+          if (!doc || !doc.body) return;
+          var h = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight);
+          if (h > 40) ifr.style.height = (h + 6) + 'px';
+        } catch (e) { /* cross-origin shouldn't happen for srcdoc */ }
+      }
+      ifr.addEventListener('load', function () {
+        fit();
+        [150, 450, 1000, 2000].forEach(function (ms) { setTimeout(fit, ms); });
+        try {
+          var doc = ifr.contentDocument;
+          if (doc && doc.body && window.ResizeObserver) {
+            new ResizeObserver(fit).observe(doc.body);
+          }
+        } catch (e) { /* no-op */ }
+      });
+      // Already-complete (e.g. cached) frames never fire a fresh load event.
+      try {
+        if (ifr.contentDocument && ifr.contentDocument.readyState === 'complete') {
+          fit(); [150, 450, 1000].forEach(function (ms) { setTimeout(fit, ms); });
+        }
+      } catch (e) { /* no-op */ }
+    });
+  }
+
   function _loadNativeGallery() {
     var host = document.getElementById('native-gallery-panel');
     if (!host || _nativeGalleryLoaded) return;
     _nativeGalleryLoaded = true;
     var slug = studyName();
-    fetch('/api/study-native-gallery/' + encodeURIComponent(slug))
+    fetch(window.DataSource.nativeGalleryUrl(slug))
       // Check r.ok before r.json(): a non-OK response (404 in a static snapshot
       // where this live-only endpoint is absent, or 5xx from an errored live
       // route) is treated as "no panels" -> the clean empty state below, not the
@@ -849,6 +983,7 @@
             + '</div>';
         }).join('');
         _wireFigureRunLinks(host);
+        _autosizeNativeFrames(host);
         _figuresSourceState.native = true;
         _updateFiguresEmptyState();
         _nativeGalleryRunId = runId || null;  // Task E3: settled
@@ -940,7 +1075,7 @@
         '<p class="muted" style="font-size:0.85em;margin:0 0 8px">From run <code>' +
         escapeHtmlForTests(String(d.run_label || d.run_id || '')) + '</code></p>' +
         '<table style="width:100%;border-collapse:collapse;font-size:0.86em">' +
-        '<thead><tr style="text-align:left;border-bottom:1px solid #e5e7eb">' +
+        '<thead><tr style="text-align:left;border-bottom:1px solid var(--border, #e5e7eb)">' +
         '<th style="padding:5px 8px">Path</th><th style="padding:5px 8px">dtype</th>' +
         '<th style="padding:5px 8px">Sparkline</th>' +
         '<th style="padding:5px 8px;text-align:right">First</th>' +
@@ -971,6 +1106,35 @@
   // The per-store PREVIEW of the latest run (sparkline + first/last/min/max)
   // is _loadResultsPreview above; _loadResults triggers both.
   var _rawDataLoaded = false;
+  // Compact run-summary header for the Results tab: run count, completed,
+  // latest run + when, step count, emitter — all from the /api/simulations rows.
+  function _renderResultsSummary(rows, esc) {
+    esc = esc || function (x) { return String(x == null ? '' : x); };
+    if (!rows || !rows.length) {
+      return '<p class="muted" style="font-size:0.88em">No runs yet — launch one from <strong>Simulations</strong>.</p>';
+    }
+    var done = rows.filter(function (r) { return String(r.status || '').toLowerCase() === 'completed'; }).length;
+    var latest = rows.slice().sort(function (a, b) {
+      return (new Date(b.created || b.started || 0)) - (new Date(a.created || a.started || 0));
+    })[0] || rows[rows.length - 1];
+    var emitters = {};
+    rows.forEach(function (r) { if (r.emitter_type) emitters[r.emitter_type] = 1; });
+    var emList = Object.keys(emitters);
+    var chips = [];
+    chips.push('<strong>' + rows.length + '</strong> run' + (rows.length === 1 ? '' : 's'));
+    chips.push('<span style="color:var(--ok-fg, #059669);font-weight:600">' + done + '</span> completed');
+    if (latest) {
+      var lbl = latest.sim_name || latest.label || latest.run_id || '';
+      chips.push('latest <code style="font-size:0.82em">' + esc(lbl) + '</code>');
+      var when = latest.created || latest.started;
+      if (when) chips.push('<span class="muted">' + esc(String(when).slice(0, 16).replace('T', ' ')) + '</span>');
+      if (latest.n_steps != null) chips.push(esc(String(latest.n_steps)) + ' steps');
+    }
+    if (emList.length) chips.push('emitter <code style="font-size:0.82em">' + esc(emList.join(', ')) + '</code>');
+    return '<div style="font-size:0.9em;color:var(--text-muted, #475569);display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
+      + chips.join('<span class="muted">·</span>') + '</div>';
+  }
+
   function _loadResults(force) {
     _loadResultsPreview(force);
     var mount = document.getElementById('raw-data-list');
@@ -985,6 +1149,8 @@
     fetch(url).then(function (r) { return r.text(); }).then(function (t) {
       var d = {}; try { d = t ? JSON.parse(t) : {}; } catch (e) {}
       var rows = (DS && DS.simulationsFilter) ? DS.simulationsFilter(d.simulations || [], slug) : (d.simulations || []);
+      var summaryHost = document.getElementById('results-summary');
+      if (summaryHost) summaryHost.innerHTML = _renderResultsSummary(rows, esc);
       if (!rows.length) {
         mount.innerHTML = '<p class="empty-message">No runs with persisted data yet.</p>';
         if (bulkBtn) bulkBtn.style.display = 'none';
@@ -1005,8 +1171,8 @@
       }
       function _statusOf(row) { return String(row.status || '').toLowerCase() || 'unknown'; }
       function _stColor(st) {
-        return st === 'completed' ? '#059669' : st === 'failed' ? '#dc2626'
-          : st === 'running' ? '#2563eb' : st === 'cancelled' ? '#b45309' : '#9ca3af';
+        return st === 'completed' ? 'var(--ok-fg, #059669)' : st === 'failed' ? 'var(--err-fg, #dc2626)'
+          : st === 'running' ? 'var(--info-fg, #2563eb)' : st === 'cancelled' ? 'var(--warn-fg, #b45309)' : '#9ca3af';
       }
       var byStatus = {};
       rows.forEach(function (r) { var s = _statusOf(r); byStatus[s] = (byStatus[s] || 0) + 1; });
@@ -1042,7 +1208,7 @@
         '<div style="display:flex;align-items:center;gap:12px;margin:6px 0 10px;flex-wrap:wrap">' +
         '<strong>' + rows.length + ' runs</strong><span class="muted" style="font-size:0.88em">' + statusSummary + '</span>' +
         '<input id="rawdata-search" placeholder="filter runs…" ' +
-        'style="margin-left:auto;padding:4px 8px;border:1px solid #d1d5db;border-radius:5px;font-size:0.85em">' +
+        'style="margin-left:auto;padding:4px 8px;border:1px solid var(--border, #d1d5db);border-radius:5px;font-size:0.85em">' +
         '</div>' + groupsHtml;
       var _search = document.getElementById('rawdata-search');
       if (_search) _search.addEventListener('input', function () {
@@ -1200,10 +1366,44 @@
     var html = '<div class="model-source">';
     procs.forEach(function (p) {
       var addr = String(p.address).split(':').pop();
+      var cfg = (p.config && typeof p.config === 'object') ? p.config : {};
+      // Inline model SOURCE — surface it as a readable code block instead of a
+      // giant escaped string buried in the JSON config view. Applies when a
+      // process carries its model text in config.model (e.g. viva-tellurium:
+      // config.model = Antimony source, config.model_format = 'antimony'|'sbml').
+      var modelFmt = (typeof cfg.model_format === 'string' && cfg.model_format) ? cfg.model_format : '';
+      var modelStr = (typeof cfg.model === 'string') ? cfg.model : '';
+      // Treat config.model as a renderable model SOURCE only when it's clearly
+      // one: an explicit model_format is set, or the text is multi-line (a real
+      // model body) — not a short scalar that merely happens to be named "model".
+      var modelSrc = (modelStr.trim() && (modelFmt || modelStr.indexOf('\n') !== -1)) ? modelStr : '';
+      var restCfg = cfg;
+      if (modelSrc) {
+        restCfg = {};
+        Object.keys(cfg).forEach(function (k) { if (k !== 'model') restCfg[k] = cfg[k]; });
+      }
+      var modelBlock = '';
+      if (modelSrc) {
+        modelBlock = '<div class="model-source-code">' +
+          '<div class="model-source-code-head">' + esc((modelFmt ? modelFmt.toUpperCase() : 'MODEL') + ' MODEL') + '</div>' +
+          '<pre class="model-source-pre model-source-code-pre">' + esc(modelSrc) + '</pre>' +
+          '</div>';
+      }
+      var hasRest = restCfg && Object.keys(restCfg).length;
+      // Structured, scannable config view (chip grids for scalar dicts, tables
+      // for uniform-object arrays like a CPM contact matrix, type-colored
+      // values) — falls back to the flat YAML <pre> if composite-card.js's
+      // _configView isn't loaded.
+      var cfgBody = hasRest
+        ? ((typeof window._jsonViewer === 'function')
+            ? window._jsonViewer(restCfg)
+            : '<pre class="model-source-pre">' + esc(_yamlish(restCfg, 0)) + '</pre>')
+        : '';
       html += '<div class="model-source-block">' +
         '<div class="model-source-head"><strong>' + esc(p.name) + '</strong>' +
         (addr ? ' <span class="muted">— ' + esc(addr) + '</span>' : '') + '</div>' +
-        '<pre class="model-source-pre">' + esc(_yamlish(p.config, 0)) + '</pre>' +
+        modelBlock +
+        (hasRest ? '<div class="model-source-body">' + cfgBody + '</div>' : '') +
         '</div>';
     });
     html += '</div>';
@@ -1238,8 +1438,8 @@
     wrap.innerHTML =
       '<details class="model-config-used" open style="margin:0">' +
       '<summary class="muted" style="font-size:0.78em;font-weight:600;text-transform:uppercase;letter-spacing:0.02em;cursor:pointer">' +
-      'Config used <span style="font-weight:400;text-transform:none">— source of truth: <code>' + esc(ref) + '</code>, run by both arms</span></summary>' +
-      '<pre class="study-config-pre" style="font-size:0.8em;line-height:1.45;background:var(--surface-2,#f6f8fa);border:1px solid var(--border,#e1e4e8);border-radius:6px;padding:8px 10px;margin:4px 0 0;overflow:auto;max-height:420px">Resolving ' + esc(ref) + ' …</pre></details>';
+      'Run parameters <span style="font-weight:400;text-transform:none">— the knobs this study runs the model with (source of truth: <code>' + esc(ref) + '</code>, run by both arms)</span></summary>' +
+      '<div class="study-config-pre cfgv-host" style="font-size:0.8em;line-height:1.45;background:var(--surface-2,#f6f8fa);border:1px solid var(--border,#e1e4e8);border-radius:6px;padding:8px 10px;margin:4px 0 0;overflow:auto;max-height:420px">Resolving ' + esc(ref) + ' …</div></details>';
     mount.appendChild(wrap);
     var pre = wrap.querySelector('.study-config-pre');
     var api = (window.DataSource && window.DataSource.apiUrl)
@@ -1254,7 +1454,8 @@
         // config itself, the experiment definition a reader cares about.
         var shown = {};
         Object.keys(j.content).forEach(function (k) { if (k[0] !== '_') shown[k] = j.content[k]; });
-        pre.textContent = _yamlish(shown);
+        if (typeof window._jsonViewer === 'function') { pre.innerHTML = window._jsonViewer(shown); }
+        else { pre.style.whiteSpace = 'pre'; pre.textContent = _yamlish(shown); }
       })
       .catch(function () { if (pre) pre.textContent = ref + ' (could not load config)'; });
   }
@@ -1262,6 +1463,15 @@
   function _loadModelCards(force) {
     var mount = document.getElementById('model-composite-cards');
     if (!mount) return;
+    // Planned design (Design phase): render the declared contract + proposed
+    // mechanisms/methods at the top of the Model tab, so a study with no built
+    // composite yet still shows its planned model/interface. Idempotent slot.
+    var _pdSpec = window._study || {};
+    var _pdHtml = _pdContractHtml(_pdSpec.contract, 'Typed interface — ports, units, bounds + conservation predicates') +
+                  _pdListHtml('Proposed mechanisms', _pdSpec.proposed_mechanisms) +
+                  _pdListHtml('Proposed models & methods', _pdSpec.proposed_models_methods);
+    var _pdSlotEl = _pdSlot(document.getElementById('panel-compose'), 'model-planned-design');
+    if (_pdSlotEl) _pdSlotEl.innerHTML = _pdHtml;
     if (_modelCardsLoaded && !force) return;
     _modelCardsLoaded = true;
     var panel = document.getElementById('panel-compose');
@@ -1337,13 +1547,30 @@
       // the same thing shown twice (or the confusing run_config vs whole_config
       // split). Only shown for single-model studies with no canonical config.
       if (!_hasStudyCfg && _cfgObj && Object.keys(_cfgObj).length) {
+        var _cfgUsedBody = (typeof window._jsonViewer === 'function')
+          ? window._jsonViewer(_cfgObj)
+          : '<pre style="white-space:pre;margin:0">' + esc(_yamlish(_cfgObj)) + '</pre>';
         _cfgUsedHtml = '<details class="model-config-used" open style="margin:0 0 8px 0">' +
-          '<summary class="muted" style="font-size:0.78em;font-weight:600;text-transform:uppercase;letter-spacing:0.02em;cursor:pointer">Config used</summary>' +
-          '<pre class="model-config-used-pre" style="font-size:0.8em;line-height:1.45;background:var(--surface-2,#f6f8fa);border:1px solid var(--border,#e1e4e8);border-radius:6px;padding:8px 10px;margin:4px 0 0;overflow:auto;max-height:360px">' +
-          esc(_yamlish(_cfgObj)) + '</pre></details>';
+          '<summary class="muted" style="font-size:0.78em;font-weight:600;text-transform:uppercase;letter-spacing:0.02em;cursor:pointer">Run parameters <span style="font-weight:400;text-transform:none">— the knobs this study runs the model with</span></summary>' +
+          '<div class="model-config-used-pre cfgv-host" style="font-size:0.8em;line-height:1.45;background:var(--surface-2,#f6f8fa);border:1px solid var(--border,#e1e4e8);border-radius:6px;padding:8px 10px;margin:4px 0 0;overflow:auto;max-height:360px">' +
+          _cfgUsedBody + '</div></details>';
       }
-      wrap.innerHTML = '<div class="muted" style="font-size:0.78em;font-weight:600;margin:0 0 4px 2px;text-transform:uppercase;letter-spacing:0.02em">' +
-        entry.labels.map(esc).join(' · ') + '</div>' +
+      // Header for this model: the COMPOSITE being configured (its short name),
+      // not the raw uppercased study slug (which read as a cryptic
+      // "REPRO-FIG5-VIRAL-LOAD"). Any arm labels that add real info beyond the
+      // study slug / composite id (e.g. a variant name) are appended.
+      var _studySlug = (typeof studyName === 'function' ? (studyName() || '') : '').toLowerCase();
+      var _shortId = String(entry.id).split('.').pop();
+      var _armExtra = entry.labels.filter(function (l) {
+        var lc = String(l || '').toLowerCase();
+        return lc && lc !== _studySlug && lc !== _shortId.toLowerCase() && lc !== 'baseline';
+      });
+      var _armHdr = '<div class="model-arm-head" style="display:flex;gap:7px;align-items:baseline;margin:0 0 5px 2px">' +
+        '<span style="font-size:0.68em;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-muted,#8a94a0)">Composite</span>' +
+        '<code style="font-size:0.86em;font-weight:600">' + esc(_shortId) + '</code>' +
+        (_armExtra.length ? '<span class="muted" style="font-size:0.8em">· ' + _armExtra.map(esc).join(' · ') + '</span>' : '') +
+        '</div>';
+      wrap.innerHTML = _armHdr +
         _cfgUsedHtml +
         '<p class="muted" style="font-size:0.85em;margin:0">Resolving composite…</p>';
       mount.appendChild(wrap);
@@ -1370,7 +1597,8 @@
             Object.keys(_cfgObj).forEach(function (k) {
               if (k !== 'whole_config' && k !== 'config_file') merged[k] = _cfgObj[k];
             });
-            _preEl.textContent = _yamlish(merged);
+            if (typeof window._jsonViewer === 'function') { _preEl.innerHTML = window._jsonViewer(merged); }
+            else { _preEl.style.whiteSpace = 'pre'; _preEl.textContent = _yamlish(merged); }
           })
           .catch(function () { /* keep the bare-path fallback already rendered */ });
       }
@@ -1427,9 +1655,10 @@
           _renderCompositeSource(cfgHost, body.state, esc);
           if (cfgHost.firstChild) {
             var head = document.createElement('div');
-            head.className = 'muted';
-            head.style.cssText = 'font-size:0.78em;font-weight:600;margin:2px 0 4px 2px;text-transform:uppercase;letter-spacing:0.02em';
-            head.textContent = 'Configuration';
+            head.style.cssText = 'margin:8px 0 4px 2px';
+            head.innerHTML =
+              '<div class="muted" style="font-size:0.78em;font-weight:600;text-transform:uppercase;letter-spacing:0.02em">Model configuration</div>' +
+              '<div class="muted" style="font-size:0.76em;font-weight:400;opacity:0.82;margin-top:1px">The fully resolved composite — each process’s complete config (what the run parameters above expand into).</div>';
             wrap.insertBefore(cfgHost, cardEl);
             wrap.insertBefore(head, cfgHost);
           }
@@ -1517,19 +1746,19 @@
           'data-param-type="' + esc(def.type || '') + '" value="' + esc(shown === '—' ? '' : shown) + '" ' +
           'style="width:100%;min-width:80px;font-family:monospace;font-size:0.85em;padding:2px 4px;box-sizing:border-box" />'
         : '<code>' + esc(shown) + '</code>';
-      return '<tr' + (overridden ? ' style="background:#eff6ff"' : '') + '>' +
+      return '<tr' + (overridden ? ' style="background:var(--info-bg, #eff6ff)"' : '') + '>' +
         '<td style="padding:3px 8px"><code>' + esc(k) + '</code></td>' +
-        '<td style="padding:3px 8px;color:#6b7280">' + esc(def.type || '') + '</td>' +
+        '<td style="padding:3px 8px;color:var(--text-muted, #6b7280)">' + esc(def.type || '') + '</td>' +
         '<td style="padding:3px 8px">' + valueCell +
-        (overridden ? ' <span style="color:#2563eb;font-size:0.72em;font-weight:600">override</span>' : '') + '</td>' +
-        '<td style="padding:3px 8px;color:#6b7280">' + esc(def.description || '') + '</td></tr>';
+        (overridden ? ' <span style="color:var(--info-fg, #2563eb);font-size:0.72em;font-weight:600">override</span>' : '') + '</td>' +
+        '<td style="padding:3px 8px;color:var(--text-muted, #6b7280)">' + esc(def.description || '') + '</td></tr>';
     }).join('');
     mount.innerHTML =
       '<div style="font-size:0.85em;color:#374151;margin-bottom:4px"><strong>Config that runs</strong> ' +
       '<span class="muted">— resolved parameters (composite defaults ⊕ this study\'s overrides)</span></div>' +
       '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.85em">' +
       '<thead><tr>' + ['Parameter', 'Type', 'Value', 'Description'].map(function (h) {
-        return '<th style="text-align:left;padding:3px 8px;border-bottom:1px solid #e5e7eb;color:#6b7280;">' + h + '</th>';
+        return '<th style="text-align:left;padding:3px 8px;border-bottom:1px solid var(--border, #e5e7eb);color:var(--text-muted, #6b7280);">' + h + '</th>';
       }).join('') + '</tr></thead><tbody>' + rows + '</tbody></table></div>' +
       (editable
         ? '<div style="display:flex;align-items:center;gap:8px;margin-top:6px">' +
@@ -1537,7 +1766,7 @@
           '<span class="model-config-status muted" style="font-size:0.8em"></span></div>'
         : '') +
       '<details style="margin-top:6px"><summary class="muted" style="cursor:pointer;font-size:0.82em">Full resolved config (JSON)</summary>' +
-      '<pre style="font-size:0.78em;background:#f8fafc;padding:8px;border-radius:4px;overflow-x:auto;margin:4px 0 0">' +
+      '<pre style="font-size:0.78em;background:var(--subtle, #f8fafc);padding:8px;border-radius:4px;overflow-x:auto;margin:4px 0 0">' +
       esc(JSON.stringify(effective, null, 2)) + '</pre></details>';
     if (!editable) return;
     mount.querySelectorAll('.model-param-input').forEach(function (input) {
@@ -1601,7 +1830,7 @@
     // composite is a registered composite; otherwise we surface the gap.
     var explore = (runId && row.spec_id && row.composite_registered)
       ? '<a class="action-btn" href="' + (window.__BASE_PATH__ || '') + '/?focus=composite-explore&id=' + encodeURIComponent(row.spec_id) + '&run_id=' + encodeURIComponent(runId) + '#composite-explore">↗ Open run in Composite Explorer</a>'
-      : '<span style="color:#b91c1c;font-size:0.85em">⚠ ' + (row.spec_id
+      : '<span style="color:var(--err-fg, #b91c1c);font-size:0.85em">⚠ ' + (row.spec_id
           ? 'composite <code>' + e(row.spec_id) + '</code> is not registered — cannot open in the Explorer'
           : 'no composite associated with this run') + '</span>';
     var kv = function (k, v) {
@@ -1676,14 +1905,19 @@
         // except the checked-in 'static' charts, which get their own labeled
         // section below. (Previously only 'live'/unset rendered, so 'declared'
         // charts silently vanished in the published snapshot.)
-        var live = d.charts.filter(function(c) { return c.source !== 'static'; });
-        var stat = d.charts.filter(function(c) { return c.source === 'static'; });
+        // Unify under Audit: behavior-test charts (source: 'live') now render
+        // with their verdicts inside the Audit test cards, not here. The
+        // Visualizations gallery shows only study/author figures — study.yaml
+        // 'declared' visualizations and checked-in 'static' charts.
+        var figs = d.charts.filter(function(c) { return c.source !== 'live'; });
+        var declared = figs.filter(function(c) { return c.source !== 'static'; });
+        var stat = figs.filter(function(c) { return c.source === 'static'; });
         var html = '';
-        if (live.length) {
-          html += live.map(_renderChartCard).join('');
+        if (declared.length) {
+          html += declared.map(_renderChartCard).join('');
         }
         if (stat.length) {
-          if (live.length) {
+          if (declared.length) {
             html += '<h3 class="section-title" style="margin-top:24px">Pre-rendered charts <span class="muted" style="font-weight:400;font-size:0.85em">(checked-in under <code>studies/' + studyName() + '/charts/</code>)</span></h3>';
           }
           html += stat.map(_renderChartCard).join('');
@@ -1691,14 +1925,14 @@
         panel.innerHTML = html;
         _wireFigureRunLinks(panel);
         if (panelId === 'viz-charts-panel') {
-          _figuresSourceState.charts = true;
+          _figuresSourceState.charts = figs.length > 0;
           _updateFiguresEmptyState();
           _chartsCache = d.charts;  // Task E3: settled — per-item run_id (V3)
           _notifyFigureDataAvailable();
         }
       })
       .catch(function(e) {
-        panel.innerHTML = '<p class="muted" style="color:#dc2626">Chart load failed: ' + (e && e.message || e) + '</p>';
+        panel.innerHTML = '<p class="muted" style="color:var(--err-fg, #dc2626)">Chart load failed: ' + (e && e.message || e) + '</p>';
         if (panelId === 'viz-charts-panel') {
           _figuresSourceState.charts = false;
           _updateFiguresEmptyState();
@@ -1940,6 +2174,15 @@
       .then(function (data) { return (data && data.classes || []).filter(function (c) { return c.kind === 'analysis'; }); })
       .catch(function () { return []; })
       .then(function (classes) {
+        // No ANALYSIS_REGISTRY entries and nothing declared → the dispatch-time
+        // analysis picker is N/A for this workspace; hide the whole control
+        // rather than show an empty "No analyses registered / Save" block.
+        var section = document.getElementById('study-analyses-section');
+        if (!classes.length && !declared.length) {
+          if (section) section.style.display = 'none';
+          return;
+        }
+        if (section) section.style.display = '';
         var known = {};
         var items = classes.map(function (c) {
           known[c.name] = true;
@@ -2209,7 +2452,7 @@
       + 'e.g. injected_processes/variants/config_overrides/emitter_arg/cache_dir/out_dir/media)</span>'
       + '<textarea id="cp-params-json" rows="5" placeholder="{}" '
       + 'style="width:100%;box-sizing:border-box;margin-top:2px;font-family:monospace;font-size:11px"></textarea></label>'
-      + '<div id="cp-error" style="color:#dc2626;margin-top:4px;display:none"></div>'
+      + '<div id="cp-error" style="color:var(--err-fg, #dc2626);margin-top:4px;display:none"></div>'
       + '<div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end">'
       + '<button type="button" id="cp-cancel" class="btn-mini">Cancel</button>'
       + '<button type="button" id="cp-dispatch" class="btn-mini">Dispatch</button>'
@@ -2615,6 +2858,14 @@
   // fill instead of popping between polls.
   var _chainProgressStart = null;
 
+  // Whether THIS workspace has a remote compute backend (viva-api/sms-api)
+  // configured. A local-only workspace (a bench process-bigraph workspace) has
+  // none — so the remote-dispatch affordances (⚙ Dispatch composite + the remote
+  // chain-progress poller below) must stay hidden and the UI must not even mention
+  // sms-api. Resolved once from /api/source/remote-health by _gateRemoteDispatch();
+  // default false so a local workspace is never coupled to a remote it lacks.
+  var _remoteConfigured = false;
+
   function _chainProgressEl() {
     var el = document.getElementById('study-chain-progress');
     if (!el) {
@@ -2738,6 +2989,10 @@
   }
 
   function _pollChainProgress(runId) {
+    // Local-only workspace: there is no remote backend to report chain progress,
+    // so never poll /api/remote-run-chain-progress (it would surface a spurious
+    // "sms-api unreachable"). Local runs track progress via the Runs tab refresh.
+    if (!_remoteConfigured) return;
     if (_chainProgressTimer) { clearTimeout(_chainProgressTimer); _chainProgressTimer = null; }
     // A legacy run is an integer simulation id; a /viva/v1 run (serve --backend-base-url)
     // carries the backend's opaque string id, asked for as run_id.
@@ -2806,6 +3061,25 @@
     if (!panel) return;
     panel.style.display = (panel.style.display === 'none') ? '' : 'none';
   });
+
+  // Gate the remote-dispatch affordances on whether this workspace actually has a
+  // remote compute backend configured. ⚙ Dispatch composite targets viva-api/AWS
+  // Batch/Nextflow; a local-only workspace has no such backend, so the button (and
+  // the sms-api progress poller) must not appear — the study view must not even
+  // know about sms-api. Default-hidden; revealed only once /api/source/remote-health
+  // confirms `configured:true`. In a published snapshot the fetch simply fails →
+  // stays hidden, matching the snapshot-mode run-button hide.
+  (function _gateRemoteDispatch() {
+    var dispatchBtn = document.getElementById('study-run-composite');
+    if (dispatchBtn) dispatchBtn.style.display = 'none';
+    if (typeof _isSnapshot === 'function' && _isSnapshot()) return;
+    api('GET', '/api/source/remote-health')
+      .then(function (r) {
+        _remoteConfigured = !!(r && r.status === 200 && r.body && r.body.configured);
+        if (_remoteConfigured && dispatchBtn) dispatchBtn.style.display = '';
+      })
+      .catch(function () { _remoteConfigured = false; });
+  })();
 
   // #cp-dispatch's own click (rendered dynamically inside _compositePanelEl,
   // so bound here via delegation rather than at panel-creation time) with the
@@ -2887,6 +3161,189 @@
       });
   });
 
+  // Gate "↻ Reproduce" on whether the latest run is actually replayable. It
+  // replays a run's recorded manifest via /api/study-reproduce → cli_runs.find_run,
+  // which only scans study runs.db + the workspace composite-runs.db. A study whose
+  // runs come from the canonical runner (store_path under canonical-runs/, db_path
+  // null — the norm for a bench workspace like this one) is NOT in those DBs, so
+  // reproduce 404s "run not found". Rather than offer a button that always errors,
+  // hide it unless the latest run is reproducible (db_path set, e.g. dashboard-
+  // managed runs in v2ecoli). "Run current spec" (re-derive + launch) stays as the
+  // reliable action. Default-hidden; revealed only once a replayable run is seen.
+  (function _gateReproduce() {
+    var rbtn = document.getElementById('study-reproduce');
+    if (!rbtn) return;
+    rbtn.style.display = 'none';
+    if (typeof _isSnapshot === 'function' && _isSnapshot()) return;
+    var slug = studyName();
+    var _ds = window.DataSource;
+    var url = (_ds && _ds.simulationsUrl) ? _ds.apiUrl(_ds.simulationsUrl(slug))
+      : '/api/simulations?study=' + encodeURIComponent(slug);
+    fetch(url)
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var sims = (_ds && _ds.simulationsFilter) ? _ds.simulationsFilter((d && d.simulations) || [], slug) : ((d && d.simulations) || []);
+        var latest = sims.length ? sims[0] : null;
+        // Replayable iff find_run can locate it: a study/composite runs.db row
+        // (db_path set), not a canonical-runs-only output.
+        if (latest && latest.run_id && latest.db_path) rbtn.style.display = '';
+      })
+      .catch(function () { /* leave hidden — err on the side of not offering a broken action */ });
+  })();
+
+  // Narrative navigation: "Next study →" follows this investigation's leads-to
+  // chain. Works in BOTH contexts: embedded in the investigation graph view (it
+  // delegates to the parent so the graph highlight + embedded tab stay in sync),
+  // AND standalone (opened from the Studies sidebar) — where it computes "next"
+  // from the investigation itself and navigates directly. Hidden only on a
+  // genuinely terminal study or outside any investigation.
+  // Study navigator: ← prev / next → along the investigation chain, plus a
+  // "⇄ Studies" jump menu to ANY study (grouped: this study's parents it builds
+  // on, what it leads to, and all). Prev/next prefer the typed DAG edges
+  // (parent_studies) and fall back to declared order. Works standalone (full
+  // page nav) and embedded in the graph view (opens a tab in the parent).
+  (function _wireStudyNav() {
+    var nav = document.getElementById('study-nav');
+    if (!nav) return;
+    // When shown EMBEDDED inside the investigation view (in an iframe), the
+    // graph bar owns study navigation (its own ←/⇄/→ drives this iframe), so the
+    // in-header navigator is redundant — hide it. On the STANDALONE study page
+    // (window.parent === window) there is no graph bar, so keep it.
+    var _embedded = false;
+    try { _embedded = window.parent && window.parent !== window; } catch (e) { _embedded = false; }
+    if (_embedded) { nav.style.display = 'none'; return; }
+    var prevBtn = document.getElementById('study-prev');
+    var nextBtn = document.getElementById('study-next');
+    var jumpBtn = document.getElementById('study-jump-btn');
+    var jumpMenu = document.getElementById('study-jump-menu');
+    var current = studyName();
+    var base = (window.__BASE_PATH__ || '');
+
+    function _go(slug) {
+      if (!slug) return;
+      try {
+        var p = window.parent;
+        if (p && p !== window && typeof p._openStudyEmbeddedNewTab === 'function') {
+          p._openStudyEmbeddedNewTab(slug); return;
+        }
+      } catch (e) { /* fall through to standalone */ }
+      window.location = base + '/studies/' + encodeURIComponent(slug);
+    }
+
+    var inv = nav.getAttribute('data-investigation') || (window._study && window._study.investigation);
+    if (!inv) { nav.style.display = 'none'; return; }
+
+    fetch(base + '/api/investigation/' + encodeURIComponent(inv))
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d) { nav.style.display = 'none'; return; }
+        var studies = d.studies || d.members || [];
+        var nameOf = function (s) { return (typeof s === 'string') ? s : (s && (s.name || s.slug || s.study)); };
+        var titleOf = function (s) { return (s && typeof s === 'object' && s.title) ? s.title : nameOf(s); };
+        var order = studies.map(nameOf).filter(Boolean);
+        if (!order.length) { nav.style.display = 'none'; return; }
+        var byName = {}; studies.forEach(function (s) { var n = nameOf(s); if (n) byName[n] = s; });
+        var parentsOf = function (n) {
+          var s = byName[n]; var ps = (s && s.parent_studies) || [];
+          return ps.map(function (pk) { return (pk && typeof pk === 'object') ? (pk.study || pk.name || pk.slug) : pk; }).filter(Boolean);
+        };
+        var curParents = parentsOf(current).filter(function (n) { return byName[n]; });
+        var curChildren = order.filter(function (n) { return parentsOf(n).indexOf(current) >= 0; });
+        var idx = order.indexOf(current);
+        var prev = (idx > 0) ? order[idx - 1] : (curParents[0] || null);
+        var next = curChildren[0] || ((idx >= 0 && idx < order.length - 1) ? order[idx + 1] : null);
+
+        nav.style.display = 'inline-flex';
+        if (prev) { prevBtn.disabled = false; prevBtn.title = 'Previous: ' + prev; prevBtn.onclick = function () { _go(prev); }; }
+        else { prevBtn.disabled = true; prevBtn.title = 'No previous study'; }
+        if (next) { nextBtn.disabled = false; nextBtn.title = 'Next: ' + next; nextBtn.onclick = function () { _go(next); }; }
+        else { nextBtn.disabled = true; nextBtn.title = 'No next study'; }
+
+        function _item(n) {
+          return '<button type="button" class="study-jump-item' + (n === current ? ' current' : '')
+            + '" data-slug="' + _esc(n) + '">' + _esc(titleOf(byName[n]) || n) + '</button>';
+        }
+        var html = '';
+        if (curParents.length) html += '<div class="study-jump-group">Builds on</div>' + curParents.map(_item).join('');
+        if (curChildren.length) html += '<div class="study-jump-group">Leads to</div>' + curChildren.map(_item).join('');
+        html += '<div class="study-jump-group">All studies</div>' + order.map(_item).join('');
+        jumpMenu.innerHTML = html;
+        jumpMenu.querySelectorAll('.study-jump-item').forEach(function (b) {
+          b.addEventListener('click', function () {
+            var slug = b.getAttribute('data-slug');
+            jumpMenu.style.display = 'none'; jumpBtn.setAttribute('aria-expanded', 'false');
+            if (slug && slug !== current) _go(slug);
+          });
+        });
+        jumpBtn.onclick = function (ev) {
+          ev.stopPropagation();
+          var open = jumpMenu.style.display !== 'none' && jumpMenu.style.display !== '';
+          jumpMenu.style.display = open ? 'none' : 'block';
+          jumpBtn.setAttribute('aria-expanded', open ? 'false' : 'true');
+        };
+        document.addEventListener('click', function (e) {
+          if (!e.target.closest || !e.target.closest('.study-jump-wrap')) {
+            jumpMenu.style.display = 'none'; jumpBtn.setAttribute('aria-expanded', 'false');
+          }
+        }, true);
+      })
+      .catch(function () { nav.style.display = 'none'; });
+  })();
+
+  // Export menu (Phase 4): the "⬇ Export ▾" button in the Overview panel's
+  // section toolbar opens a small dropdown (Download figures / Download
+  // notebook). The menu items keep the original handlers (wired inline in the
+  // template via _vivStudyFiguresFromCard / _vivStudyNotebookFromCard); this
+  // only toggles the dropdown open/closed with the same outside-click pattern
+  // the study navigator's jump menu uses.
+  (function _wireStudyExportMenu() {
+    var btn = document.getElementById('study-export-btn');
+    var menu = document.getElementById('study-export-menu');
+    if (!btn || !menu) return;
+    // Pop the menu OUT of the horizontally-scrolling .study-tabs bar. That nav
+    // is overflow-x:auto, which CLIPS an absolutely-positioned dropdown — so the
+    // menu opened INSIDE the bar and had to be scrolled to. Fixed positioning,
+    // right-aligned under the button, escapes the clip and overlays the page,
+    // matching the investigation-level ↓ Export dropdown.
+    function _place() {
+      var r = btn.getBoundingClientRect();
+      menu.style.position = 'fixed';
+      menu.style.top = (r.bottom + 4) + 'px';
+      menu.style.left = 'auto';
+      menu.style.right = Math.max(8, window.innerWidth - r.right) + 'px';
+    }
+    btn.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      var open = menu.style.display !== 'none' && menu.style.display !== '';
+      if (open) {
+        menu.style.display = 'none';
+        btn.setAttribute('aria-expanded', 'false');
+      } else {
+        menu.style.display = 'block';
+        _place();
+        btn.setAttribute('aria-expanded', 'true');
+      }
+    });
+    // Keep it anchored while open (the fixed menu would otherwise drift from the
+    // button on scroll/resize); cheap and only runs while the menu is open.
+    ['scroll', 'resize'].forEach(function (evt) {
+      window.addEventListener(evt, function () {
+        if (menu.style.display === 'block') _place();
+      }, true);
+    });
+    // Close after choosing an item (the item's own onclick runs the download).
+    menu.querySelectorAll('[role="menuitem"]').forEach(function (it) {
+      it.addEventListener('click', function () {
+        menu.style.display = 'none'; btn.setAttribute('aria-expanded', 'false');
+      });
+    });
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest || !e.target.closest('.study-export-wrap')) {
+        menu.style.display = 'none'; btn.setAttribute('aria-expanded', 'false');
+      }
+    }, true);
+  })();
+
   // btn-delete has class "btn-delete danger" — selector ".btn-delete" still matches.
   // Handler _post_investigation_delete uses body key "name".
   bindAll('.btn-delete', function(btn) {
@@ -2934,10 +3391,8 @@
 
   // --- Runs ---
   bindAll('.btn-view-run', function(btn) {
-    // Per-run viewer: open the study-level Results view.
-    _setStudyTab('visualize');
-    var panel = document.getElementById('panel-visualize');
-    if (panel && panel.scrollIntoView) { try { panel.scrollIntoView({block: 'start'}); } catch (e) {} }
+    // Per-run viewer: open the study-level Visualizations tab (#visualize-section).
+    _gotoStudyTab('visualize', 'visualize-section');
   });
 
   // study-run-delete → _post_investigation_run_delete
@@ -3005,10 +3460,10 @@
       return;
     }
     host.innerHTML = '<details open style="margin:0">'
-      + '<summary style="cursor:pointer;font-weight:700;color:#111827;font-size:1.02em">'
+      + '<summary style="cursor:pointer;font-weight:700;color:var(--text, #111827);font-size:1.02em">'
       + 'Interactive comparison — v2ecoli vs vEcoli (plotly)</summary>'
       + '<iframe class="viz-embed" src="' + escapeHtmlForTests(pUrl) + '" loading="lazy" '
-      + 'style="width:100%;height:900px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;margin-top:8px"></iframe>'
+      + 'style="width:100%;height:900px;border:1px solid var(--border, #e2e8f0);border-radius:8px;background:var(--card, #fff);margin-top:8px"></iframe>'
       + '</details>';
   }
 
@@ -3124,11 +3579,11 @@
     var barStyle = 'position:absolute;top:0;bottom:0;background:' + color + ';'
       + (m >= 0 ? 'left:50%;width:' + pct + '%' : 'right:50%;width:' + pct + '%');
     return '<div class="axis-margin-bar-track" style="position:relative;width:100%;'
-      + 'height:' + (soft ? '4px' : '8px') + ';background:#eef2f7;border-radius:3px;overflow:hidden">'
+      + 'height:' + (soft ? '4px' : '8px') + ';background:var(--subtle, #eef2f7);border-radius:3px;overflow:hidden">'
       + '<div class="axis-margin-bar" style="' + barStyle + '"></div>'
-      + '<div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:#cbd5e1"></div>'
+      + '<div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--border, #cbd5e1)"></div>'
       + '</div>'
-      + '<div style="font-size:0.72em;color:#94a3b8;margin-top:2px">' + m.toFixed(2) + '</div>';
+      + '<div style="font-size:0.72em;color:var(--text-muted, #94a3b8);margin-top:2px">' + m.toFixed(2) + '</div>';
   }
 
   // The graded-scorecard look (dark header + overall pill w/ tally + per-group
@@ -3163,23 +3618,23 @@
         var val = (a.value != null && typeof a.value === 'number') ? a.value.toPrecision(4) : '';
         var chg = _axisChange(card, gname, a.id);
         return '<tr class="rc-row-' + (a.verdict || 'ungraded') + '">'
-          + '<td style="padding:7px 10px;border-bottom:1px solid #eef2f7;border-left:3px solid ' + (_RC_GL[a.verdict] || _RC_GL.ungraded)[0] + '">'
-          + '<div style="display:flex;align-items:center;gap:8px"><span style="font-weight:600;color:#1f2937">'
+          + '<td style="padding:7px 10px;border-bottom:1px solid var(--subtle, #eef2f7);border-left:3px solid ' + (_RC_GL[a.verdict] || _RC_GL.ungraded)[0] + '">'
+          + '<div style="display:flex;align-items:center;gap:8px"><span style="font-weight:600;color:var(--text, #1f2937)">'
           + e(String(a.label || a.id || '')) + '</span>' + _rcPill(a.verdict)
           + (chg ? _changeBadge(chg.change) : '') + '</div></td>'
-          + '<td style="padding:7px 10px;border-bottom:1px solid #eef2f7;font-variant-numeric:tabular-nums;color:#334155">' + e(val) + '</td>'
-          + '<td style="padding:7px 10px;border-bottom:1px solid #eef2f7;color:#475569;font-size:0.9em">' + e(String(meter)) + '</td>'
-          + '<td style="padding:7px 10px;border-bottom:1px solid #eef2f7;min-width:90px">' + _marginBar(a) + '</td>'
+          + '<td style="padding:7px 10px;border-bottom:1px solid var(--subtle, #eef2f7);font-variant-numeric:tabular-nums;color:var(--text-muted, #334155)">' + e(val) + '</td>'
+          + '<td style="padding:7px 10px;border-bottom:1px solid var(--subtle, #eef2f7);color:var(--text-muted, #475569);font-size:0.9em">' + e(String(meter)) + '</td>'
+          + '<td style="padding:7px 10px;border-bottom:1px solid var(--subtle, #eef2f7);min-width:90px">' + _marginBar(a) + '</td>'
           + '</tr>';
       }).join('');
-      return '<section style="background:#fff;border:1px solid #e5e7eb;border-top:0;padding:12px 14px">'
+      return '<section style="background:var(--card, #fff);border:1px solid var(--border, #e5e7eb);border-top:0;padding:12px 14px">'
         + '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:6px">'
-        + '<h4 style="margin:0;font-size:0.98em;color:#111827">' + e(gname.replace(/_/g, ' ')) + '</h4>'
+        + '<h4 style="margin:0;font-size:0.98em;color:var(--text, #111827)">' + e(gname.replace(/_/g, ' ')) + '</h4>'
         + _rcGroupChip('within_tol', gc.within_tol) + _rcGroupChip('drift', gc.drift)
         + _rcGroupChip('mismatch', gc.mismatch) + _rcGroupChip('ungraded', gc.ungraded) + '</div>'
         + (axes.length
           ? '<table style="width:100%;border-collapse:collapse;font-size:0.9em">'
-            + '<thead><tr style="text-align:left;color:#94a3b8;font-size:0.78em">'
+            + '<thead><tr style="text-align:left;color:var(--text-muted, #94a3b8);font-size:0.78em">'
             + '<th style="padding:4px 10px">Axis</th><th style="padding:4px 10px">Value</th>'
             + '<th style="padding:4px 10px">Summary</th><th style="padding:4px 10px">Δ / Margin</th>'
             + '</tr></thead><tbody>' + rows + '</tbody></table>'
@@ -3249,9 +3704,9 @@
   var _RIGOR_SEVERITY_PROXY = { ok: 'PASS', warn: 'PARTIAL', gap: 'FAIL', not_applicable: 'SKIP' };
   var _RIGOR_OUTCOME_COLORS = {
     'met':            { bg: '#d1fae5', fg: '#065f46' },
-    'conditional':    { bg: '#fef3c7', fg: '#92400e' },
-    'not-met':        { bg: '#fee2e2', fg: '#991b1b' },
-    'not-assessable': { bg: '#f1f5f9', fg: '#475569' }
+    'conditional':    { bg: 'var(--warn-bg, #fef3c7)', fg: 'var(--warn-fg, #92400e)' },
+    'not-met':        { bg: 'var(--err-bg, #fee2e2)', fg: 'var(--err-fg, #991b1b)' },
+    'not-assessable': { bg: 'var(--chip, #f1f5f9)', fg: 'var(--text-muted, #475569)' }
   };
 
   function _renderQualityDimension(d) {
@@ -3264,7 +3719,7 @@
     var oc = _RIGOR_OUTCOME_COLORS[cls] || _RIGOR_OUTCOME_COLORS['not-assessable'];
     var comments = ((d && d.comments) || []).join(' ');
     return '<li class="quality-check-item outcome-' + cls + '" data-severity="' + e(sev) + '" '
-      + 'style="display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-top:1px solid #f1f5f9">'
+      + 'style="display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-top:1px solid var(--chip, #f1f5f9)">'
       + '<span class="outcome-chip outcome-' + cls + '" title="rigor severity: ' + e(sev || 'unknown') + '" '
       + 'style="font-size:0.75em;font-weight:600;padding:2px 9px;border-radius:9999px;flex-shrink:0;'
       + 'background:' + oc.bg + ';color:' + oc.fg + '">' + glyph + '&nbsp;' + e(label) + '</span>'
@@ -3423,7 +3878,7 @@
     var label = tok ? outcomeLabel(tok) : 'not assessable';
     var oc = _RIGOR_OUTCOME_COLORS[cls] || _RIGOR_OUTCOME_COLORS['not-assessable'];
     return '<li class="audit-check-item outcome-' + cls + '" data-status="' + e(status) + '" '
-      + 'style="display:flex;gap:10px;align-items:flex-start;padding:5px 0 5px 20px;border-top:1px solid #f8fafc">'
+      + 'style="display:flex;gap:10px;align-items:flex-start;padding:5px 0 5px 20px;border-top:1px solid var(--subtle, #f8fafc)">'
       + '<span class="outcome-chip outcome-' + cls + '" title="audit status: ' + e(status || 'unknown') + '" '
       + 'style="font-size:0.72em;font-weight:600;padding:1px 8px;border-radius:9999px;flex-shrink:0;'
       + 'background:' + oc.bg + ';color:' + oc.fg + '">' + glyph + '&nbsp;' + e(label) + '</span>'
@@ -3442,7 +3897,7 @@
     var label = tok ? outcomeLabel(tok) : 'not assessable';
     var oc = _RIGOR_OUTCOME_COLORS[cls] || _RIGOR_OUTCOME_COLORS['not-assessable'];
     return '<li class="audit-level-item outcome-' + cls + '" data-level="' + e(g.level) + '" '
-      + 'style="padding:7px 0;border-top:1px solid #f1f5f9">'
+      + 'style="padding:7px 0;border-top:1px solid var(--chip, #f1f5f9)">'
       + '<div style="display:flex;gap:10px;align-items:center">'
       + '<strong style="min-width:26px">' + e(g.level) + '</strong>'
       + '<span class="outcome-chip outcome-' + cls + '" title="' + e(g.level) + ' status: ' + e(status || 'unknown') + '" '
@@ -3554,7 +4009,7 @@
       });
     }
     return '<li class="audit-axis-item outcome-' + cls + '" data-axis="' + e((ax && ax.id) || '') + '" '
-      + 'style="display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-top:1px solid #f1f5f9">'
+      + 'style="display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-top:1px solid var(--chip, #f1f5f9)">'
       + '<span class="outcome-chip outcome-' + cls + '" title="verdict: ' + e((ax && ax.verdict) || 'unknown') + '" '
       + 'style="font-size:0.75em;font-weight:600;padding:2px 9px;border-radius:9999px;flex-shrink:0;'
       + 'background:' + oc.bg + ';color:' + oc.fg + '">' + glyph + '&nbsp;' + e(label) + '</span>'
@@ -3565,8 +4020,8 @@
 
   var _AUDIT_GATE_COLORS = {
     pass: { bg: '#d1fae5', fg: '#065f46' },
-    warn: { bg: '#fef3c7', fg: '#92400e' },
-    fail: { bg: '#fee2e2', fg: '#991b1b' }
+    warn: { bg: 'var(--warn-bg, #fef3c7)', fg: 'var(--warn-fg, #92400e)' },
+    fail: { bg: 'var(--err-bg, #fee2e2)', fg: 'var(--err-fg, #991b1b)' }
   };
 
   // Returns {state, html} for the #audit-sufficiency mount's INNER content —
@@ -3679,7 +4134,7 @@
     var modules = Array.isArray(sourcing.modules) ? sourcing.modules : [];
     var reqs = Array.isArray(requires) ? requires : [];
     var summary = '<div class="sourcing-decision muted" style="font-size:0.9em;margin:6px 0 2px 0">'
-      + '<strong style="color:#334155">' + e(decision) + '</strong>'
+      + '<strong style="color:var(--text-muted, #334155)">' + e(decision) + '</strong>'
       + (modules.length ? ' &middot; ' + e(modules.join(', ')) : '')
       + (reqs.length ? ' &nbsp;<span title="required capabilities">requires: ' + e(reqs.join(', ')) + '</span>' : '')
       + '</div>';
@@ -3736,13 +4191,80 @@
   // Quality, Reproducibility) plus the Sourcing sub-panel. Quality/
   // Reproducibility MOVED here from the Tests panel's old _loadTestsPanel
   // (spec §3.6/§3.7); their loaders are unchanged, just dispatched from here.
+  // Readiness gaps as the actionable TOP of Audit — the same deterministic
+  // report linter the header "⚠ N readiness gaps" dropdown reads (_reportLint),
+  // but expanded and grouped by check, so the exact fixes to make the study
+  // release-ready lead the audit. Re-computes from the live linter (responsive
+  // to the current study state), AI-free.
+  // Readiness gaps render into the Audit tab (#audit-readiness) — the single
+  // home for the deterministic linter now (the Decide tab's #decide-readiness
+  // mount was removed). The host list stays plural/filtered so a missing mount
+  // is simply skipped. Per-host guard so each populates once.
+  function _renderAuditReadiness(spec) {
+    var hosts = ['audit-readiness', 'decide-readiness']
+      .map(function (id) { return document.getElementById(id); })
+      .filter(function (h) { return h && !h._readinessDone; });
+    if (!hosts.length) return;
+    var _setAll = function (html) { hosts.forEach(function (h) { h.innerHTML = html; h._readinessDone = true; }); };
+    var slug = hosts[0].getAttribute('data-slug') || (spec && spec.name) || studyName() || '';
+    _reportLint().then(function (j) {
+      var findings = (j.findings || []).filter(function (f) { return (f.study || '') === slug; });
+      if (!findings.length) {
+        _setAll('<div style="display:flex;align-items:center;gap:8px;padding:10px 13px;'
+          + 'border:1px solid #bbf7d0;background:var(--ok-bg, #f0fdf4);border-radius:8px;font-size:0.9em;color:var(--ok-fg, #166534)">'
+          + '<strong>✓ Ready</strong><span style="color:var(--ok-fg, #166534)">no readiness gaps — the report '
+          + 'linter finds nothing to fix.</span></div>');
+        return;
+      }
+      var sev = { error: 0, warning: 0, info: 0 };
+      findings.forEach(function (f) { var s = f.severity || 'info'; if (sev[s] != null) sev[s]++; else sev.info++; });
+      var gaps = sev.error + sev.warning;
+      var byCheck = {};
+      findings.forEach(function (f) { var c = f.check || 'other'; (byCheck[c] = byCheck[c] || []).push(f); });
+      var checks = Object.keys(byCheck).sort(function (a, b) { return byCheck[b].length - byCheck[a].length; });
+      var groups = checks.map(function (c) {
+        var items = byCheck[c].map(function (f) {
+          var s = f.severity || 'info';
+          var dot = s === 'error' ? 'var(--err-fg, #dc2626)' : (s === 'warning' ? '#f59e0b' : 'var(--info-fg, #3b82f6)');
+          var fix = f.fix || f.hint || f.suggestion || '';
+          var loc = f.field_path ? ' <code style="font-size:0.78em;color:var(--text-muted, #94a3b8)">' + _esc(f.field_path) + '</code>' : '';
+          return '<li style="margin-top:5px;line-height:1.4"><span style="color:' + dot + ';font-weight:700">●</span> '
+            + _esc(f.message || '') + loc
+            + (fix ? '<div class="muted" style="margin:2px 0 0 16px;font-size:0.92em">→ ' + _esc(fix) + '</div>' : '')
+            + '</li>';
+        }).join('');
+        return '<div style="margin-top:10px"><code>' + _esc(c) + '</code> '
+          + '<span class="muted" style="font-size:0.82em">(' + byCheck[c].length + ')</span>'
+          + '<ul style="margin:3px 0 0 18px;font-size:0.9em;padding:0;list-style:none">' + items + '</ul></div>';
+      }).join('');
+      var headColor = sev.error ? 'var(--err-fg, #dc2626)' : (sev.warning ? 'var(--warn-fg, #92400e)' : 'var(--info-fg, #1e40af)');
+      var counts = [];
+      if (sev.error) counts.push(sev.error + ' error' + (sev.error === 1 ? '' : 's'));
+      if (sev.warning) counts.push(sev.warning + ' warning' + (sev.warning === 1 ? '' : 's'));
+      if (sev.info) counts.push(sev.info + ' note' + (sev.info === 1 ? '' : 's'));
+      _setAll(
+        '<div style="border:1px solid var(--warn-border, #fde68a);background:var(--warn-bg, #fffbeb);border-radius:8px;padding:12px 14px">'
+        + '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">'
+        + '<strong style="color:' + headColor + ';font-size:1.02em">⚠ ' + gaps + ' readiness gap'
+        + (gaps === 1 ? '' : 's') + ' to close</strong>'
+        + '<span class="muted" style="font-size:0.82em">' + _esc(counts.join(' · ')) + '</span>'
+        + '<span class="muted" style="font-size:0.82em;margin-left:auto">code-computed — report linter (deterministic)</span>'
+        + '</div>' + groups + '</div>');
+    }).catch(function () { /* allow retry on next tab open (no host marked done) */ });
+  }
+  window._renderAuditReadiness = _renderAuditReadiness;
+
   function _loadAudit(spec) {
+    _renderAuditReadiness(spec);
     _loadAuditSufficiency(spec);
     _loadQualityChecks(spec);
     _loadReproducibilityChecks(spec);
     _loadAuditSourcing(spec);
   }
   window._loadAudit = _loadAudit;
+
+  // (The typed-interface contract table used to render here too; it was a
+  // duplicate of the Model tab's and now lives in Model only.)
 
   // ── Build tab (Assurance) — model-build loop provenance ──────────────────
   // GET /api/study-loop-state?study=<slug> → viva_superpowers.loop_state
@@ -3753,14 +4275,14 @@
   // never run through /viva-model-build — the common case, not an error.
   var _BUILD_STATE_COLORS = {
     DONE: { bg: '#d1fae5', fg: '#065f46' },
-    GIVE_UP: { bg: '#fee2e2', fg: '#991b1b' }
+    GIVE_UP: { bg: 'var(--err-bg, #fee2e2)', fg: 'var(--err-fg, #991b1b)' }
   };
 
   // verdict → colors for per-test margin cells (matches the audit-panel vocabulary)
   var _LOOP_VERDICT_COLORS = {
     within_tol: { bg: '#d1fae5', fg: '#065f46' },
-    drift: { bg: '#fef3c7', fg: '#92400e' },
-    mismatch: { bg: '#fee2e2', fg: '#991b1b' }
+    drift: { bg: 'var(--warn-bg, #fef3c7)', fg: 'var(--warn-fg, #92400e)' },
+    mismatch: { bg: 'var(--err-bg, #fee2e2)', fg: 'var(--err-fg, #991b1b)' }
   };
 
   // The integrity ribbon — the honesty guarantees at a glance.
@@ -3771,8 +4293,8 @@
     var priorHashes = prereg.prior_hashes || [];
     var rb = function (label, val, ok) {
       return '<span style="font-family:ui-monospace,Menlo,monospace;font-size:0.72rem;padding:3px 9px;'
-        + 'border-radius:8px;border:1px solid #e2e8f0;background:#fff;color:#64748b">' + e(label)
-        + ' <strong style="color:' + (ok ? '#059669' : '#0f172a') + '">' + e(val) + '</strong></span>';
+        + 'border-radius:8px;border:1px solid var(--border, #e2e8f0);background:var(--card, #fff);color:var(--text-muted, #64748b)">' + e(label)
+        + ' <strong style="color:' + (ok ? 'var(--ok-fg, #059669)' : 'var(--text, #0f172a)') + '">' + e(val) + '</strong></span>';
     };
     var reopens = state.reopen_count != null ? state.reopen_count : 0;
     return '<div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:10px">'
@@ -3781,7 +4303,7 @@
       + rb('reopens', reopens, reopens === 0)
       + (priorHashes.length ? rb('prior hashes', priorHashes.length, false) : '')
       + '<span style="font-family:ui-monospace,Menlo,monospace;font-size:0.72rem;padding:3px 9px;border-radius:8px;'
-      + 'border:1px solid #e2e8f0;background:#fff;color:#64748b" title="locked-tests hash">'
+      + 'border:1px solid var(--border, #e2e8f0);background:var(--card, #fff);color:var(--text-muted, #64748b)" title="locked-tests hash">'
       + e((state.locked_tests_hash || 'not locked').slice(0, 20)) + '…</span></div>';
   }
 
@@ -3802,15 +4324,15 @@
     var rows = names.map(function (nm) {
       var cells = history.map(function (h) {
         var t = (h.tests || []).filter(function (x) { return x.name === nm; })[0];
-        if (!t) return '<td style="color:#cbd5e1">—</td>';
-        var c = _LOOP_VERDICT_COLORS[t.verdict] || { bg: '#f8fafc', fg: '#64748b' };
+        if (!t) return '<td style="color:var(--border, #cbd5e1)">—</td>';
+        var c = _LOOP_VERDICT_COLORS[t.verdict] || { bg: 'var(--subtle, #f8fafc)', fg: 'var(--text-muted, #64748b)' };
         var m = (t.margin == null) ? '—' : (t.margin >= 0 ? '+' : '') + Number(t.margin).toFixed(2);
         return '<td style="background:' + c.bg + ';color:' + c.fg + ';font-family:ui-monospace,Menlo,monospace">' + e(m) + '</td>';
       }).join('');
       return '<tr><td style="text-align:left;font-weight:600">' + e(nm) + '</td>' + cells + '</tr>';
     }).join('');
     return '<div style="margin-top:12px"><strong style="font-size:0.9em">Iteration trajectory</strong>'
-      + '<div style="overflow-x:auto;border:1px solid #e2e8f0;border-radius:10px;margin-top:6px">'
+      + '<div style="overflow-x:auto;border:1px solid var(--border, #e2e8f0);border-radius:10px;margin-top:6px">'
       + '<table style="border-collapse:collapse;width:100%;font-size:0.78rem;text-align:center">'
       + '<thead><tr>' + head + '</tr></thead><tbody>' + rows + '</tbody></table></div>'
       + '<p class="muted" style="font-size:0.78rem;margin:6px 0 0">Each cell is the real signed margin to the band edge; green→met, red→missed. Read a row to watch one test converge.</p></div>';
@@ -3824,10 +4346,10 @@
       var md = (h && h.margin_deltas) || {};
       var deltas = Object.keys(md).map(function (k) {
         var v = md[k]; var s = (typeof v === 'number') ? (v >= 0 ? '+' : '') + v.toFixed(2) : v;
-        return '<code style="font-size:0.75rem;background:#f1f5f9;padding:1px 5px;border-radius:4px;margin-right:4px">' + e(k) + ' ' + e(s) + '</code>';
+        return '<code style="font-size:0.75rem;background:var(--chip, #f1f5f9);padding:1px 5px;border-radius:4px;margin-right:4px">' + e(k) + ' ' + e(s) + '</code>';
       }).join('');
-      var g = _LOOP_VERDICT_COLORS[(h && h.gate) === 'pass' ? 'within_tol' : (h && h.gate) === 'warn' ? 'drift' : 'mismatch'] || { bg: '#f1f5f9', fg: '#475569' };
-      return '<li style="padding:8px 0;border-top:1px solid #f1f5f9;font-size:0.86em">'
+      var g = _LOOP_VERDICT_COLORS[(h && h.gate) === 'pass' ? 'within_tol' : (h && h.gate) === 'warn' ? 'drift' : 'mismatch'] || { bg: 'var(--chip, #f1f5f9)', fg: 'var(--text-muted, #475569)' };
+      return '<li style="padding:8px 0;border-top:1px solid var(--chip, #f1f5f9);font-size:0.86em">'
         + '<span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
         + '<strong>iter ' + e((h && h.iteration) != null ? h.iteration : '') + '</strong>'
         + '<span>' + e((h && h.edit) || '') + (h && h.target ? ' &rarr; <code>' + e(h.target) + '</code>' : '') + '</span>'
@@ -3842,12 +4364,20 @@
   function _buildPanelHtml(state) {
     var e = escapeHtmlForTests;
     if (!state || !state.present) {
-      var reason = (state && state.reason)
-        || 'This study was not built via the agentic model-building loop (/viva-model-build).';
-      return '<p class="empty-message">' + e(reason) + '</p>';
+      // Directly-authored studies have no loop artifact (.pbg/loop/<study>.json
+      // is written only by /viva-model-build). Explain that plainly and point to
+      // where the model + its bar actually live, instead of a bare dead-end.
+      return '<div class="empty-message">'
+        + '<p>This model was <strong>authored directly</strong> — wrapped and composed via '
+        + '<code>/viva-expert</code> — not iterated through the <code>/viva-model-build</code> loop '
+        + 'that records a draft → frozen-tests → iteration trajectory. There is no loop '
+        + 'provenance to show here.</p>'
+        + '<p style="margin-top:8px">See <strong>Model</strong> for the composite structure and '
+        + '<strong>Tests</strong> for the behavior tests this model has to clear.</p>'
+        + '</div>';
     }
     var history = state.history || [];
-    var sc = _BUILD_STATE_COLORS[state.state] || { bg: '#f1f5f9', fg: '#475569' };
+    var sc = _BUILD_STATE_COLORS[state.state] || { bg: 'var(--chip, #f1f5f9)', fg: 'var(--text-muted, #475569)' };
     // header + state chip
     var html = '<div class="check-group-header" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
       + '<strong>Was it earned?</strong> <span class="muted" style="font-size:0.85em">the model-building loop &mdash; '
@@ -3874,7 +4404,36 @@
     if (history.length) {
       html += _renderMarginMatrix(history) || _renderIterationLadder(history);
     }
+    // Agent notes + conversation — the loop's running commentary, rendered only
+    // when the loop recorded it (viva_superpowers.loop_state).
+    html += _renderBuildNotes(state);
     return html;
+  }
+
+  // Agent notes (free text / list) + the build conversation (role-tagged turns),
+  // surfaced when the loop artifact carries them. Absent → renders nothing.
+  function _renderBuildNotes(state) {
+    var e = escapeHtmlForTests;
+    var out = '';
+    var notes = state && state.notes;
+    if (notes) {
+      var txt = Array.isArray(notes) ? notes.join('\n') : String(notes);
+      out += '<div style="margin-top:14px"><strong style="font-size:0.9em">Agent notes</strong>'
+        + '<div style="margin-top:4px;font-size:0.86em;white-space:pre-wrap;color:var(--text-muted, #475569)">' + e(txt) + '</div></div>';
+    }
+    var conv = state && state.conversation;
+    if (Array.isArray(conv) && conv.length) {
+      var turns = conv.map(function (m) {
+        var role = (m && m.role) ? m.role : '';
+        var text = (m && (m.text || m.content)) ? (m.text || m.content) : (typeof m === 'string' ? m : '');
+        return '<li style="padding:6px 0;border-top:1px solid var(--chip, #f1f5f9);font-size:0.85em">'
+          + (role ? '<strong>' + e(role) + ':</strong> ' : '') + e(text) + '</li>';
+      }).join('');
+      out += '<details style="margin-top:12px"><summary class="muted" style="cursor:pointer;font-size:0.88em">'
+        + 'Build conversation (' + conv.length + ')</summary>'
+        + '<ul style="list-style:none;padding-left:0;margin:6px 0 0">' + turns + '</ul></details>';
+    }
+    return out;
   }
 
   var _buildLoaded = false;
@@ -3990,9 +4549,9 @@
   // by hand; both read the same closed result vocabulary).
   var _TEST_RESULT_PILL = {
     PASS: ['#d1fae5', '#065f46', '✓ PASS'],
-    FAIL: ['#fee2e2', '#991b1b', '✗ FAIL'],
-    SKIP: ['#fef3c7', '#92400e', '⏭ SKIP'],
-    PARTIAL: ['#fde68a', '#92400e', '◐ PARTIAL']
+    FAIL: ['var(--err-bg, #fee2e2)', 'var(--err-fg, #991b1b)', '✗ FAIL'],
+    SKIP: ['var(--warn-bg, #fef3c7)', 'var(--warn-fg, #92400e)', '⏭ SKIP'],
+    PARTIAL: ['var(--warn-border, #fde68a)', 'var(--warn-fg, #92400e)', '◐ PARTIAL']
   };
 
   // Classification badge tint — mirrors the four-way border colour the
@@ -4001,10 +4560,10 @@
   // spelling for this task) mapped onto the same blue as "supporting".
   var _CLASS_BADGE = {
     primary: ['#d1fae5', '#065f46'],
-    secondary: ['#dbeafe', '#1e3a8a'],
-    supporting: ['#dbeafe', '#1e3a8a'],
-    diagnostic: ['#fef3c7', '#92400e'],
-    regression: ['#f1f5f9', '#475569']
+    secondary: ['var(--info-bg, #dbeafe)', '#1e3a8a'],
+    supporting: ['var(--info-bg, #dbeafe)', '#1e3a8a'],
+    diagnostic: ['var(--warn-bg, #fef3c7)', 'var(--warn-fg, #92400e)'],
+    regression: ['var(--chip, #f1f5f9)', 'var(--text-muted, #475569)']
   };
 
   // Format a number for display: integers print bare, everything else is
@@ -4080,14 +4639,14 @@
     width = Math.max(width, 1.5);
     var marginLabel = '';
     if (typeof axis.margin === 'number' && isFinite(axis.margin)) {
-      marginLabel = '<span style="color:#475569;font-size:0.82em;font-variant-numeric:tabular-nums">'
+      marginLabel = '<span style="color:var(--text-muted, #475569);font-size:0.82em;font-variant-numeric:tabular-nums">'
         + 'Δ-to-pass ' + (axis.margin >= 0 ? '+' : '') + axis.margin.toPrecision(3)
         + (axis.severity ? ' · ' + escapeHtmlForTests(String(axis.severity)) : '') + '</span>';
     }
     return '<div style="display:flex;align-items:center;gap:8px;margin-top:8px">'
-      + '<div style="position:relative;height:9px;flex:1;max-width:220px;background:#eef2f7;'
+      + '<div style="position:relative;height:9px;flex:1;max-width:220px;background:var(--subtle, #eef2f7);'
         + 'border-radius:5px" title="pass boundary at centre">'
-      + '<div style="position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:#94a3b8"></div>'
+      + '<div style="position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--text-muted, #94a3b8)"></div>'
       + '<div style="position:absolute;left:' + left.toFixed(1) + '%;width:' + width.toFixed(1) + '%;'
         + 'top:0;bottom:0;background:' + color + ';border-radius:5px;opacity:0.85"></div>'
       + '</div>' + marginLabel + '</div>';
@@ -4136,7 +4695,7 @@
     test = test || {};
     var name = test.name || '(unnamed)';
     var cls = test.classification || 'unclassified';
-    var clsColor = _CLASS_BADGE[cls] || ['#f1f5f9', '#475569'];
+    var clsColor = _CLASS_BADGE[cls] || ['var(--chip, #f1f5f9)', 'var(--text-muted, #475569)'];
     var axis = (outcome && outcome.axis && typeof outcome.axis === 'object') ? outcome.axis : null;
     var vKey = (axis && axis.verdict) || 'ungraded';
     var vColor = (_RC_GL[vKey] || _RC_GL.ungraded)[0];
@@ -4145,7 +4704,7 @@
 
     // 1. Header — name · classification badge · verdict chip · result pill.
     var header = '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
-      + '<strong style="font-size:0.95em;color:#111827">' + e(name) + '</strong>'
+      + '<strong style="font-size:0.95em;color:var(--text, #111827)">' + e(name) + '</strong>'
       + '<span style="font-size:0.7em;font-weight:600;padding:2px 9px;border-radius:9999px;'
         + 'background:' + clsColor[0] + ';color:' + clsColor[1] + '">' + e(cls) + '</span>'
       + '<span style="font-size:0.72em;font-family:monospace;padding:2px 10px;border-radius:9999px;'
@@ -4162,21 +4721,30 @@
 
     // 2. What it checks.
     var whatItChecks = test.description
-      ? '<div style="margin-top:6px;font-size:0.92em;color:#334155">' + e(String(test.description)) + '</div>'
+      ? '<div style="margin-top:6px;font-size:0.92em;color:var(--text-muted, #334155)">' + e(String(test.description)) + '</div>'
       : '';
 
-    // 3. Band + measured.
+    // 3. Band + measured — carry the test's declared UNITS onto both the
+    // expected range and the measured value so the card reads as a quantity
+    // (e.g. "expected within [40, 91] °C · measured: 59 °C"), not a bare number.
     var passIf = test.pass_if || test.expect || null;
+    var units = (test.units != null && String(test.units).trim()) ? String(test.units).trim() : '';
+    var dimless = (units === '' || units === 'dimensionless' || units === '1');
+    var uSuffix = dimless ? '' : (' ' + units);
     var bandText = _humanPassIf(passIf);
+    if (bandText && uSuffix) bandText += uSuffix;
     var mv = outcome ? outcome.measured_value : null;
     var mvText;
     if (mv == null) mvText = '—  (not yet graded)';
-    else if (typeof mv === 'number') mvText = _fmtNum(mv);
+    else if (typeof mv === 'number') mvText = _fmtNum(mv) + uSuffix;
     else if (typeof mv === 'object') { try { mvText = JSON.stringify(mv); } catch (err) { mvText = String(mv); } }
     else mvText = String(mv);
-    var bandLine = '<div style="margin-top:8px;font-size:0.85em;color:#475569">'
+    var unitTag = (units && dimless)
+      ? ' <span class="muted" style="font-size:0.9em">· ' + e(units) + '</span>' : '';
+    var bandLine = '<div style="margin-top:8px;font-size:0.85em;color:var(--text-muted, #475569)">'
       + (bandText ? e(bandText) : '<span class="muted">no pass_if band declared</span>')
       + ' <span style="margin-left:10px"><strong>measured:</strong> ' + e(mvText) + '</span>'
+      + unitTag
       + '</div>';
 
     // 4. Margin bar — fixed: this MUST read axis.meter (check() already
@@ -4196,7 +4764,8 @@
     var cites = (passIf && passIf.cites) || test.cites || [];
     var anchor = (passIf && passIf.calibration_anchor) || test.calibration_anchor || null;
     var evidenceBits = [];
-    if (prov.note) evidenceBits.push('<span class="muted">basis:</span> ' + e(String(prov.note)));
+    var basisNote = prov.note || test.band_basis || null;
+    if (basisNote) evidenceBits.push('<span class="muted">basis:</span> ' + e(String(basisNote)));
     if (Array.isArray(cites) && cites.length) {
       evidenceBits.push('<span class="muted">cites:</span> ' + e(cites.join('; ')));
     }
@@ -4205,8 +4774,8 @@
       evidenceBits.push('<span class="muted">calibration anchor:</span> ' + e(anchorText));
     }
     var evidence = evidenceBits.length
-      ? '<div style="margin-top:8px;font-size:0.82em;color:#475569;padding:6px 8px;'
-        + 'background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px">'
+      ? '<div style="margin-top:8px;font-size:0.82em;color:var(--text-muted, #475569);padding:6px 8px;'
+        + 'background:var(--subtle, #f8fafc);border:1px solid var(--border, #e2e8f0);border-radius:4px">'
         + evidenceBits.join('<br>') + '</div>'
       : '';
 
@@ -4236,7 +4805,7 @@
       runIdent = _canonRun ? (_canonRun.run_id || _canonRun.name) : null;
     }
     var runLink = runIdent
-      ? '<a href="#run-' + e(runIdent) + '" onclick="_setStudyTab(\'simulate\')" style="color:#3b82f6">'
+      ? '<a href="#run-' + e(runIdent) + '" onclick="_setStudyTab(\'simulate\')" style="color:var(--info-fg, #3b82f6)">'
         + 'from run ' + e(runIdent) + ' ↗</a>'
       : '<span class="muted">no run recorded yet</span>';
     var assertionRaw;
@@ -4248,7 +4817,7 @@
     var footer = '<div style="margin-top:8px;font-size:0.82em">' + runLink + '</div>'
       + '<details style="margin-top:6px;font-size:0.82em">'
       + '<summary class="muted" style="cursor:pointer">Assertion</summary>'
-      + '<pre style="background:#fff;padding:8px;margin:4px 0 0 0;border:1px solid #e2e8f0;'
+      + '<pre style="background:var(--card, #fff);padding:8px;margin:4px 0 0 0;border:1px solid var(--border, #e2e8f0);'
         + 'border-radius:3px;overflow-x:auto">' + e(assertionRaw) + '</pre></details>';
 
     return '<div class="test-report-card" data-verdict="' + e(vKey) + '">'
@@ -4370,6 +4939,32 @@
         }).forEach(function (li) { _testsList.appendChild(li); });
       }
     }
+
+    // Unify under Audit: render each behavior test's chart (source: 'live')
+    // inside its own #bt-<name> card, so a test's verdict and its chart live
+    // together — the Visualizations tab shows only study/author figures. Charts
+    // with no image (a declared observable with no run data) carry no new signal
+    // beyond the test's own verdict, so they are skipped here rather than shown
+    // as empty cards.
+    try {
+      window.DataSource.loadStudyCharts(studyName()).then(function (d) {
+        if (!d || !d.charts) return;
+        d.charts.forEach(function (c) {
+          if (c.source !== 'live' || !c.key) return;
+          if (!(c.svg || c.img || c.iframe_url || c.srcdoc)) return;
+          var li = document.getElementById('bt-' + String(c.key).replace(/^v4-/, ''));
+          if (!li) return;
+          var old = li.querySelector('.bt-chart');
+          if (old && old.parentNode) old.parentNode.removeChild(old);  // idempotent
+          var wrap = document.createElement('div');
+          wrap.className = 'bt-chart';
+          wrap.style.marginTop = '10px';
+          wrap.innerHTML = _renderChartCard(c);
+          li.appendChild(wrap);
+          _wireFigureRunLinks(wrap);
+        });
+      }).catch(function () {});
+    } catch (e) {}
 
     // --- Per-test code-computed outcomes (spine B3) ---------------------
     // NOTE (Task 4.2): this is a SEPARATE, parallel data surface
@@ -4499,23 +5094,23 @@
     if (a && (a.result != null)) {
       authoredChip =
         ' <span class="outcome-chip outcome-chip-authored" ' +
-        'style="display:inline-block;padding:4px 8px;border-radius:4px;background:#f8fafc;' +
-        'border:1px solid #e2e8f0;color:#475569;font-size:0.82em">' +
+        'style="display:inline-block;padding:4px 8px;border-radius:4px;background:var(--subtle, #f8fafc);' +
+        'border:1px solid var(--border, #e2e8f0);color:var(--text-muted, #475569);font-size:0.82em">' +
         '<span class="muted" style="font-size:0.85em">authored</span> ' +
         '<strong>' + e(String(a.result)) + '</strong></span>';
     }
 
     var divBadge = divergent
       ? ' <span class="reconcile-divergent" ' +
-        'style="display:inline-block;padding:4px 8px;border-radius:4px;background:#fee2e2;' +
-        'border:1px solid #fca5a5;color:#991b1b;font-weight:600;font-size:0.82em">' +
+        'style="display:inline-block;padding:4px 8px;border-radius:4px;background:var(--err-bg, #fee2e2);' +
+        'border:1px solid #fca5a5;color:var(--err-fg, #991b1b);font-weight:600;font-size:0.82em">' +
         '⚠ reconcile: divergent</span>'
       : '';
 
     var runLink = runIdent
       ? '<div class="muted small" style="margin-top:4px">from run ' +
         '<a href="#run-' + e(runIdent) + '" onclick="_setStudyTab(\'simulate\')" ' +
-        'style="color:#3b82f6">' + e(runIdent) + '</a></div>'
+        'style="color:var(--info-fg, #3b82f6)">' + e(runIdent) + '</a></div>'
       : '';
 
     var bandLine = passIf
@@ -4528,8 +5123,8 @@
       : '';
 
     return '<div class="computed-outcome-row" ' +
-      'style="margin-top:6px;padding:8px 10px;background:#fff;border:1px solid ' +
-      (divergent ? '#fca5a5' : '#e2e8f0') + ';border-radius:4px;font-size:0.85em">' +
+      'style="margin-top:6px;padding:8px 10px;background:var(--card, #fff);border:1px solid ' +
+      (divergent ? '#fca5a5' : 'var(--border, #e2e8f0)') + ';border-radius:4px;font-size:0.85em">' +
       '<div><strong>measured_value:</strong> <code>' + e(mvStr) + '</code></div>' +
       '<div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">' +
       codeChip + authoredChip + divBadge + '</div>' +
@@ -4682,6 +5277,75 @@
     });
   }
 
+  // ── Planned-design helpers (Design-phase studies) ───────────────────────
+  // A study is authored at Design before any composite is built. Render its
+  // declared bigraph-schema contract (typed-ports face + conservation
+  // predicates), proposed mechanisms, and proposed models/methods so the
+  // Model + Audit tabs show the PLANNED design instead of a blank "no
+  // composite yet" panel. Pure render; all strings escaped.
+  function _pdBounds(sch) {
+    var lo = (sch && sch._min != null) ? sch._min : null;
+    var hi = (sch && sch._max != null) ? sch._max : null;
+    if (lo == null && hi == null) return '—';
+    return (lo == null ? '−∞' : lo) + ' .. ' + (hi == null ? '∞' : hi);
+  }
+  function _pdPortRows(face, dir) {
+    var ports = (face && face[dir]) || {};
+    return Object.keys(ports).map(function (n) {
+      var s = ports[n] || {};
+      return '<tr><td><code>' + _esc(n) + '</code></td><td class="muted">' + _esc(dir) +
+        '</td><td>' + _esc(s._type || '—') + '</td><td>' + _esc(s._units || '—') +
+        '</td><td class="muted">' + _esc(_pdBounds(s)) + '</td></tr>';
+    }).join('');
+  }
+  function _pdContractHtml(contract, title) {
+    contract = contract || {};
+    var face = contract.face || {};
+    var rows = _pdPortRows(face, 'inputs') + _pdPortRows(face, 'outputs');
+    var conds = contract.conditions || [];
+    if (!rows && !conds.length) return '';
+    var h = '<div class="overview-section planned-contract" style="margin-top:14px">' +
+      '<h2 class="overview-label">' + _esc(title || '§ Contract — declared interface') + '</h2>';
+    if (rows) {
+      h += '<table class="planned-contract-table" style="width:100%;border-collapse:collapse;font-size:0.9em">' +
+        '<thead><tr style="text-align:left;color:var(--text-muted, #475569);border-bottom:1px solid var(--border, #e2e8f0)">' +
+        '<th style="padding:3px 6px">port</th><th style="padding:3px 6px">dir</th>' +
+        '<th style="padding:3px 6px">type</th><th style="padding:3px 6px">units</th>' +
+        '<th style="padding:3px 6px">bounds</th></tr></thead><tbody>' + rows + '</tbody></table>';
+    }
+    if (conds.length) {
+      h += '<div style="margin-top:8px"><strong style="font-size:0.9em">Conservation predicates</strong>' +
+        '<ul style="margin:4px 0 0 0">' + conds.map(function (c) {
+          c = c || {};
+          return '<li><code>' + _esc(c.name || c.kind || 'invariant') + '</code>' +
+            (c.expr ? ' <span class="muted">— ' + _esc(c.expr) + '</span>' : '') + '</li>';
+        }).join('') + '</ul></div>';
+    }
+    if (contract.note) h += '<p class="muted" style="font-size:0.82em;margin-top:6px">' + _esc(contract.note) + '</p>';
+    return h + '</div>';
+  }
+  function _pdListHtml(title, arr) {
+    arr = Array.isArray(arr) ? arr : [];
+    if (!arr.length) return '';
+    return '<div class="overview-section" style="margin-top:14px">' +
+      '<h2 class="overview-label">' + _esc(title) + '</h2>' +
+      '<ul style="margin:4px 0 0 0">' + arr.map(function (x) {
+        return '<li>' + _esc(String(x)) + '</li>';
+      }).join('') + '</ul></div>';
+  }
+  // Ensure a slot div with `id` exists in `parent` (prepended, or appended when
+  // atEnd), so repeated renders reuse it rather than stacking.
+  function _pdSlot(parent, id, atEnd) {
+    if (!parent) return null;
+    var el = document.getElementById(id);
+    if (!el) {
+      el = document.createElement('div');
+      el.id = id;
+      if (atEnd) parent.appendChild(el); else parent.insertBefore(el, parent.firstChild);
+    }
+    return el;
+  }
+
   function _renderFeedbackTrackedPanel() {
     var container = document.getElementById('feedback-tracked-panel');
     if (!container) return;               // anchor missing — template version mismatch
@@ -4700,9 +5364,9 @@
 
     // Status badge colours
     var badgeCss = {
-      open:      'background:#fef3c7;color:#92400e;',
+      open:      'background:var(--warn-bg, #fef3c7);color:var(--warn-fg, #92400e);',
       addressed: 'background:#d1fae5;color:#065f46;',
-      dismissed: 'background:#f1f5f9;color:#64748b;text-decoration:line-through;',
+      dismissed: 'background:var(--chip, #f1f5f9);color:var(--text-muted, #64748b);text-decoration:line-through;',
     };
 
     var itemsHtml = '';
@@ -4738,7 +5402,7 @@
         // .responded_at, same source). Always rendered — "unattributed" when
         // no responder is recorded, never silently omitted.
         responseHtml =
-          '<div style="margin:6px 0 0 0;padding:8px 12px;background:#f0fdf4;' +
+          '<div style="margin:6px 0 0 0;padding:8px 12px;background:var(--ok-bg, #f0fdf4);' +
           'border-left:3px solid #10b981;border-radius:4px;font-size:0.88em">' +
           '<strong style="font-size:0.85em;color:#065f46">Response — ' +
           '<span class="actor-glyph" title="actor kind: ' + _esc(actorKind(item.responded_by)) + '">' +
@@ -4751,7 +5415,7 @@
       }
 
       itemsHtml +=
-        '<div style="padding:10px 14px;border-bottom:1px solid #f1f5f9">' +
+        '<div style="padding:10px 14px;border-bottom:1px solid var(--chip, #f1f5f9)">' +
         '<div style="display:flex;align-items:flex-start;gap:6px;flex-wrap:wrap;margin-bottom:4px">' +
         badgeHtml + metaHtml +
         '</div>' +
@@ -4762,9 +5426,9 @@
 
     var summaryHtml =
       '<span style="font-size:0.9em">' +
-      '<span style="color:#92400e">' + openCt + ' open</span>' +
+      '<span style="color:var(--warn-fg, #92400e)">' + openCt + ' open</span>' +
       ' / <span style="color:#065f46">' + addrCt + ' addressed</span>' +
-      ' / <span style="color:#64748b">' + disCt + ' dismissed</span>' +
+      ' / <span style="color:var(--text-muted, #64748b)">' + disCt + ' dismissed</span>' +
       ' <span class="muted">(' + total + ' total)</span>' +
       '</span>';
 
@@ -4778,7 +5442,7 @@
       '<div class="overview-section" style="margin-top:18px">' +
       '<h2 class="overview-label">Expert Feedback</h2>' +
       '<div style="margin-bottom:10px">' + summaryHtml + '</div>' +
-      '<div style="border:1px solid #e2e8f0;border-radius:6px;overflow:hidden">' +
+      '<div style="border:1px solid var(--border, #e2e8f0);border-radius:6px;overflow:hidden">' +
       itemsHtml +
       '</div>' +
       actionsSectionHtml +
@@ -4793,10 +5457,10 @@
   // are no actions to show. Pure render — escapes all text.
   function _actionBadgeCss(status) {
     return ({
-      open:      'background:#fef3c7;color:#92400e;',
+      open:      'background:var(--warn-bg, #fef3c7);color:var(--warn-fg, #92400e);',
       applied:   'background:#d1fae5;color:#065f46;',
-      dismissed: 'background:#f1f5f9;color:#64748b;text-decoration:line-through;',
-    })[status] || 'background:#fef3c7;color:#92400e;';
+      dismissed: 'background:var(--chip, #f1f5f9);color:var(--text-muted, #64748b);text-decoration:line-through;',
+    })[status] || 'background:var(--warn-bg, #fef3c7);color:var(--warn-fg, #92400e);';
   }
 
   function _renderFeedbackActionsSection() {
@@ -4828,7 +5492,7 @@
           'color:#3730a3;border-radius:4px;cursor:pointer">Apply</button>'
         : '';
       rows +=
-        '<div style="padding:8px 14px;border-bottom:1px solid #f1f5f9">' +
+        '<div style="padding:8px 14px;border-bottom:1px solid var(--chip, #f1f5f9)">' +
         '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">' +
         badge + kindChip + target + applyBtn +
         '</div>' +
@@ -4841,8 +5505,8 @@
 
     return (
       '<div style="margin-top:12px">' +
-      '<h3 style="font-size:0.9em;color:#475569;margin:0 0 6px 0">Proposed Actions</h3>' +
-      '<div style="border:1px solid #e2e8f0;border-radius:6px;overflow:hidden">' +
+      '<h3 style="font-size:0.9em;color:var(--text-muted, #475569);margin:0 0 6px 0">Proposed Actions</h3>' +
+      '<div style="border:1px solid var(--border, #e2e8f0);border-radius:6px;overflow:hidden">' +
       rows +
       '</div>' +
       '</div>'
@@ -4891,7 +5555,7 @@
   function _showStudyLoadError(e) {
     var el = document.getElementById('study-root') || document.body;
     el.innerHTML =
-      '<div style="padding:2rem;color:#dc2626">' +
+      '<div style="padding:2rem;color:var(--err-fg, #dc2626)">' +
       'Could not load study data: ' + String(e && e.message || e) +
       '</div>';
   }
@@ -4908,22 +5572,60 @@
     return !!window._study;
   }
 
+  // Open questions / decisions (Overview) — surface the study's
+  // expert_questions so the reviewer sees what this study needs decided.
+  function _renderPlanningOverview() {
+    var eq = Array.isArray((window._study || {}).expert_questions)
+      ? window._study.expert_questions : [];
+    var slot = _pdSlot(document.getElementById('panel-overview'), 'overview-expert-questions', true);
+    if (!slot) return;
+    slot.innerHTML = eq.length
+      ? '<div class="overview-section" style="margin-top:18px">' +
+          '<h2 class="overview-label">Open questions / decisions</h2>' +
+          '<ul style="margin:4px 0 0 0">' + eq.map(function (x) {
+            return '<li>' + _esc(String(x)) + '</li>';
+          }).join('') + '</ul></div>'
+      : '';
+  }
+
+  // 5-tab layout: a ?tab=<kind> deep-link (or a #hash) naming a tab that was
+  // folded into another now resolves to its new home — and, for Results/
+  // Analyses, to the right Simulations subtab. Returns {tab, sub?}.
+  var _REMOVED_TAB_HOME = {
+    readouts:   { tab: 'compose' },
+    build:      { tab: 'compose' },
+    tests:      { tab: 'audit' },
+    results:    { tab: 'simulate', sub: 'results' },
+    analyses:   { tab: 'simulate', sub: 'analysis' }
+  };
+  function _resolveStudyTab(kind) {
+    if (!kind) return null;
+    if (_REMOVED_TAB_HOME[kind]) return _REMOVED_TAB_HOME[kind];
+    if (document.querySelector('.study-pillar[data-kind="' + kind + '"]')) return { tab: kind };
+    return null;
+  }
+
   function _runStudyInit() {
     // All renderers that need window._study to be populated.
+    _renderPlanningOverview();
     _renderFeedbackTrackedPanel();
-    _renderReadinessPanel();
+    _renderStudyAxisMarkers();
     _populateConclusionVerdictBadges();
     _populateBaselineCompositeSelects();
     _loadStudyAnalyses();
     // Open the Overview tab on load — unless a ?tab=<kind> deep-link asks
     // for a specific tab. Needs-attention items link here with
     // ?tab=conclusions so a click lands on the verdict that triggered the alert.
-    var _tab = 'overview';
+    // A deep-link to a now-folded tab (results/analyses/tests/build/readouts)
+    // redirects to its new home (and subtab). `visualize` is a real tab again.
+    var _resolved = { tab: 'overview' };
     try {
       var _q = new URLSearchParams(window.location.search).get('tab');
-      if (_q && document.querySelector('.study-pillar[data-kind="' + _q + '"]')) _tab = _q;
+      var _r = _resolveStudyTab(_q);
+      if (_r) _resolved = _r;
     } catch (_e) { /* no URLSearchParams — keep overview */ }
-    _setStudyTab(_tab);
+    _setStudyTab(_resolved.tab);
+    if (_resolved.sub) _setSimSubtab(_resolved.sub);
   }
 
   // ── item 69 — baseline composite select: populate from the live registry,
@@ -4963,8 +5665,8 @@
       explanatory_gain: { result: 'GAP' }
     };
     var colors = {
-      PASS: ['#dcfce7', '#166534'], PARTIAL: ['#fef3c7', '#92400e'],
-      FAIL: ['#fee2e2', '#991b1b'], GAP: ['#f1f5f9', '#475569'], PENDING: ['#f1f5f9', '#475569']
+      PASS: ['var(--ok-bg, #dcfce7)', 'var(--ok-fg, #166534)'], PARTIAL: ['var(--warn-bg, #fef3c7)', 'var(--warn-fg, #92400e)'],
+      FAIL: ['var(--err-bg, #fee2e2)', 'var(--err-fg, #991b1b)'], GAP: ['var(--chip, #f1f5f9)', 'var(--text-muted, #475569)'], PENDING: ['var(--chip, #f1f5f9)', 'var(--text-muted, #475569)']
     };
     badges.forEach(function(el) {
       var track = el.getAttribute('data-verdict-track');
@@ -4977,8 +5679,8 @@
   }
 
 
-  // Memoized GET /api/report-lint — sole consumer is the readiness panel
-  // below (fetched once, cached for the page's lifetime).
+  // Memoized GET /api/report-lint — consumed by the Audit tab's readiness panel
+  // (_renderAuditReadiness); fetched once, cached for the page's lifetime.
   var _reportLintPromise = null;
   function _reportLint() {
     if (!_reportLintPromise) {
@@ -4989,63 +5691,159 @@
     return _reportLintPromise;
   }
 
-  // Readiness panel: inline "⚠ N readiness gaps" / "✓ ready" link in the
-  // header status row, click-to-expand. Fetches the deterministic report
-  // linter (GET /api/report-lint), filters to THIS study, and buckets by
-  // severity. AI-free — pure deterministic output, connected to its source
-  // (the linter) and labeled as such. Sole consumer of _reportLint.
-  function _renderReadinessPanel() {
-    var container = document.getElementById('readiness-panel');
-    if (!container || container.dataset.rendered) return;
-    container.dataset.rendered = '1';
-    var slug = container.getAttribute('data-slug') || studyName() || '';
-    _reportLint()
-      .then(function (j) {
-        var findings = (j.findings || []).filter(function (f) {
-          return (f.study || '') === slug;
-        });
-        var sev = { error: 0, warning: 0, info: 0 };
-        findings.forEach(function (f) {
-          var s = f.severity || 'info';
-          if (sev[s] != null) sev[s]++; else sev.info++;
-        });
-        var gaps = sev.error + sev.warning;
-        var head, col;
-        if (!findings.length) { head = '✓ ready'; col = '#166534'; }
-        else if (gaps) { head = '⚠ ' + gaps + ' readiness gap' + (gaps === 1 ? '' : 's'); col = '#92400e'; }
-        else { head = 'ℹ ' + sev.info + ' note' + (sev.info === 1 ? '' : 's'); col = '#1e40af'; }
+  // ── Two-axis study markers (Progress × Verdict) ──────────────────────────
+  // The study header shows the SAME two-axis ontology as the investigation-graph
+  // study cards, for continuity. The ontology tables are duplicated here (small,
+  // intentional) because walkthrough.js is NOT guaranteed loaded on the
+  // standalone study page. Mirrors walkthrough.js _EXEC_META / _VERDICT_META /
+  // _VERDICT_ALIASES and the client-side derivation. AI-free — reads only the
+  // study's own fields. Unlike the graph cards, each marker is CLICKABLE and
+  // opens a popover that interrogates the underlying signals.
+  var _EXEC_META = {
+    proposed:  { color: '#94a3b8', icon: '○', label: 'Proposed' },
+    planned:   { color: '#2563eb', icon: '◔', label: 'Planned' },
+    running:   { color: '#ca8a04', icon: '◑', label: 'Running' },
+    completed: { color: '#475569', icon: '●', label: 'Completed' },
+    failed:    { color: '#dc2626', icon: '⊘', label: 'Failed' },
+  };
+  var _VERDICT_META = {
+    supported:    { color: '#16a34a', icon: '◆', label: 'Supported' },
+    qualified:    { color: '#0d9488', icon: '◇', label: 'Qualified' },
+    inconclusive: { color: '#64748b', icon: '◐', label: 'Inconclusive' },
+    refuted:      { color: '#dc2626', icon: '✗', label: 'Refuted' },
+  };
+  var _VERDICT_PENDING = { color: '#94a3b8', icon: '·', label: 'Pending' };
+  var _VERDICT_ALIASES = {
+    supported: 'supported', qualified: 'qualified', inconclusive: 'inconclusive',
+    refuted: 'refuted', 'honest-negative': 'refuted', 'honest_negative': 'refuted',
+    mixed: 'inconclusive',
+  };
 
-        if (!findings.length) {
-          container.innerHTML = '<span class="readiness-inline" style="font-size:0.85em;color:' + col + '" '
-            + 'title="code-computed by the report linter (deterministic)">' + head + '</span>';
-          return;
-        }
-        // Compact link; click toggles the gap breakdown below the status row.
-        var byCheck = {};
-        findings.forEach(function (f) { var c = f.check || 'other'; (byCheck[c] = byCheck[c] || []).push(f); });
-        var checks = Object.keys(byCheck).sort(function (a, b) { return byCheck[b].length - byCheck[a].length; });
-        var breakdown = checks.map(function (c) { return byCheck[c].length + '× ' + _esc(c); }).join(' &nbsp;·&nbsp; ');
-        var groups = checks.map(function (c) {
-          var items = byCheck[c].map(function (f) {
-            var s = f.severity || 'info';
-            var dot = s === 'error' ? '#dc2626' : (s === 'warning' ? '#f59e0b' : '#3b82f6');
-            return '<li style="margin-top:3px"><span style="color:' + dot + ';font-weight:700">●</span> ' + _esc(f.message || '') + '</li>';
-          }).join('');
-          return '<div style="margin-top:9px"><code>' + _esc(c) + '</code> '
-            + '<span class="muted" style="font-size:0.82em">(' + byCheck[c].length + ')</span>'
-            + '<ul style="margin:3px 0 0 18px;font-size:0.9em;padding:0">' + items + '</ul></div>';
-        }).join('');
-        container.innerHTML =
-          '<details class="readiness-inline">'
-          + '<summary style="font-size:0.85em;color:' + col + ';cursor:pointer;list-style:none;outline:none" '
-          + 'title="code-computed by the report linter (deterministic) — click to expand">' + head + '</summary>'
-          + '<div style="margin-top:6px;padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:0.85em" class="readiness-inline-body">'
-          + '<div class="muted" style="font-size:0.9em">' + breakdown + '</div>'
-          + groups
-          + '</div>'
-          + '</details>';
-      })
-      .catch(function () { container.dataset.rendered = ''; });
+  function _lc(v) { return String(v == null ? '' : v).trim().toLowerCase(); }
+
+  // Derive the execution (Progress) state — same rules as walkthrough._execState.
+  // An authored window._study.execution_status wins.
+  function _studyExecState(s) {
+    s = s || {};
+    var ex = _lc(s.execution_status);
+    if (_EXEC_META[ex]) return ex;
+    var gate = _lc(s.gate_status), sim = _lc(s.simulation_status),
+        ev = _lc(s.evaluation_status),
+        life = _lc(s.effective_status || s.status);
+    if (sim === 'failed' || life === 'invalid' || life === 'failed') return 'failed';
+    if (['passed', 'failed', 'needs_calibration', 'stale'].indexOf(gate) >= 0) return 'completed';
+    if (sim === 'ran' && (ev === 'evaluated' || ev === 'failed_evaluation')) return 'completed';
+    if (['complete', 'completed', 'ran', 'decided', 'evaluated'].indexOf(life) >= 0) return 'completed';
+    if (sim === 'running' || ['running', 'analyzing', 'in_progress'].indexOf(life) >= 0) return 'running';
+    var conf = _lc(s.confidence);
+    if (conf === 'accepted') return 'completed';
+    if (conf === 'investigating') return 'running';
+    if (life === 'planned' || conf === 'planned') return s.proposed === true ? 'proposed' : 'planned';
+    if (s.proposed === true) return 'proposed';
+    return 'planned';
+  }
+
+  // Derive the Verdict state — authored window._study.verdict wins (through the
+  // legacy aliases: honest-negative→refuted, mixed→inconclusive); else fall back
+  // to report.verdict text. Returns null → the Pending marker.
+  function _studyVerdictState(s) {
+    s = s || {};
+    var raw = _lc(s.verdict);
+    if (_VERDICT_ALIASES[raw]) return _VERDICT_ALIASES[raw];
+    var rv = _lc(s.report && s.report.verdict);
+    if (_VERDICT_ALIASES[rv]) return _VERDICT_ALIASES[rv];
+    return null;
+  }
+
+  // One marker = a clickable pill (glyph + label) that toggles its own popover.
+  // `rows` is [[label, value], …]; missing signals are omitted by the caller.
+  function _axisMarkerHtml(id, meta, axisLabel, rows) {
+    var e = _esc;
+    var body = rows.length
+      ? rows.map(function (r) {
+          return '<div style="display:flex;gap:8px;justify-content:space-between;margin-top:4px">'
+            + '<span class="muted">' + e(r[0]) + '</span>'
+            + '<span style="font-family:ui-monospace,monospace">' + e(r[1]) + '</span></div>';
+        }).join('')
+      : '<div class="muted" style="margin-top:4px">No further signals recorded.</div>';
+    return '<span class="study-axis-wrap" style="position:relative;display:inline-flex">'
+      + '<button type="button" id="' + id + '-btn" class="study-axis-marker" aria-haspopup="true" aria-expanded="false" '
+      + 'style="display:inline-flex;align-items:center;gap:4px;font-size:0.82em;font-weight:700;cursor:pointer;'
+      + 'white-space:nowrap;border-radius:9999px;padding:2px 10px;color:' + meta.color + ';'
+      + 'background:' + meta.color + '14;border:1px solid ' + meta.color + '40" '
+      + 'title="' + e(axisLabel) + ' — click to interrogate">'
+      + '<span style="font-size:1.1em;line-height:1">' + meta.icon + '</span>' + e(meta.label) + '</button>'
+      + '<div id="' + id + '-popover" role="dialog" style="display:none;position:absolute;left:0;top:100%;margin-top:6px;'
+      + 'background:var(--card, #fff);border:1px solid var(--border, #e2e8f0);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,0.14);'
+      + 'z-index:70;min-width:230px;max-width:340px;padding:10px 12px;font-size:0.82em;color:var(--text-muted, #334155);'
+      + 'white-space:normal;text-align:left;font-weight:400">'
+      + '<div style="font-weight:700;color:' + meta.color + '">' + meta.icon + ' ' + e(axisLabel) + ': ' + e(meta.label) + '</div>'
+      + body + '</div></span>';
+  }
+
+  function _wireAxisPopover(id) {
+    var btn = document.getElementById(id + '-btn');
+    var pop = document.getElementById(id + '-popover');
+    if (!btn || !pop) return;
+    btn.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      var open = pop.style.display !== 'none' && pop.style.display !== '';
+      // Close any sibling popover first.
+      document.querySelectorAll('.study-axis-wrap [role="dialog"]').forEach(function (p) { p.style.display = 'none'; });
+      document.querySelectorAll('.study-axis-marker').forEach(function (b) { b.setAttribute('aria-expanded', 'false'); });
+      pop.style.display = open ? 'none' : 'block';
+      btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+    });
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest || !e.target.closest('.study-axis-wrap')) {
+        pop.style.display = 'none'; btn.setAttribute('aria-expanded', 'false');
+      }
+    }, true);
+  }
+
+  // Render the Progress + Verdict markers into #study-axis-markers from
+  // window._study, each with an interactive popover.
+  function _renderStudyAxisMarkers() {
+    var container = document.getElementById('study-axis-markers');
+    if (!container || container.dataset.rendered) return;
+    var s = window._study || {};
+    container.dataset.rendered = '1';
+
+    // Progress popover: derived state + the underlying lifecycle signals.
+    var exState = _studyExecState(s);
+    var exMeta = _EXEC_META[exState] || _EXEC_META.planned;
+    var exRows = [];
+    [['status', s.status], ['simulation_status', s.simulation_status],
+     ['evaluation_status', s.evaluation_status], ['gate_status', s.gate_status],
+     ['confidence', s.confidence]].forEach(function (r) {
+      if (r[1] != null && String(r[1]).trim() !== '') exRows.push([r[0], String(r[1])]);
+    });
+
+    // Verdict popover: derived state + what it rests on.
+    var vState = _studyVerdictState(s);
+    var vMeta = vState ? _VERDICT_META[vState] : _VERDICT_PENDING;
+    var vRows = [];
+    if (s.verdict) vRows.push(['verdict', String(s.verdict)]);
+    if (s.report && s.report.verdict) vRows.push(['report.verdict', String(s.report.verdict)]);
+    var cv = s.conclusion_verdicts || {};
+    [['regression_compatibility', 'regression'], ['biological_validation', 'biology'],
+     ['explanatory_gain', 'insight']].forEach(function (t) {
+      var trk = cv[t[0]];
+      if (trk && trk.result) vRows.push([t[1], String(trk.result)]);
+    });
+    if (s.confidence) vRows.push(['confidence', String(s.confidence)]);
+    var findings = Array.isArray(s.findings) ? s.findings : [];
+    findings.slice(0, 2).forEach(function (f, i) {
+      var txt = (f && (f.statement || f.summary)) || '';
+      if (txt) vRows.push(['finding ' + (i + 1), String(txt).slice(0, 80) + (String(txt).length > 80 ? '…' : '')]);
+    });
+
+    container.innerHTML =
+      _axisMarkerHtml('study-progress-marker', exMeta, 'Progress', exRows)
+      + ' '
+      + _axisMarkerHtml('study-verdict-marker', vMeta, 'Verdict', vRows);
+    _wireAxisPopover('study-progress-marker');
+    _wireAxisPopover('study-verdict-marker');
   }
 
   // Entry point: fetch the spec if needed, then run init.
@@ -5069,6 +5867,7 @@
     var h = (window.location.hash || '');
     if (h.indexOf('#run-') === 0 || h === '#runs') {
       _setStudyTab('simulate');
+      _setSimSubtab('runs');   // run rows live in the Runs subpanel
       if (h.indexOf('#run-') === 0) {
         var el = document.getElementById(h.slice(1));  // id="run-<runId>"
         if (el && el.scrollIntoView) { try { el.scrollIntoView({block: 'center'}); el.style.outline = '2px solid #2b6cb0'; } catch (e) {} }

@@ -155,17 +155,31 @@
   // ── Approvals ─────────────────────────────────────────────────────────────
   // Records the user's decision. Returns true once EVERY pending call has been
   // answered (i.e. the caller should now resume the turn).
-  function decide(state, id, approved, reason) {
+  // `remember` (a rememberable command only) travels inside the approval; the server decides whether it may be kept.
+  function decide(state, id, approved, reason, remember) {
     var t = findTool(state, id);
-    state.decisions[id] = approved ? true : { denied: reason || 'The user declined this action.' };
+    state.decisions[id] = approved ? (remember ? { approved: true, remember: true } : true)
+      : { denied: reason || 'The user declined this action.' };
     if (t) t.status = approved ? 'running' : 'denied';
     state.pending = state.pending.filter(function (p) { return p !== id; });
     return state.pending.length === 0;
   }
 
-  // Answer EVERY pending approval the same way (the "Approve all / Deny all" click).
+  // A command (or a workspace-trust request) is never approved in bulk: its card shows the exact command line, and
+  // it needs its own click. Deny-all still covers it.
+  function needsOwnClick(state, id) {
+    var t = findTool(state, id);
+    var ef = t && t.approval && t.approval.effect;
+    return !!(ef && (ef.kind === 'command' || ef.kind === 'trust'));
+  }
+
+  // Answer every pending approval the same way (the "Approve all / Deny all" click). "Approve all" skips the ones that
+  // need their own click and leaves them pending, so it returns false while any remain.
   function decideAll(state, approved, reason) {
-    state.pending.slice().forEach(function (id) { decide(state, id, approved, reason); });
+    state.pending.slice().forEach(function (id) {
+      if (approved && needsOwnClick(state, id)) return;
+      decide(state, id, approved, reason);
+    });
     return state.pending.length === 0;
   }
 
@@ -659,29 +673,67 @@
     return k[provider];
   }
 
-  // ── Docking (PyCharm-style: the AI chip can dock left, right or bottom) ──────────────
-  var DOCKS = ['left', 'right', 'bottom'];
+  // ── Docking (PyCharm-style: a panel can dock left, right, bottom or top) ─────────────
+  var DOCKS = ['left', 'right', 'bottom', 'top'];
   function validDock(d) { return DOCKS.indexOf(d) >= 0; }
-  // Which drop zone is the pointer over? Bottom band first, then the left/right thirds; the
-  // middle is "cancel". (Zones are shown as edge overlays while dragging.)
+  // Which drop zone is the pointer over? Bottom/top bands first, then the left/right
+  // thirds; the middle is "cancel". (Zones are shown as edge overlays while dragging.)
   function dropZone(x, y, w, h) {
     if (!(w > 0 && h > 0) || x < 0 || y < 0 || x > w || y > h) return null;
     if (y > h * 0.72) return 'bottom';
+    if (y < h * 0.20) return 'top';
     if (x < w * 0.33) return 'left';
     if (x > w * 0.67) return 'right';
     return null;
   }
-  // Panel thickness (width for left/right, height for bottom), kept usable at any window size.
+  // iTerm2-style drop target during a panel drag. Given the pointer, the window
+  // size, and the OTHER open docked panels (each {key, side, left, top, right,
+  // bottom}), decide where a drop would land:
+  //   {kind:'swap',   otherKey}        — over the CENTER of a panel → swap places
+  //   {kind:'insert', side, relKey, after} — over a panel's edge → slot before/after it
+  //   {kind:'edge',   side}            — over an empty edge band → dock to that side
+  //   null                             — the dead middle → no-op
+  // Pure + deterministic for unit tests. Panels are stacked vertically on left/
+  // right (reorder by Y) and horizontally on top/bottom (reorder by X).
+  function dropTarget(x, y, w, h, panels) {
+    panels = panels || [];
+    for (var i = 0; i < panels.length; i++) {
+      var p = panels[i];
+      if (x >= p.left && x <= p.right && y >= p.top && y <= p.bottom) {
+        var vertical = (p.side === 'left' || p.side === 'right');
+        var pw = p.right - p.left, ph = p.bottom - p.top;
+        var fx = pw > 0 ? (x - p.left) / pw : 0.5;
+        var fy = ph > 0 ? (y - p.top) / ph : 0.5;
+        // Cross-axis edge strips → a NEW LANE (a column beside this panel on a
+        // left/right side, a row above/below it on a top/bottom band). The cross
+        // axis is x for a vertical side, y for a horizontal band.
+        var SPLIT = 0.22;
+        var cross = vertical ? fx : fy;
+        if (cross < SPLIT) return { kind: 'split', side: p.side, relKey: p.key, after: false };
+        if (cross > 1 - SPLIT) return { kind: 'split', side: p.side, relKey: p.key, after: true };
+        // Main axis → stack into this panel's lane, before (first half) or after it.
+        var frac = vertical ? fy : fx;
+        return { kind: 'insert', side: p.side, relKey: p.key, after: frac >= 0.5 };
+      }
+    }
+    var z = dropZone(x, y, w, h);
+    return z ? { kind: 'edge', side: z } : null;
+  }
+
+  // Panel thickness (width for left/right, height for bottom/top), kept usable at any
+  // window size.
   function clampDock(dock, size, vw, vh) {
     var n = Math.round(+size) || 0;
-    if (dock === 'bottom') return Math.max(160, Math.min(n, Math.max(160, Math.floor(vh * 0.7))));
+    if (dock === 'bottom' || dock === 'top') return Math.max(110, Math.min(n, Math.max(110, Math.floor(vh * 0.7))));
     var cap = Math.floor(vw * 0.6);                              // never more than 60% of the window...
-    return Math.max(Math.min(340, cap), Math.min(n, Math.min(720, cap)));   // ...even below 340px on a phone-width window
+    // Allow docked panels to shrink down near the collapse threshold (drag past
+    // COLLAPSE_AT in panel-dock.js to collapse to a strip); min ~80px, max 720.
+    return Math.max(Math.min(80, cap), Math.min(n, Math.min(720, cap)));
   }
 
   var api = {
     esc: esc, revealHidden: revealHidden, createSplitter: createSplitter, newState: newState, startUserTurn: startUserTurn,
-    startResume: startResume, applyFrame: applyFrame, decide: decide, decideAll: decideAll,
+    startResume: startResume, applyFrame: applyFrame, decide: decide, decideAll: decideAll, needsOwnClick: needsOwnClick,
     buildPromptRequest: buildPromptRequest, buildResumeRequest: buildResumeRequest, canRetry: canRetry,
     retryBody: retryBody,
     statusLabel: statusLabel, describeApproval: describeApproval, snapshot: snapshot,
@@ -691,7 +743,7 @@
     findTool: findTool, storeRestore: storeRestore, storeOpen: storeOpen, storeMerge: storeMerge, storeDelete: storeDelete, storeList: storeList, storePrune: storePrune, titleOf: titleOf,
     mentionQuery: mentionQuery, insertMention: insertMention, contextItems: contextItems,
     PROVIDERS: PROVIDERS, providerMeta: providerMeta, mergeModels: mergeModels, modelTree: modelTree, parseQualified: parseQualified,
-    DOCKS: DOCKS, validDock: validDock, dropZone: dropZone, clampDock: clampDock,
+    DOCKS: DOCKS, validDock: validDock, dropZone: dropZone, dropTarget: dropTarget, clampDock: clampDock,
     nextIndex: nextIndex, loadKnown: loadKnown, addKnown: addKnown, removeKnown: removeKnown,
     filterItems: filterItems, ATTACH: ATTACH, attachError: attachError, composePrompt: composePrompt,
   };

@@ -52,6 +52,7 @@
   const mainEl = layout && layout.querySelector('.viv-main');
   const codeRail = document.getElementById('viv-code-rail');
   let dock = C.validDock(lsGet('viv.ai.dock', 'right')) ? lsGet('viv.ai.dock', 'right') : 'right';
+  var ctl = null;   // shared VivPanelDock controller (slim titlebar + drag/dock/insert/swap)
 
   function lsGet(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (x) { return d; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (x) { /* private mode */ } }
@@ -141,6 +142,18 @@
     if (ef.package || ef.source) h += '<pre>' + e([ef.package && 'package: ' + ef.package, ef.source && 'source: ' + ef.source, ef.mode && 'install: ' + ef.mode,
       ef.system_deps_check && 'system-dependency check: ' + ef.system_deps_check].filter(Boolean).join('\n')) + '</pre>';
     (ef.files || []).forEach(function (f) { h += '<pre>' + e(f.field + ': ' + f.bytes + ' bytes, sha256 ' + f.sha256) + '</pre>'; });
+    if (ef.kind === 'command') {
+      // The exact program and arguments that will run, as a JSON array so spaces and empty items are visible; never clipped.
+      h += '<div class="vp-k">Command line (one entry per argument)</div><pre>' + e(JSON.stringify(ef.command_line || [], null, 2)) + '</pre>' +
+        '<div class="vp-k">Working folder</div><pre>' + e(ef.cwd || '') + '</pre>';
+      if ((ef.extra_dirs || []).length) h += '<div class="vp-k">Extra folders you are granting for this command</div><pre>' + e(ef.extra_dirs.join('\n')) + '</pre>';
+      const l = ef.limits || {};
+      h += '<div class="vp-k">Limits</div><pre>' + e('stops after ' + l.timeout_s + ' s; output kept up to ' + l.output_cap_bytes + ' bytes per stream; no shell, no input') + '</pre>';
+    }
+    if (ef.kind === 'trust') {
+      h += '<div class="vp-k">Workspace</div><pre>' + e(ef.workspace || '') + '</pre>' +
+        '<div class="vp-k">Where this choice is stored</div><pre>' + e(ef.stored || '') + '</pre>';
+    }
     return h + '</div>';
   }
 
@@ -155,8 +168,11 @@
         effectHtml(a.effect) +
         (a.query ? '<div><div class="vp-k">Query</div><pre>' + e(a.query) + '</pre></div>' : '') +
         (a.body ? '<div><div class="vp-k">Request body <span class="vp-size">(' + a.stats.lines + ' lines, ' + a.stats.chars + ' characters)</span></div><pre>' + e(a.body) + '</pre></div>' : '') +
+        (a.effect && a.effect.kind === 'command' && a.effect.remember
+          ? '<label class="vp-note"><input type="checkbox" data-remember> Don\'t ask again for this exact command in this chat</label>' : '') +
         '<div class="vp-actions"><button class="vp-btn" data-act="deny">Deny</button>' +
-        '<button class="vp-btn vp-primary" data-act="approve">Approve</button></div></div>';
+        '<button class="vp-btn vp-primary" data-act="approve">' + (a.effect && a.effect.kind === 'trust' ? 'Trust this workspace'
+          : a.effect && a.effect.kind === 'command' ? 'Run this command' : 'Approve') + '</button></div></div>';
     }
     let body = '';
     if (p.args && Object.keys(p.args).length) body += '<div><div class="vp-k">Arguments</div><pre>' + e(pretty(p.args)) + '</pre></div>';
@@ -194,12 +210,14 @@
       const a = t ? C.describeApproval(t) : null;
       const what = a ? (a.effect && a.effect.commands ? ' — runs: ' + a.effect.commands.map(function (c) { return (c.run || []).join('; '); }).join('; ')
         : a.body ? ' — ' + a.body.replace(/\s+/g, ' ').slice(0, 160) + (a.body.length > 160 ? '…' : '') : '') : '';
-      return '<li><code>' + e(a ? (a.method + ' ' + (a.path || a.title)).trim() : id) + '</code><span class="vp-sum">' + e(what) + '</span></li>';
+      const own = C.needsOwnClick(state, id) ? ' — needs its own click (not included in Approve all)' : '';
+      return '<li><code>' + e(a ? (a.method + ' ' + (a.path || a.title)).trim() : id) + '</code><span class="vp-sum">' + e(what + own) + '</span></li>';
     }).join('') : '';
     const bulk = waiting >= 2
       ? '<div class="vp-bulk"><span>' + waiting + ' actions are waiting for your approval</span><ul class="vp-bulk-list">' + listed + '</ul>' +
         '<button class="vp-btn" data-act="deny-all">Deny all</button>' +
-        '<button class="vp-btn vp-primary" data-act="approve-all">Approve all</button></div>' : '';
+        '<button class="vp-btn vp-primary" data-act="approve-all">' + (state.pending.some(function (id) { return C.needsOwnClick(state, id); })
+          ? 'Approve all except commands' : 'Approve all') + '</button></div>' : '';
     return '<div class="vp-body">' + html + bulk + (busy ? '<span class="vp-typing"></span>' : '') + '</div>' +
       '<button class="vp-icon vp-copy" data-act="copy" title="Copy">' + ICON.copy + '</button>';
   }
@@ -820,8 +838,8 @@
     save(); renderAll();
     streamTurn(body);
   }
-  function decide(id, approved) {
-    const all = C.decide(state, id, approved);
+  function decide(id, approved, remember) {
+    const all = C.decide(state, id, approved, undefined, remember);
     save();
     if (all) resume(); else renderAll();
   }
@@ -846,16 +864,12 @@
   }
 
   // ── Panel: open/close, resize, settings sheet ─────────────────────────────
+  // Dock mechanics live in the shared VivPanelDock controller now; this is a thin
+  // wrapper so chat's many setOpen() call sites keep working. Content side-effects
+  // (status refresh, focus, closePop, rail-tab highlight) ride on ctl's onOpen/onClose.
   function setOpen(open) {
-    panel.hidden = !open;
-    document.body.classList.toggle('viv-ai-open', open);
-    el.toggle.classList.toggle('viv-ai-on', open);
-    el.toggle.setAttribute('aria-pressed', open ? 'true' : 'false');
-    lsSet('viv.ai.open', open ? '1' : '0');
-    syncDockVars();
-    if (open) {
-      refreshStatus().then(function () { if (el.card.hidden) { el.input.focus(); scrollDown(true); } });
-    } else closePop();
+    if (!ctl) { panel.hidden = !open; return; }
+    if (open) ctl.open(); else ctl.close();
   }
   function openSettings() {
     closePop();
@@ -1120,7 +1134,10 @@
         case 'unattach': attached.splice(+b.getAttribute('data-idx'), 1); renderPills(); break;
         case 'send': if (state.busy) abortStream(); else submit(); break;
         case 'stop': abortStream(); break;
-        case 'approve': if (host) decide(host.getAttribute('data-id'), true); break;
+        case 'approve': if (host) {
+          const box = host.querySelector('[data-remember]');
+          decide(host.getAttribute('data-id'), true, !!(box && box.checked));
+        } break;
         case 'deny': if (host) decide(host.getAttribute('data-id'), false); break;
         case 'approve-all': decideEvery(true); break;
         case 'deny-all': decideEvery(false); break;
@@ -1151,14 +1168,29 @@
       }
     }, true);
 
-    el.toggle.addEventListener('click', function (ev) { ev.preventDefault(); if (justDragged) return; setOpen(panel.hidden); });
-    el.toggle.title = 'Chat — click to toggle, drag to dock left, right or bottom';
+    el.toggle.addEventListener('click', function (ev) { ev.preventDefault(); if (ctl && ctl.didDrag && ctl.didDrag()) return; setOpen(panel.hidden); });
+    el.toggle.title = 'Chat — click to toggle';
     document.getElementById('viv-ai-back').addEventListener('click', closeSettings);
     window.addEventListener('viv:ai-changed', function () { refreshStatus(); });
-    initResize();
-    initChipDrag();
-    if (window.ResizeObserver) { const ro = new ResizeObserver(syncDockVars); ro.observe(panel); if (codeRail) ro.observe(codeRail); }
-    window.addEventListener('resize', function () { applySize(); syncDockVars(); });
+    // Dock via the shared engine: slim iTerm-style title bar (× + ↗ + drag to
+    // dock / insert / swap, incl. reordering with the code rail on the same side),
+    // shared resize + footprint vars (--viv-ai-*). Replaces chat's own dock engine.
+    ctl = window.VivPanelDock.make({
+      panel: panel, layout: layout, mainEl: mainEl, key: 'ai', label: 'Chat',
+      launcher: el.toggle, docks: ['left', 'right', 'bottom'],
+      resizeHandle: 'viv-ai-resize', ghostIcon: ICON.bot,
+      popout: function () { if (window.VivPanelDock) window.VivPanelDock.popout('chat'); if (ctl) ctl.close(); },
+      defaultDock: 'right', defaultSize: { side: 440, bottom: 320 },
+      layoutEvent: 'viv:ai-layout',
+      onOpen: function () {
+        el.toggle.classList.add('viv-ai-on'); el.toggle.setAttribute('aria-pressed', 'true');
+        refreshStatus().then(function () { if (el.card.hidden) { el.input.focus(); scrollDown(true); } });
+      },
+      onClose: function () {
+        el.toggle.classList.remove('viv-ai-on'); el.toggle.setAttribute('aria-pressed', 'false');
+        closePop();
+      },
+    });
   }
 
   build();
@@ -1166,7 +1198,7 @@
     // A corrupted stored transcript must not take the panel down.
     store = C.newStore(); state = C.restore(store.chats[store.active].snap); save(); renderAll();
   }
-  dockTo(dock, false);
-  window._openAiPanel = function () { setOpen(true); };
-  if (lsGet('viv.ai.open', '0') === '1') setOpen(true);
+  // Initial placement + restore of the open/closed state are handled by
+  // VivPanelDock.make() (built in build()); no separate dockTo/open needed.
+  window._openAiPanel = function () { if (ctl) ctl.open(); };
 })();
