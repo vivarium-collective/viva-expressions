@@ -1,0 +1,658 @@
+{
+  "BIOMD0000000005": {
+    "tau": 1e-07,
+    "floor": {
+      "lsoda": 9.377109013998932e-09,
+      "cvode": 5.929049957806618e-09,
+      "ratio_tau": 10.664267617099432
+    },
+    "sensitivity": {
+      "n": 8,
+      "undetected_0p1pct": 0,
+      "control": "Reaction3_k9",
+      "control_s": 0.9989856354061888
+    },
+    "resolution": 1.001015394574116e-07,
+    "planted": [
+      {
+        "delta": 1e-10,
+        "tight": 4.552927426336166e-09,
+        "orders": 3.4515394467368097,
+        "h1_fails": false,
+        "h2_fails": false
+      },
+      {
+        "delta": 3e-10,
+        "tight": 4.618699258644542e-09,
+        "orders": 3.4523414492466045,
+        "h1_fails": false,
+        "h2_fails": false
+      },
+      {
+        "delta": 1e-09,
+        "tight": 4.638440720380321e-09,
+        "orders": 3.453991768861047,
+        "h1_fails": false,
+        "h2_fails": false
+      },
+      {
+        "delta": 3e-09,
+        "tight": 4.6366190891742636e-09,
+        "orders": 3.433553537168182,
+        "h1_fails": false,
+        "h2_fails": false
+      },
+      {
+        "delta": 1e-08,
+        "tight": 9.994672655790705e-09,
+        "orders": 3.101402023690583,
+        "h1_fails": false,
+        "h2_fails": false
+      },
+      {
+        "delta": 3e-08,
+        "tight": 2.997432108488259e-08,
+        "orders": 2.6340018188826173,
+        "h1_fails": false,
+        "h2_fails": false
+      },
+      {
+        "delta": 1e-07,
+        "tight": 9.990313173378696e-08,
+        "orders": 2.105040874695729,
+        "h1_fails": false,
+        "h2_fails": true
+      },
+      {
+        "delta": 3e-07,
+        "tight": 2.9970064776230216e-07,
+        "orders": 1.631986145040825,
+        "h1_fails": true,
+        "h2_fails": true
+      },
+      {
+        "delta": 1e-06,
+        "tight": 9.989911568782512e-07,
+        "orders": 1.107295858908018,
+        "h1_fails": true,
+        "h2_fails": true
+      }
+    ],
+    "smallest_caught": 1e-07,
+    "largest_admitted_deviation": 2.997432108488259e-08
+  },
+  "BIOMD0000000010": {
+    "tau": 1e-08,
+    "floor": {
+      "lsoda": 2.2548460644102048e-11,
+      "cvode": 1.3380492888602197e-10,
+      "ratio_tau": 74.73566245469345
+    },
+    "sensitivity": {
+      "n": 22,
+      "undetected_0p1pct": 0,
+      "control": "J7_KK8",
+      "control_s": 0.2993145694240547
+    },
+    "resolution": 3.340966669027218e-08,
+    "planted": [
+      {
+        "delta": 1e-10,
+        "tight": 1.6965763296221685e-10,
+        "orders": 4.322665626740875,
+        "h1_fails": false,
+        "h2_fails": false
+      },
+      {
+        "delta": 3e-10,
+        "tight": 2.0189148814701938e-10,
+        "orders": 4.247127793002399,
+        "h1_fails": false,
+        "h2_fails": false
+      },
+      {
+        "delta": 1e-09,
+        "tight": 3.8694147764371454e-10,
+        "orders": 3.964622804982558,
+        "h1_fails": false,
+        "h2_fails": false
+      },
+      {
+        "delta": 3e-09,
+        "tight": 9.860174811855417e-10,
+        "orders": 3.5584547720258137,
+        "h1_fails": false,
+        "h2_fails": false
+      },
+      {
+        "delta": 1e-08,
+        "tight": 3.0830806979331224e-09,
+        "orders": 3.0635891059415994,
+        "h1_fails": false,
+        "h2_fails": false
+      },
+      {
+        "delta": 3e-08,
+        "tight": 9.07122656643796e-09,
+        "orders": 2.5955921822473935,
+        "h1_fails": false,
+        "h2_fails": false
+      },
+      {
+        "delta": 1e-07,
+        "tight": 3.0030917438965424e-08,
+        "orders": 2.0780637424499853,
+        "h1_fails": true,
+        "h2_fails": true
+      },
+      {
+        "delta": 3e-07,
+        "tight": 8.991594899831238e-08,
+        "orders": 1.6085147628438092,
+        "h1_fails": true,
+        "h2_fails": true
+      },
+      {
+        "delta": 1e-06,
+        "tight": 2.995155184837339e-07,
+        "orders": 1.1086545881613599,
+        "h1_fails": true,
+        "h2_fails": true
+      }
+    ],
+    "smallest_caught": 1e-07,
+    "largest_admitted_deviation": 9.07122656643796e-09
+  },
+  "BIOMD0000000012": {
+    "tau": 1e-08,
+    "floor": {
+      "lsoda": 1.7882948300824605e-11,
+      "cvode": 2.590470706816162e-10,
+      "ratio_tau": 38.60302289343614
+    },
+    "sensitivity": {
+      "n": 7,
+      "undetected_0p1pct": 0,
+      "control": "eff",
+      "control_s": 1.0893214103486182
+    },
+    "resolution": 9.180027037933345e-09,
+    "planted": [
+      {
+        "delta": 1e-10,
+        "tight": 3.815702051733656e-10,
+        "orders": 3.7633773146749063,
+        "h1_fails": false,
+        "h2_fails": false
+      },
+      {
+        "delta": 3e-10,
+        "tight": 5.973056814748735e-10,
+        "orders": 3.5687947631995023,
+        "h1_fails": false,
+        "h2_fails": false
+      },
+      {
+        "delta": 1e-09,
+        "tight": 1.3566108965328725e-09,
+        "orders": 3.21267681895623,
+        "h1_fails": false,
+        "h2_fails": false
+      },
+      {
+        "delta": 3e-09,
+        "tight": 3.533216485666798e-09,
+        "orders": 2.797363096091736,
+        "h1_fails": false,
+        "h2_fails": false
+      },
+      {
+        "delta": 1e-08,
+        "tight": 1.1161611972417477e-08,
+        "orders": 2.2992072100179244,
+        "h1_fails": true,
+        "h2_fails": true
+      },
+      {
+        "delta": 3e-08,
+        "tight": 3.29493038428205e-08,
+        "orders": 1.8331116807176129,
+        "h1_fails": true,
+        "h2_fails": true
+      },
+      {
+        "delta": 1e-07,
+        "tight": 1.0921177855467822e-07,
+        "orders": 1.3265726499001238,
+        "h1_fails": true,
+        "h2_fails": true
+      },
+      {
+        "delta": 3e-07,
+        "tight": 3.2710472274427847e-07,
+        "orders": 0.887541449798364,
+        "h1_fails": true,
+        "h2_fails": true
+      },
+      {
+        "delta": 1e-06,
+        "tight": 1.089723803912557e-06,
+        "orders": 0.4772423038571709,
+        "h1_fails": true,
+        "h2_fails": true
+      }
+    ],
+    "smallest_caught": 1e-08,
+    "largest_admitted_deviation": 3.533216485666798e-09
+  },
+  "BIOMD0000000041": {
+    "tau": 1e-08,
+    "floor": {
+      "lsoda": 7.183302102811727e-12,
+      "cvode": 7.622524948059034e-12,
+      "ratio_tau": 1311.9012490141283
+    },
+    "sensitivity": {
+      "n": 25,
+      "undetected_0p1pct": 2,
+      "control": "MMCK_Kib_3",
+      "control_s": 0.21901054808524
+    },
+    "resolution": 4.565990125785152e-08,
+    "planted": [
+      {
+        "delta": 1e-10,
+        "tight": 2.5890730266667657e-11,
+        "orders": 3.188106877414709,
+        "h1_fails": false,
+        "h2_fails": false
+      },
+      {
+        "delta": 3e-10,
+        "tight": 6.993638557759514e-11,
+        "orders": 2.7004670497417727,
+        "h1_fails": false,
+        "h2_fails": false
+      },
+      {
+        "delta": 1e-09,
+        "tight": 2.2308903185272516e-10,
+        "orders": 2.0471199433747915,
+        "h1_fails": false,
+        "h2_fails": true
+      },
+      {
+        "delta": 3e-09,
+        "tight": 6.618220113087597e-10,
+        "orders": 1.7344255573820107,
+        "h1_fails": false,
+        "h2_fails": true
+      },
+      {
+        "delta": 1e-08,
+        "tight": 2.1963583023914502e-09,
+        "orders": 1.0855942704292687,
+        "h1_fails": false,
+        "h2_fails": true
+      },
+      {
+        "delta": 3e-08,
+        "tight": 6.580731576984805e-09,
+        "orders": 0.6760053199262464,
+        "h1_fails": false,
+        "h2_fails": true
+      },
+      {
+        "delta": 1e-07,
+        "tight": 2.192602423500291e-08,
+        "orders": 0.3103331849310532,
+        "h1_fails": true,
+        "h2_fails": true
+      },
+      {
+        "delta": 3e-07,
+        "tight": 6.576972670940097e-08,
+        "orders": 0.15297240148948701,
+        "h1_fails": true,
+        "h2_fails": true
+      },
+      {
+        "delta": 1e-06,
+        "tight": 2.1922245033702326e-07,
+        "orders": 0.04612095100364901,
+        "h1_fails": true,
+        "h2_fails": true
+      }
+    ],
+    "smallest_caught": 1e-09,
+    "largest_admitted_deviation": 6.993638557759514e-11
+  },
+  "BIOMD0000000254": {
+    "tau": 1e-08,
+    "floor": {
+      "lsoda": 1.510056676263622e-11,
+      "cvode": 1.36218907014507e-10,
+      "ratio_tau": 73.41124825597832
+    },
+    "sensitivity": {
+      "n": 5,
+      "undetected_0p1pct": 0,
+      "control": "km",
+      "control_s": 3.7457777055525607
+    },
+    "resolution": 2.6696725716468653e-09,
+    "planted": [
+      {
+        "delta": 1e-10,
+        "tight": 4.278875876204032e-10,
+        "orders": 3.6149594568435504,
+        "h1_fails": false,
+        "h2_fails": false
+      },
+      {
+        "delta": 3e-10,
+        "tight": 1.177172821054595e-09,
+        "orders": 3.175544316622425,
+        "h1_fails": false,
+        "h2_fails": false
+      },
+      {
+        "delta": 1e-09,
+        "tight": 3.800089011855421e-09,
+        "orders": 2.666923965474422,
+        "h1_fails": false,
+        "h2_fails": false
+      },
+      {
+        "delta": 3e-09,
+        "tight": 1.1293979732581822e-08,
+        "orders": 2.194819951983009,
+        "h1_fails": true,
+        "h2_fails": true
+      },
+      {
+        "delta": 1e-08,
+        "tight": 3.7522783567885595e-08,
+        "orders": 1.6766783636609548,
+        "h1_fails": true,
+        "h2_fails": true
+      },
+      {
+        "delta": 3e-08,
+        "tight": 1.1246236521878527e-07,
+        "orders": 1.2092763526972155,
+        "h1_fails": true,
+        "h2_fails": true
+      },
+      {
+        "delta": 1e-07,
+        "tight": 3.7475071248290617e-07,
+        "orders": 0.7179632812947714,
+        "h1_fails": true,
+        "h2_fails": true
+      },
+      {
+        "delta": 3e-07,
+        "tight": 1.1241458797405408e-06,
+        "orders": 0.3219807634379301,
+        "h1_fails": true,
+        "h2_fails": true
+      },
+      {
+        "delta": 1e-06,
+        "tight": 3.7470283492156314e-06,
+        "orders": 0.060156968261422715,
+        "h1_fails": true,
+        "h2_fails": true
+      }
+    ],
+    "smallest_caught": 3e-09,
+    "largest_admitted_deviation": 3.800089011855421e-09
+  },
+  "BIOMD0000000400": {
+    "tau": 1e-08,
+    "floor": {
+      "lsoda": 7.947149921939843e-10,
+      "cvode": 3.1698848806656335e-09,
+      "ratio_tau": 3.154688695792679
+    },
+    "sensitivity": {
+      "n": 31,
+      "undetected_0p1pct": 2,
+      "control": "kr8",
+      "control_s": 0.49913363481610606
+    },
+    "resolution": 2.0034714758672318e-08,
+    "planted": [
+      {
+        "delta": 1e-10,
+        "tight": 4.930341713668818e-09,
+        "orders": 3.2209762140494567,
+        "h1_fails": false,
+        "h2_fails": false
+      },
+      {
+        "delta": 3e-10,
+        "tight": 1.479082382637587e-08,
+        "orders": 2.7438608703756717,
+        "h1_fails": true,
+        "h2_fails": false
+      },
+      {
+        "delta": 1e-09,
+        "tight": 4.930264848082595e-08,
+        "orders": 2.2209829848905276,
+        "h1_fails": true,
+        "h2_fails": true
+      },
+      {
+        "delta": 3e-09,
+        "tight": 1.4790799119580297e-07,
+        "orders": 1.743861595827754,
+        "h1_fails": true,
+        "h2_fails": true
+      },
+      {
+        "delta": 1e-08,
+        "tight": 4.930266129175699e-07,
+        "orders": 1.2209828720423113,
+        "h1_fails": true,
+        "h2_fails": true
+      },
+      {
+        "delta": 3e-08,
+        "tight": 1.4790797014927342e-06,
+        "orders": 0.7438616576255799,
+        "h1_fails": true,
+        "h2_fails": true
+      },
+      {
+        "delta": 1e-07,
+        "tight": 4.930265708245107e-06,
+        "orders": 0.22098290912100768,
+        "h1_fails": true,
+        "h2_fails": true
+      },
+      {
+        "delta": 3e-07,
+        "tight": 1.4790797097283327e-05,
+        "orders": -6.047650661160255e-07,
+        "h1_fails": true,
+        "h2_fails": true
+      },
+      {
+        "delta": 1e-06,
+        "tight": 4.930265700924575e-05,
+        "orders": -6.067533441394861e-07,
+        "h1_fails": true,
+        "h2_fails": true
+      }
+    ],
+    "smallest_caught": 3e-10,
+    "largest_admitted_deviation": 4.930341713668818e-09
+  },
+  "BIOMD0000000700": {
+    "tau": 1e-08,
+    "floor": {
+      "lsoda": 8.593792741255227e-12,
+      "cvode": 8.746575738411256e-11,
+      "ratio_tau": 114.33045684477682
+    },
+    "sensitivity": {
+      "n": 55,
+      "undetected_0p1pct": 0,
+      "control": "kSyP53",
+      "control_s": 0.9730676116451001
+    },
+    "resolution": 1.0276778181008071e-08,
+    "planted": [
+      {
+        "delta": 1e-10,
+        "tight": 1.0347034120766446e-10,
+        "orders": 3.576930683420688,
+        "h1_fails": false,
+        "h2_fails": false
+      },
+      {
+        "delta": 3e-10,
+        "tight": 2.9808603983377014e-10,
+        "orders": 3.1174108320891993,
+        "h1_fails": false,
+        "h2_fails": false
+      },
+      {
+        "delta": 1e-09,
+        "tight": 9.792515206118325e-10,
+        "orders": 2.600884570750189,
+        "h1_fails": false,
+        "h2_fails": false
+      },
+      {
+        "delta": 3e-09,
+        "tight": 2.925441972854148e-09,
+        "orders": 2.125671750528307,
+        "h1_fails": false,
+        "h2_fails": true
+      },
+      {
+        "delta": 1e-08,
+        "tight": 9.737103253478884e-09,
+        "orders": 1.603736759007897,
+        "h1_fails": false,
+        "h2_fails": true
+      },
+      {
+        "delta": 3e-08,
+        "tight": 2.9198964669514655e-08,
+        "orders": 1.128159442983371,
+        "h1_fails": true,
+        "h2_fails": true
+      },
+      {
+        "delta": 1e-07,
+        "tight": 9.731550999291915e-08,
+        "orders": 0.6437558359347789,
+        "h1_fails": true,
+        "h2_fails": true
+      },
+      {
+        "delta": 3e-07,
+        "tight": 2.9193419494140186e-07,
+        "orders": 0.30941314567083433,
+        "h1_fails": true,
+        "h2_fails": true
+      },
+      {
+        "delta": 1e-06,
+        "tight": 9.73099617188427e-07,
+        "orders": 0.08332933660539853,
+        "h1_fails": true,
+        "h2_fails": true
+      }
+    ],
+    "smallest_caught": 3e-09,
+    "largest_admitted_deviation": 9.792515206118325e-10
+  },
+  "BIOMD0000001000": {
+    "tau": 1e-08,
+    "floor": {
+      "lsoda": 8.445689305375447e-11,
+      "cvode": 2.7780981960657224e-10,
+      "ratio_tau": 35.99584785794025
+    },
+    "sensitivity": {
+      "n": 48,
+      "undetected_0p1pct": 1,
+      "control": "index_kf_homotrimer",
+      "control_s": 0.5770159267446179
+    },
+    "resolution": 1.7330544160916916e-08,
+    "planted": [
+      {
+        "delta": 1e-10,
+        "tight": 3.793986459531022e-10,
+        "orders": 3.7719077893968103,
+        "h1_fails": false,
+        "h2_fails": false
+      },
+      {
+        "delta": 3e-10,
+        "tight": 4.5392715668068237e-10,
+        "orders": 3.693951964794763,
+        "h1_fails": false,
+        "h2_fails": false
+      },
+      {
+        "delta": 1e-09,
+        "tight": 7.268480559945389e-10,
+        "orders": 3.4895548440123703,
+        "h1_fails": false,
+        "h2_fails": false
+      },
+      {
+        "delta": 3e-09,
+        "tight": 1.708759060452094e-09,
+        "orders": 3.117963783987697,
+        "h1_fails": false,
+        "h2_fails": false
+      },
+      {
+        "delta": 1e-08,
+        "tight": 5.725175491335322e-09,
+        "orders": 2.59212270268748,
+        "h1_fails": false,
+        "h2_fails": false
+      },
+      {
+        "delta": 3e-08,
+        "tight": 1.7265237983888413e-08,
+        "orders": 2.110585353047144,
+        "h1_fails": true,
+        "h2_fails": true
+      },
+      {
+        "delta": 1e-07,
+        "tight": 5.767232193962168e-08,
+        "orders": 1.5788925758491619,
+        "h1_fails": true,
+        "h2_fails": true
+      },
+      {
+        "delta": 3e-07,
+        "tight": 1.7313168684786086e-07,
+        "orders": 1.0783184917327786,
+        "h1_fails": true,
+        "h2_fails": true
+      },
+      {
+        "delta": 1e-06,
+        "tight": 5.772398550404144e-07,
+        "orders": 0.4629322475921444,
+        "h1_fails": true,
+        "h2_fails": true
+      }
+    ],
+    "smallest_caught": 3e-08,
+    "largest_admitted_deviation": 5.725175491335322e-09
+  }
+}

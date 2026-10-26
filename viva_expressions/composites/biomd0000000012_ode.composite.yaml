@@ -1,0 +1,299 @@
+name: biomd0000000012_ode
+description: 'SBML model ''BIOMD0000000012'' imported into OdeProcess. Source: BIOMD0000000012.'
+tags:
+- ode
+- expressions
+- sbml-import
+requires:
+  processes:
+  - OdeProcess
+  - MathExpressionStep
+parameters:
+  cell:
+    type: float
+    default: 1.0
+    description: SBML compartment 'cell' (held constant).
+  eff:
+    type: float
+    default: 20.0
+    description: SBML parameter 'eff' (held constant).
+  n:
+    type: float
+    default: 2.0
+    description: SBML parameter 'n' (held constant).
+  KM:
+    type: float
+    default: 40.0
+    description: SBML parameter 'KM' (held constant).
+  tau_mRNA:
+    type: float
+    default: 2.0
+    description: SBML parameter 'tau_mRNA' (held constant).
+  tau_prot:
+    type: float
+    default: 10.0
+    description: SBML parameter 'tau_prot' (held constant).
+  ps_a:
+    type: float
+    default: 0.5
+    description: SBML parameter 'ps_a' (held constant).
+  ps_0:
+    type: float
+    default: 0.0005
+    description: SBML parameter 'ps_0' (held constant).
+  PX_0:
+    type: float
+    default: 0.0
+    description: Initial value of PX (amount).
+  PY_0:
+    type: float
+    default: 0.0
+    description: Initial value of PY (amount).
+  PZ_0:
+    type: float
+    default: 0.0
+    description: Initial value of PZ (amount).
+  X_0:
+    type: float
+    default: 0.0
+    description: Initial value of X (amount).
+  Y_0:
+    type: float
+    default: 20.0
+    description: Initial value of Y (amount).
+  Z_0:
+    type: float
+    default: 0.0
+    description: Initial value of Z (amount).
+  method:
+    type: string
+    default: LSODA
+    description: scipy solve_ivp method (LSODA, RK45, DOP853, Radau, BDF).
+  rtol:
+    type: float
+    default: 1.0e-08
+    description: Solver relative tolerance.
+  atol:
+    type: float
+    default: 1.0e-10
+    description: Solver absolute tolerance.
+state:
+  ode:
+    _type: process
+    address: local:OdeProcess
+    config:
+      rhs:
+        PX: -0.6931471805599453*PX/tau_prot + 0.6931471805599453*X*eff/tau_mRNA
+        PY: -0.6931471805599453*PY/tau_prot + 0.6931471805599453*Y*eff/tau_mRNA
+        PZ: -0.6931471805599453*PZ/tau_prot + 0.6931471805599453*Z*eff/tau_mRNA
+        X: KM**n*(-60.0*ps_0 + 60.0*ps_a)/(KM**n + PZ**n) - 0.6931471805599453*X/tau_mRNA
+          + 60.0*ps_0
+        Y: KM**n*(-60.0*ps_0 + 60.0*ps_a)/(KM**n + PX**n) - 0.6931471805599453*Y/tau_mRNA
+          + 60.0*ps_0
+        Z: KM**n*(-60.0*ps_0 + 60.0*ps_a)/(KM**n + PY**n) - 0.6931471805599453*Z/tau_mRNA
+          + 60.0*ps_0
+      params:
+        cell: ${cell}
+        eff: ${eff}
+        n: ${n}
+        KM: ${KM}
+        tau_mRNA: ${tau_mRNA}
+        tau_prot: ${tau_prot}
+        ps_a: ${ps_a}
+        ps_0: ${ps_0}
+      state_vars:
+      - PX
+      - PY
+      - PZ
+      - X
+      - Y
+      - Z
+      input_vars: []
+      method: ${method}
+      rtol: ${rtol}
+      atol: ${atol}
+    interval: 0.5
+    inputs:
+      PX:
+      - stores
+      - PX
+      PY:
+      - stores
+      - PY
+      PZ:
+      - stores
+      - PZ
+      X:
+      - stores
+      - X
+      Y:
+      - stores
+      - Y
+      Z:
+      - stores
+      - Z
+    outputs:
+      PX:
+      - stores
+      - PX
+      PY:
+      - stores
+      - PY
+      PZ:
+      - stores
+      - PZ
+      X:
+      - stores
+      - X
+      Y:
+      - stores
+      - Y
+      Z:
+      - stores
+      - Z
+  stores:
+    PX: ${PX_0}
+    PY: ${PY_0}
+    PZ: ${PZ_0}
+    X: ${X_0}
+    Y: ${Y_0}
+    Z: ${Z_0}
+    t_ave: 0.0
+    beta: 0.0
+    k_tl: 0.0
+    a_tr: 0.0
+    a0_tr: 0.0
+    kd_prot: 0.0
+    kd_mRNA: 0.0
+    alpha: 0.0
+    alpha0: 0.0
+  assignments:
+    _type: step
+    address: local:MathExpressionStep
+    config:
+      expressions:
+      - out: t_ave
+        expr: 1.4426950408889634*tau_mRNA
+      - out: beta
+        expr: tau_mRNA/tau_prot
+      - out: k_tl
+        expr: eff/t_ave
+      - out: a_tr
+        expr: -60.0*ps_0 + 60.0*ps_a
+      - out: a0_tr
+        expr: 60.0*ps_0
+      - out: kd_prot
+        expr: 0.6931471805599453/tau_prot
+      - out: kd_mRNA
+        expr: 0.6931471805599453/tau_mRNA
+      - out: alpha
+        expr: 1.4426950408889634*a_tr*eff*tau_prot/KM
+      - out: alpha0
+        expr: 1.4426950408889634*a0_tr*eff*tau_prot/KM
+      params:
+        cell: ${cell}
+        eff: ${eff}
+        n: ${n}
+        KM: ${KM}
+        tau_mRNA: ${tau_mRNA}
+        tau_prot: ${tau_prot}
+        ps_a: ${ps_a}
+        ps_0: ${ps_0}
+    inputs: {}
+    outputs:
+      t_ave:
+      - stores
+      - t_ave
+      beta:
+      - stores
+      - beta
+      k_tl:
+      - stores
+      - k_tl
+      a_tr:
+      - stores
+      - a_tr
+      a0_tr:
+      - stores
+      - a0_tr
+      kd_prot:
+      - stores
+      - kd_prot
+      kd_mRNA:
+      - stores
+      - kd_mRNA
+      alpha:
+      - stores
+      - alpha
+      alpha0:
+      - stores
+      - alpha0
+  emitter:
+    _type: step
+    address: local:JSONEmitter
+    config:
+      emit:
+        PX: float
+        PY: float
+        PZ: float
+        X: float
+        Y: float
+        Z: float
+        t_ave: float
+        beta: float
+        k_tl: float
+        a_tr: float
+        a0_tr: float
+        kd_prot: float
+        kd_mRNA: float
+        alpha: float
+        alpha0: float
+        time: float
+    inputs:
+      PX:
+      - stores
+      - PX
+      PY:
+      - stores
+      - PY
+      PZ:
+      - stores
+      - PZ
+      X:
+      - stores
+      - X
+      Y:
+      - stores
+      - Y
+      Z:
+      - stores
+      - Z
+      t_ave:
+      - stores
+      - t_ave
+      beta:
+      - stores
+      - beta
+      k_tl:
+      - stores
+      - k_tl
+      a_tr:
+      - stores
+      - a_tr
+      a0_tr:
+      - stores
+      - a0_tr
+      kd_prot:
+      - stores
+      - kd_prot
+      kd_mRNA:
+      - stores
+      - kd_mRNA
+      alpha:
+      - stores
+      - alpha
+      alpha0:
+      - stores
+      - alpha0
+      time:
+      - global_time

@@ -1,0 +1,28 @@
+schema_version: 4
+name: novelty-subterm-coupling
+created: '2026-10-05'
+status: planned
+phase: Design
+baseline:
+- name: baseline
+  composite: replace_me.composites.placeholder
+  params: {}
+variants: []
+objective: 'Build two couplings in which another process drives part of an OdeProcess
+  model during a run, both declared through input_vars: (a) a named parameter (a rate
+  constant), and (b) a sub-term that is not a named parameter (part of one rate law,
+  replaced by the external value). Run each at several step sizes and compare against
+  the same model written as one combined ODE system. Inputs are held constant per
+  interval, so the error should shrink in proportion to the step size. Control: TelluriumProcess
+  extended with a parameter input port (libroadrunner can set parameters during a
+  simulation), attempting both couplings. Adversarial case: a deliberately mis-wired
+  coupling must fail the comparison.'
+question: Can one reaction rate in an expression model be driven by another process's
+  output during a run, and does the coupled composite match the merged single model?
+hypothesis: Both OdeProcess couplings converge to the combined model at first order
+  in the step size. The extended TelluriumProcess also reproduces coupling (a), so
+  named-parameter coupling is not a novelty of the expression form. It cannot reproduce
+  coupling (b) without editing the SBML file, because roadrunner has no handle on
+  a sub-term of a rate law. Novelty is claimed only for (b). Refuted if (b) does not
+  converge to the combined model, or if the extended wrapper reproduces (b) without
+  a model edit.

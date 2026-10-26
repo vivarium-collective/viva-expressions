@@ -1,0 +1,22 @@
+schema_version: 4
+name: novelty-rate-law-edit
+created: '2026-10-05'
+status: planned
+phase: Design
+baseline:
+- name: baseline
+  composite: replace_me.composites.placeholder
+  params: {}
+variants: []
+objective: Replace one rate law (its functional form, not only a parameter) in an
+  imported BioModel as a recorded variant of the OdeProcess composite. Compare the
+  result against libroadrunner run on an SBML file with the same hand edit, and record
+  what each path needed in order to make the change.
+question: Can a rate law itself be changed as a recorded variant of an OdeProcess
+  composite, without re-importing the model, and does the edited model match an independently
+  edited reference?
+hypothesis: 'A rate-law replacement (e.g. mass action to Hill) applied as a variant
+  override reproduces libroadrunner on an equivalently hand-edited SBML within the
+  bench-tellurium tight-tolerance threshold, while the same change through the tellurium
+  wrapper needs a new model file. Refuted if the edit can only be made by re-running
+  the importer: that is no different from editing Antimony or SBML.'

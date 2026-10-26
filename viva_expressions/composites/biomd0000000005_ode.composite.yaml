@@ -1,0 +1,270 @@
+name: biomd0000000005_ode
+description: 'SBML model ''BIOMD0000000005'' imported into OdeProcess. Source: BIOMD0000000005.'
+tags:
+- ode
+- expressions
+- sbml-import
+requires:
+  processes:
+  - OdeProcess
+  - MathExpressionStep
+parameters:
+  EmptySet:
+    type: float
+    default: 0.0
+    description: SBML concentration 'EmptySet' (held constant).
+  cell:
+    type: float
+    default: 1.0
+    description: SBML compartment 'cell' (held constant).
+  Reaction1_k6:
+    type: float
+    default: 1.0
+    description: SBML parameter 'Reaction1_k6' (held constant).
+  Reaction2_k8notP:
+    type: float
+    default: 1000000.0
+    description: SBML parameter 'Reaction2_k8notP' (held constant).
+  Reaction3_k9:
+    type: float
+    default: 1000.0
+    description: SBML parameter 'Reaction3_k9' (held constant).
+  Reaction4_k3:
+    type: float
+    default: 200.0
+    description: SBML parameter 'Reaction4_k3' (held constant).
+  Reaction5_k5notP:
+    type: float
+    default: 0.0
+    description: SBML parameter 'Reaction5_k5notP' (held constant).
+  Reaction6_k1aa:
+    type: float
+    default: 0.015
+    description: SBML parameter 'Reaction6_k1aa' (held constant).
+  Reaction7_k2:
+    type: float
+    default: 0.0
+    description: SBML parameter 'Reaction7_k2' (held constant).
+  Reaction8_k7:
+    type: float
+    default: 0.6
+    description: SBML parameter 'Reaction8_k7' (held constant).
+  Reaction9_k4prime:
+    type: float
+    default: 0.018
+    description: SBML parameter 'Reaction9_k4prime' (held constant).
+  Reaction9_k4:
+    type: float
+    default: 180.0
+    description: SBML parameter 'Reaction9_k4' (held constant).
+  C2_0:
+    type: float
+    default: 0.0
+    description: Initial value of C2 (concentration).
+  CP_0:
+    type: float
+    default: 0.75
+    description: Initial value of CP (concentration).
+  M_0:
+    type: float
+    default: 0.0
+    description: Initial value of M (concentration).
+  pM_0:
+    type: float
+    default: 0.25
+    description: Initial value of pM (concentration).
+  Y_0:
+    type: float
+    default: 0.0
+    description: Initial value of Y (concentration).
+  YP_0:
+    type: float
+    default: 0.0
+    description: Initial value of YP (concentration).
+  method:
+    type: string
+    default: LSODA
+    description: scipy solve_ivp method (LSODA, RK45, DOP853, Radau, BDF).
+  rtol:
+    type: float
+    default: 1.0e-08
+    description: Solver relative tolerance.
+  atol:
+    type: float
+    default: 1.0e-10
+    description: Solver absolute tolerance.
+state:
+  ode:
+    _type: process
+    address: local:OdeProcess
+    config:
+      rhs:
+        C2: (-C2*Reaction2_k8notP*cell + CP*Reaction3_k9*cell + M*Reaction1_k6*cell)/cell
+        CP: (C2*Reaction2_k8notP*cell - CP*Reaction3_k9*cell - CP*Reaction4_k3*Y*cell)/cell
+        M: (-M*Reaction1_k6*cell - M*Reaction5_k5notP*cell + cell*pM*(M**2*Reaction9_k4/(C2
+          + CP + M + pM)**2 + Reaction9_k4prime))/cell
+        pM: (CP*Reaction4_k3*Y*cell + M*Reaction5_k5notP*cell - cell*pM*(M**2*Reaction9_k4/(C2
+          + CP + M + pM)**2 + Reaction9_k4prime))/cell
+        Y: (-CP*Reaction4_k3*Y*cell + Reaction6_k1aa*cell - Reaction7_k2*Y*cell)/cell
+        YP: (M*Reaction1_k6*cell - Reaction8_k7*YP*cell)/cell
+      params:
+        EmptySet: ${EmptySet}
+        cell: ${cell}
+        Reaction1_k6: ${Reaction1_k6}
+        Reaction2_k8notP: ${Reaction2_k8notP}
+        Reaction3_k9: ${Reaction3_k9}
+        Reaction4_k3: ${Reaction4_k3}
+        Reaction5_k5notP: ${Reaction5_k5notP}
+        Reaction6_k1aa: ${Reaction6_k1aa}
+        Reaction7_k2: ${Reaction7_k2}
+        Reaction8_k7: ${Reaction8_k7}
+        Reaction9_k4prime: ${Reaction9_k4prime}
+        Reaction9_k4: ${Reaction9_k4}
+      state_vars:
+      - C2
+      - CP
+      - M
+      - pM
+      - Y
+      - YP
+      input_vars: []
+      method: ${method}
+      rtol: ${rtol}
+      atol: ${atol}
+    interval: 0.5
+    inputs:
+      C2:
+      - stores
+      - C2
+      CP:
+      - stores
+      - CP
+      M:
+      - stores
+      - M
+      pM:
+      - stores
+      - pM
+      Y:
+      - stores
+      - Y
+      YP:
+      - stores
+      - YP
+    outputs:
+      C2:
+      - stores
+      - C2
+      CP:
+      - stores
+      - CP
+      M:
+      - stores
+      - M
+      pM:
+      - stores
+      - pM
+      Y:
+      - stores
+      - Y
+      YP:
+      - stores
+      - YP
+  stores:
+    C2: ${C2_0}
+    CP: ${CP_0}
+    M: ${M_0}
+    pM: ${pM_0}
+    Y: ${Y_0}
+    YP: ${YP_0}
+    YT: 0.0
+    CT: 0.0
+  assignments:
+    _type: step
+    address: local:MathExpressionStep
+    config:
+      expressions:
+      - out: YT
+        expr: M + Y + YP + pM
+      - out: CT
+        expr: C2 + CP + M + pM
+      params:
+        EmptySet: ${EmptySet}
+        cell: ${cell}
+        Reaction1_k6: ${Reaction1_k6}
+        Reaction2_k8notP: ${Reaction2_k8notP}
+        Reaction3_k9: ${Reaction3_k9}
+        Reaction4_k3: ${Reaction4_k3}
+        Reaction5_k5notP: ${Reaction5_k5notP}
+        Reaction6_k1aa: ${Reaction6_k1aa}
+        Reaction7_k2: ${Reaction7_k2}
+        Reaction8_k7: ${Reaction8_k7}
+        Reaction9_k4prime: ${Reaction9_k4prime}
+        Reaction9_k4: ${Reaction9_k4}
+    inputs:
+      C2:
+      - stores
+      - C2
+      CP:
+      - stores
+      - CP
+      M:
+      - stores
+      - M
+      Y:
+      - stores
+      - Y
+      YP:
+      - stores
+      - YP
+      pM:
+      - stores
+      - pM
+    outputs:
+      YT:
+      - stores
+      - YT
+      CT:
+      - stores
+      - CT
+  emitter:
+    _type: step
+    address: local:JSONEmitter
+    config:
+      emit:
+        C2: float
+        CP: float
+        M: float
+        pM: float
+        Y: float
+        YP: float
+        YT: float
+        CT: float
+        time: float
+    inputs:
+      C2:
+      - stores
+      - C2
+      CP:
+      - stores
+      - CP
+      M:
+      - stores
+      - M
+      pM:
+      - stores
+      - pM
+      Y:
+      - stores
+      - Y
+      YP:
+      - stores
+      - YP
+      YT:
+      - stores
+      - YT
+      CT:
+      - stores
+      - CT
+      time:
+      - global_time

@@ -1,0 +1,829 @@
+name: biomd0000001000_ode
+description: 'SBML model ''Strasen2018___TGF__SMAD_Signalling_Class_3'' imported into
+  OdeProcess. Source: BIOMD0000001000.'
+tags:
+- ode
+- expressions
+- sbml-import
+requires:
+  processes:
+  - OdeProcess
+  - MathExpressionStep
+parameters:
+  cyt:
+    type: float
+    default: 2.0
+    description: SBML compartment 'cyt' (held constant).
+  nuc:
+    type: float
+    default: 1.0
+    description: SBML compartment 'nuc' (held constant).
+  DRB:
+    type: float
+    default: 1.0
+    description: SBML parameter 'DRB' (held constant).
+  K_mran:
+    type: float
+    default: 223.586
+    description: SBML parameter 'K_mran' (held constant).
+  R1_total_C3:
+    type: float
+    default: 69.7199989056023
+    description: SBML parameter 'R1_total_C3' (held constant).
+  R2_total_C3:
+    type: float
+    default: 49.1925438819563
+    description: SBML parameter 'R2_total_C3' (held constant).
+  S2_export_from_nuc_C3:
+    type: float
+    default: 3.00430865315074
+    description: SBML parameter 'S2_export_from_nuc_C3' (held constant).
+  S2_import_to_nuc_C3:
+    type: float
+    default: 0.248774260500559
+    description: SBML parameter 'S2_import_to_nuc_C3' (held constant).
+  S2_total_C3:
+    type: float
+    default: 1335.77950850425
+    description: SBML parameter 'S2_total_C3' (held constant).
+  S4_export_from_nuc_C3:
+    type: float
+    default: 0.0984718694215043
+    description: SBML parameter 'S4_export_from_nuc_C3' (held constant).
+  S4_import_to_nuc_C3:
+    type: float
+    default: 0.0730474752631315
+    description: SBML parameter 'S4_import_to_nuc_C3' (held constant).
+  S4_total_C3:
+    type: float
+    default: 347.505766824434
+    description: SBML parameter 'S4_total_C3' (held constant).
+  S7KD:
+    type: float
+    default: 1.0
+    description: SBML parameter 'S7KD' (held constant).
+  Trimer_import_to_nuc:
+    type: float
+    default: 0.144035002432848
+    description: SBML parameter 'Trimer_import_to_nuc' (held constant).
+  export_cytoplasm:
+    type: float
+    default: 0.0304372961307751
+    description: SBML parameter 'export_cytoplasm' (held constant).
+  hill_fact1:
+    type: float
+    default: 3.98630224594983
+    description: SBML parameter 'hill_fact1' (held constant).
+  index_active_Rec_internalize_C3:
+    type: float
+    default: 1.0379108128956
+    description: SBML parameter 'index_active_Rec_internalize_C3' (held constant).
+  index_induced_R2_deg:
+    type: float
+    default: 1.00037776866312
+    description: SBML parameter 'index_induced_R2_deg' (held constant).
+  index_induced_ligand_deg:
+    type: float
+    default: 2.72106513634098
+    description: SBML parameter 'index_induced_ligand_deg' (held constant).
+  index_k_out_1_relative_speed_C3:
+    type: float
+    default: 1.13287434679021
+    description: SBML parameter 'index_k_out_1_relative_speed_C3' (held constant).
+  index_k_out_2_relative_speed_C3:
+    type: float
+    default: 0.450697494637432
+    description: SBML parameter 'index_k_out_2_relative_speed_C3' (held constant).
+  index_kb_R1:
+    type: float
+    default: 1.61290474569122
+    description: SBML parameter 'index_kb_R1' (held constant).
+  index_kb_R2:
+    type: float
+    default: 8.70498854136694
+    description: SBML parameter 'index_kb_R2' (held constant).
+  index_kb_homotrimer:
+    type: float
+    default: 0.0163921522930962
+    description: SBML parameter 'index_kb_homotrimer' (held constant).
+  index_kf_homotrimer:
+    type: float
+    default: 4.4857919268227
+    description: SBML parameter 'index_kf_homotrimer' (held constant).
+  index_seq_kb:
+    type: float
+    default: 0.000865131944828012
+    description: SBML parameter 'index_seq_kb' (held constant).
+  index_trimer_dephos:
+    type: float
+    default: 2.61013820571304
+    description: SBML parameter 'index_trimer_dephos' (held constant).
+  k_Dephos_C3:
+    type: float
+    default: 0.0707018316477647
+    description: SBML parameter 'k_Dephos_C3' (held constant).
+  k_S7_protein_C3:
+    type: float
+    default: 0.123149764012103
+    description: SBML parameter 'k_S7_protein_C3' (held constant).
+  k_disso_Active_Rec:
+    type: float
+    default: 0.00103940411358367
+    description: SBML parameter 'k_disso_Active_Rec' (held constant).
+  k_in_R1_C3:
+    type: float
+    default: 0.397836393488341
+    description: SBML parameter 'k_in_R1_C3' (held constant).
+  k_in_R2_C3:
+    type: float
+    default: 0.396038887562465
+    description: SBML parameter 'k_in_R2_C3' (held constant).
+  k_induced_S7_production_C3:
+    type: float
+    default: 2.9510868497
+    description: SBML parameter 'k_induced_S7_production_C3' (held constant).
+  k_medium:
+    type: float
+    default: 2000000.0
+    description: SBML parameter 'k_medium' (held constant).
+  k_phosphorylation:
+    type: float
+    default: 0.0701560191772152
+    description: SBML parameter 'k_phosphorylation' (held constant).
+  kb_trimmer:
+    type: float
+    default: 1.6077346670684
+    description: SBML parameter 'kb_trimmer' (held constant).
+  kdeg_R1:
+    type: float
+    default: 0.0586584495713968
+    description: SBML parameter 'kdeg_R1' (held constant).
+  kdeg_R2:
+    type: float
+    default: 0.0010003937382472
+    description: SBML parameter 'kdeg_R2' (held constant).
+  kdeg_S2:
+    type: float
+    default: 0.000514084012175461
+    description: SBML parameter 'kdeg_S2' (held constant).
+  kdeg_S4:
+    type: float
+    default: 0.00480202699360057
+    description: SBML parameter 'kdeg_S4' (held constant).
+  kdeg_S7:
+    type: float
+    default: 0.00102401829734485
+    description: SBML parameter 'kdeg_S7' (held constant).
+  kf_R1_activation:
+    type: float
+    default: 4.98548548076033
+    description: SBML parameter 'kf_R1_activation' (held constant).
+  kf_R2_activation:
+    type: float
+    default: 4.95559496701657
+    description: SBML parameter 'kf_R2_activation' (held constant).
+  kf_Seq_S7_Rec:
+    type: float
+    default: 0.882455038106022
+    description: SBML parameter 'kf_Seq_S7_Rec' (held constant).
+  kf_trimmer:
+    type: float
+    default: 4.81424700307387
+    description: SBML parameter 'kf_trimmer' (held constant).
+  kin_deg_Ligand:
+    type: float
+    default: 0.720182234635314
+    description: SBML parameter 'kin_deg_Ligand' (held constant).
+  kmRNA1deg_S7:
+    type: float
+    default: 0.00523181439900629
+    description: SBML parameter 'kmRNA1deg_S7' (held constant).
+  kmRNAdeg_S7:
+    type: float
+    default: 0.0990158065483902
+    description: SBML parameter 'kmRNAdeg_S7' (held constant).
+  kout_deg_Ligand_100pM:
+    type: float
+    default: 0.00036189622
+    description: SBML parameter 'kout_deg_Ligand_100pM' (held constant).
+  mRNA_prod_C3:
+    type: float
+    default: 0.0239754962469105
+    description: SBML parameter 'mRNA_prod_C3' (held constant).
+  TGFb_R1_surface_0:
+    type: float
+    default: 39.145316324703415
+    description: Initial value of TGFb_R1_surface (concentration).
+  TGFb_R2_surface_0:
+    type: float
+    default: 15.341904867714666
+    description: Initial value of TGFb_R2_surface (concentration).
+  TGFb_R1_endo_0:
+    type: float
+    default: 30.57468258089889
+    description: Initial value of TGFb_R1_endo (concentration).
+  TGFb_R2_endo_0:
+    type: float
+    default: 33.85063901424163
+    description: Initial value of TGFb_R2_endo (concentration).
+  TGFb_0:
+    type: float
+    default: 100.0
+    description: Initial value of TGFb (concentration).
+  TGFb_In_0:
+    type: float
+    default: 0.0
+    description: Initial value of TGFb_In (concentration).
+  Active_R2_0:
+    type: float
+    default: 0.0
+    description: Initial value of Active_R2 (concentration).
+  Active_Rec_0:
+    type: float
+    default: 0.0
+    description: Initial value of Active_Rec (concentration).
+  Active_Rec_endo_0:
+    type: float
+    default: 0.0
+    description: Initial value of Active_Rec_endo (concentration).
+  Inactive_Rec_0:
+    type: float
+    default: 0.0
+    description: Initial value of Inactive_Rec (concentration).
+  pS2_c_0:
+    type: float
+    default: 0.0
+    description: Initial value of pS2_c (concentration).
+  S2_c_0:
+    type: float
+    default: 1146.0180383886332
+    description: Initial value of S2_c (concentration).
+  S4_c_0:
+    type: float
+    default: 143.91643145030181
+    description: Initial value of S4_c (concentration).
+  pS2_pS2_S4_c_0:
+    type: float
+    default: 0.0
+    description: Initial value of pS2_pS2_S4_c (concentration).
+  pS2_pS2_pS2_c_0:
+    type: float
+    default: 0.0
+    description: Initial value of pS2_pS2_pS2_c (concentration).
+  Smad7mRNA_0:
+    type: float
+    default: 0.1033110724689415
+    description: Initial value of Smad7mRNA (concentration).
+  Smad7mRNA1_0:
+    type: float
+    default: 0.6721641187798199
+    description: Initial value of Smad7mRNA1 (concentration).
+  S7_0:
+    type: float
+    default: 12.424323107678699
+    description: Initial value of S7 (concentration).
+  pS2_n_0:
+    type: float
+    default: 0.0
+    description: Initial value of pS2_n (concentration).
+  pS2_pS2_S4_n_0:
+    type: float
+    default: 0.0
+    description: Initial value of pS2_pS2_S4_n (concentration).
+  pS2_pS2_pS2_n_0:
+    type: float
+    default: 0.0
+    description: Initial value of pS2_pS2_pS2_n (concentration).
+  S2_n_0:
+    type: float
+    default: 189.76147011561696
+    description: Initial value of S2_n (concentration).
+  S4_n_0:
+    type: float
+    default: 203.58933537413213
+    description: Initial value of S4_n (concentration).
+  method:
+    type: string
+    default: LSODA
+    description: scipy solve_ivp method (LSODA, RK45, DOP853, Radau, BDF).
+  rtol:
+    type: float
+    default: 1.0e-08
+    description: Solver relative tolerance.
+  atol:
+    type: float
+    default: 1.0e-10
+    description: Solver absolute tolerance.
+state:
+  ode:
+    _type: process
+    address: local:OdeProcess
+    config:
+      rhs:
+        TGFb_R1_surface: (-Active_R2*TGFb_R1_surface*cyt*kf_R1_activation + Active_Rec*cyt*index_kb_R1*kf_R1_activation
+          + R1_total_C3*cyt*k_in_R1_C3*kdeg_R1**2.0/(index_k_out_1_relative_speed_C3*k_in_R1_C3*kdeg_R1
+          + k_in_R1_C3*kdeg_R1 + kdeg_R1**2.0) + TGFb_R1_endo*cyt*index_k_out_1_relative_speed_C3*k_in_R1_C3
+          - TGFb_R1_surface*cyt*k_in_R1_C3)/cyt
+        TGFb_R2_surface: (Active_R2*cyt*index_kb_R2*kf_R2_activation + R2_total_C3*cyt*k_in_R2_C3*kdeg_R2**2.0/(index_k_out_2_relative_speed_C3*k_in_R2_C3*kdeg_R2
+          + k_in_R2_C3*kdeg_R2 + kdeg_R2**2.0) - TGFb*TGFb_R2_surface*cyt*kf_R2_activation
+          + TGFb_R2_endo*cyt*index_k_out_2_relative_speed_C3*k_in_R2_C3 - TGFb_R2_surface*cyt*k_in_R2_C3)/cyt
+        TGFb_R1_endo: (Active_Rec_endo*cyt*k_disso_Active_Rec + Active_Rec_endo*cyt*kdeg_R2
+          + Active_Rec_endo*cyt*kin_deg_Ligand + Inactive_Rec*cyt*index_induced_R2_deg*kdeg_R2
+          + Inactive_Rec*cyt*index_induced_ligand_deg*kin_deg_Ligand - TGFb_R1_endo*cyt*index_k_out_1_relative_speed_C3*k_in_R1_C3
+          - TGFb_R1_endo*cyt*kdeg_R1 + TGFb_R1_surface*cyt*k_in_R1_C3)/cyt
+        TGFb_R2_endo: (Active_Rec_endo*cyt*k_disso_Active_Rec + Active_Rec_endo*cyt*kdeg_R1
+          + Active_Rec_endo*cyt*kin_deg_Ligand + Inactive_Rec*cyt*index_induced_ligand_deg*kin_deg_Ligand
+          - TGFb_R2_endo*cyt*index_k_out_2_relative_speed_C3*k_in_R2_C3 - TGFb_R2_endo*cyt*kdeg_R2
+          + TGFb_R2_surface*cyt*k_in_R2_C3)/cyt
+        TGFb: (Active_R2*cyt*index_kb_R2*kf_R2_activation/k_medium - TGFb*TGFb_R2_surface*cyt*kf_R2_activation/k_medium
+          - TGFb*cyt*kout_deg_Ligand_100pM)/cyt
+        TGFb_In: (Active_Rec_endo*cyt*k_disso_Active_Rec + Active_Rec_endo*cyt*kdeg_R1
+          + Active_Rec_endo*cyt*kdeg_R2 + Inactive_Rec*cyt*index_induced_R2_deg*kdeg_R2
+          - TGFb_In*cyt*kin_deg_Ligand)/cyt
+        Active_R2: (-Active_R2*TGFb_R1_surface*cyt*kf_R1_activation - Active_R2*cyt*index_kb_R2*kf_R2_activation
+          + Active_Rec*cyt*index_kb_R1*kf_R1_activation + TGFb*TGFb_R2_surface*cyt*kf_R2_activation)/cyt
+        Active_Rec: (Active_R2*TGFb_R1_surface*cyt*kf_R1_activation - Active_Rec*S7*cyt*kf_Seq_S7_Rec
+          - Active_Rec*cyt*index_active_Rec_internalize_C3*k_in_R1_C3 - Active_Rec*cyt*index_kb_R1*kf_R1_activation
+          + Inactive_Rec*cyt*index_seq_kb*kf_Seq_S7_Rec)/cyt
+        Active_Rec_endo: (Active_Rec*cyt*index_active_Rec_internalize_C3*k_in_R1_C3
+          - Active_Rec_endo*cyt*k_disso_Active_Rec - Active_Rec_endo*cyt*kdeg_R1 -
+          Active_Rec_endo*cyt*kdeg_R2 - Active_Rec_endo*cyt*kin_deg_Ligand)/cyt
+        Inactive_Rec: (Active_Rec*S7*cyt*kf_Seq_S7_Rec - Inactive_Rec*cyt*index_induced_R2_deg*kdeg_R2
+          - Inactive_Rec*cyt*index_induced_ligand_deg*kin_deg_Ligand - Inactive_Rec*cyt*index_seq_kb*kf_Seq_S7_Rec)/cyt
+        pS2_c: (Active_Rec_endo*S2_c*cyt*k_phosphorylation + S2_export_from_nuc_C3*nuc*pS2_n
+          - S2_import_to_nuc_C3*cyt*pS2_c - 2*S4_c*cyt*kf_trimmer*pS2_c**2.0 + 3*cyt*index_kb_homotrimer*kb_trimmer*pS2_pS2_pS2_c
+          - 3*cyt*index_kf_homotrimer*kf_trimmer*pS2_c**3.0 + 2*cyt*kb_trimmer*pS2_pS2_S4_c
+          - cyt*kdeg_S2*pS2_c + cyt*kdeg_S2*pS2_pS2_S4_c + 2*cyt*kdeg_S2*pS2_pS2_pS2_c
+          + 2*cyt*kdeg_S4*pS2_pS2_S4_c)/cyt
+        S2_c: (-Active_Rec_endo*S2_c*cyt*k_phosphorylation - S2_c*S2_import_to_nuc_C3*cyt
+          - S2_c*cyt*kdeg_S2 + S2_export_from_nuc_C3*S2_n*nuc + S2_total_C3*cyt*(S2_export_from_nuc_C3*kdeg_S2
+          + S2_import_to_nuc_C3*kdeg_S2 + kdeg_S2**2.0)/(S2_export_from_nuc_C3 + 2.0*S2_import_to_nuc_C3
+          + kdeg_S2))/cyt
+        S4_c: (-S4_c*S4_import_to_nuc_C3*cyt - S4_c*cyt*kdeg_S4 - S4_c*cyt*kf_trimmer*pS2_c**2.0
+          + S4_export_from_nuc_C3*S4_n*nuc + S4_total_C3*cyt*(S4_export_from_nuc_C3*kdeg_S4
+          + S4_import_to_nuc_C3*kdeg_S4 + kdeg_S4**2.0)/(S4_export_from_nuc_C3 + 2.0*S4_import_to_nuc_C3
+          + kdeg_S4) + cyt*kb_trimmer*pS2_pS2_S4_c + cyt*kdeg_S2*pS2_pS2_S4_c)/cyt
+        pS2_pS2_S4_c: (S4_c*cyt*kf_trimmer*pS2_c**2.0 - Trimer_import_to_nuc*cyt*pS2_pS2_S4_c
+          - cyt*kb_trimmer*pS2_pS2_S4_c - cyt*kdeg_S2*pS2_pS2_S4_c - cyt*kdeg_S4*pS2_pS2_S4_c)/cyt
+        pS2_pS2_pS2_c: (-Trimer_import_to_nuc*cyt*pS2_pS2_pS2_c - cyt*index_kb_homotrimer*kb_trimmer*pS2_pS2_pS2_c
+          + cyt*index_kf_homotrimer*kf_trimmer*pS2_c**3.0 - cyt*kdeg_S2*pS2_pS2_pS2_c)/cyt
+        Smad7mRNA: (-Smad7mRNA*cyt*kmRNAdeg_S7 + Smad7mRNA1*export_cytoplasm*nuc)/cyt
+        Smad7mRNA1: (DRB*S7KD*nuc*(k_induced_S7_production_C3*pS2_pS2_S4_n**hill_fact1/(K_mran**hill_fact1
+          + pS2_pS2_S4_n**hill_fact1) + mRNA_prod_C3) - Smad7mRNA1*export_cytoplasm*nuc
+          - Smad7mRNA1*kmRNA1deg_S7*nuc)/nuc
+        S7: (-Active_Rec*S7*cyt*kf_Seq_S7_Rec + Inactive_Rec*cyt*index_induced_R2_deg*kdeg_R2
+          + Inactive_Rec*cyt*index_induced_ligand_deg*kin_deg_Ligand + Inactive_Rec*cyt*index_seq_kb*kf_Seq_S7_Rec
+          - S7*cyt*kdeg_S7 + Smad7mRNA*cyt*k_S7_protein_C3)/cyt
+        pS2_n: (-S2_export_from_nuc_C3*nuc*pS2_n + S2_import_to_nuc_C3*cyt*pS2_c -
+          2*S4_n*kf_trimmer*nuc*pS2_n**2.0 + 3*index_kb_homotrimer*kb_trimmer*nuc*pS2_pS2_pS2_n
+          - 3*index_kf_homotrimer*kf_trimmer*nuc*pS2_n**3.0 + index_trimer_dephos*k_Dephos_C3*nuc*pS2_pS2_S4_n
+          - k_Dephos_C3*nuc*pS2_n + 2*kb_trimmer*nuc*pS2_pS2_S4_n - kdeg_S2*nuc*pS2_n
+          + kdeg_S2*nuc*pS2_pS2_S4_n + 2*kdeg_S2*nuc*pS2_pS2_pS2_n + 2*kdeg_S4*nuc*pS2_pS2_S4_n)/nuc
+        pS2_pS2_S4_n: (S4_n*kf_trimmer*nuc*pS2_n**2.0 + Trimer_import_to_nuc*cyt*pS2_pS2_S4_c
+          - index_trimer_dephos*k_Dephos_C3*nuc*pS2_pS2_S4_n - kb_trimmer*nuc*pS2_pS2_S4_n
+          - kdeg_S2*nuc*pS2_pS2_S4_n - kdeg_S4*nuc*pS2_pS2_S4_n)/nuc
+        pS2_pS2_pS2_n: (Trimer_import_to_nuc*cyt*pS2_pS2_pS2_c - index_kb_homotrimer*kb_trimmer*nuc*pS2_pS2_pS2_n
+          + index_kf_homotrimer*kf_trimmer*nuc*pS2_n**3.0 - kdeg_S2*nuc*pS2_pS2_pS2_n)/nuc
+        S2_n: (S2_c*S2_import_to_nuc_C3*cyt - S2_export_from_nuc_C3*S2_n*nuc - S2_n*kdeg_S2*nuc
+          + index_trimer_dephos*k_Dephos_C3*nuc*pS2_pS2_S4_n + k_Dephos_C3*nuc*pS2_n)/nuc
+        S4_n: (S4_c*S4_import_to_nuc_C3*cyt - S4_export_from_nuc_C3*S4_n*nuc - S4_n*kdeg_S4*nuc
+          - S4_n*kf_trimmer*nuc*pS2_n**2.0 + index_trimer_dephos*k_Dephos_C3*nuc*pS2_pS2_S4_n
+          + kb_trimmer*nuc*pS2_pS2_S4_n + kdeg_S2*nuc*pS2_pS2_S4_n)/nuc
+      params:
+        cyt: ${cyt}
+        nuc: ${nuc}
+        DRB: ${DRB}
+        K_mran: ${K_mran}
+        R1_total_C3: ${R1_total_C3}
+        R2_total_C3: ${R2_total_C3}
+        S2_export_from_nuc_C3: ${S2_export_from_nuc_C3}
+        S2_import_to_nuc_C3: ${S2_import_to_nuc_C3}
+        S2_total_C3: ${S2_total_C3}
+        S4_export_from_nuc_C3: ${S4_export_from_nuc_C3}
+        S4_import_to_nuc_C3: ${S4_import_to_nuc_C3}
+        S4_total_C3: ${S4_total_C3}
+        S7KD: ${S7KD}
+        Trimer_import_to_nuc: ${Trimer_import_to_nuc}
+        export_cytoplasm: ${export_cytoplasm}
+        hill_fact1: ${hill_fact1}
+        index_active_Rec_internalize_C3: ${index_active_Rec_internalize_C3}
+        index_induced_R2_deg: ${index_induced_R2_deg}
+        index_induced_ligand_deg: ${index_induced_ligand_deg}
+        index_k_out_1_relative_speed_C3: ${index_k_out_1_relative_speed_C3}
+        index_k_out_2_relative_speed_C3: ${index_k_out_2_relative_speed_C3}
+        index_kb_R1: ${index_kb_R1}
+        index_kb_R2: ${index_kb_R2}
+        index_kb_homotrimer: ${index_kb_homotrimer}
+        index_kf_homotrimer: ${index_kf_homotrimer}
+        index_seq_kb: ${index_seq_kb}
+        index_trimer_dephos: ${index_trimer_dephos}
+        k_Dephos_C3: ${k_Dephos_C3}
+        k_S7_protein_C3: ${k_S7_protein_C3}
+        k_disso_Active_Rec: ${k_disso_Active_Rec}
+        k_in_R1_C3: ${k_in_R1_C3}
+        k_in_R2_C3: ${k_in_R2_C3}
+        k_induced_S7_production_C3: ${k_induced_S7_production_C3}
+        k_medium: ${k_medium}
+        k_phosphorylation: ${k_phosphorylation}
+        kb_trimmer: ${kb_trimmer}
+        kdeg_R1: ${kdeg_R1}
+        kdeg_R2: ${kdeg_R2}
+        kdeg_S2: ${kdeg_S2}
+        kdeg_S4: ${kdeg_S4}
+        kdeg_S7: ${kdeg_S7}
+        kf_R1_activation: ${kf_R1_activation}
+        kf_R2_activation: ${kf_R2_activation}
+        kf_Seq_S7_Rec: ${kf_Seq_S7_Rec}
+        kf_trimmer: ${kf_trimmer}
+        kin_deg_Ligand: ${kin_deg_Ligand}
+        kmRNA1deg_S7: ${kmRNA1deg_S7}
+        kmRNAdeg_S7: ${kmRNAdeg_S7}
+        kout_deg_Ligand_100pM: ${kout_deg_Ligand_100pM}
+        mRNA_prod_C3: ${mRNA_prod_C3}
+      state_vars:
+      - TGFb_R1_surface
+      - TGFb_R2_surface
+      - TGFb_R1_endo
+      - TGFb_R2_endo
+      - TGFb
+      - TGFb_In
+      - Active_R2
+      - Active_Rec
+      - Active_Rec_endo
+      - Inactive_Rec
+      - pS2_c
+      - S2_c
+      - S4_c
+      - pS2_pS2_S4_c
+      - pS2_pS2_pS2_c
+      - Smad7mRNA
+      - Smad7mRNA1
+      - S7
+      - pS2_n
+      - pS2_pS2_S4_n
+      - pS2_pS2_pS2_n
+      - S2_n
+      - S4_n
+      input_vars: []
+      method: ${method}
+      rtol: ${rtol}
+      atol: ${atol}
+    interval: 0.5
+    inputs:
+      TGFb_R1_surface:
+      - stores
+      - TGFb_R1_surface
+      TGFb_R2_surface:
+      - stores
+      - TGFb_R2_surface
+      TGFb_R1_endo:
+      - stores
+      - TGFb_R1_endo
+      TGFb_R2_endo:
+      - stores
+      - TGFb_R2_endo
+      TGFb:
+      - stores
+      - TGFb
+      TGFb_In:
+      - stores
+      - TGFb_In
+      Active_R2:
+      - stores
+      - Active_R2
+      Active_Rec:
+      - stores
+      - Active_Rec
+      Active_Rec_endo:
+      - stores
+      - Active_Rec_endo
+      Inactive_Rec:
+      - stores
+      - Inactive_Rec
+      pS2_c:
+      - stores
+      - pS2_c
+      S2_c:
+      - stores
+      - S2_c
+      S4_c:
+      - stores
+      - S4_c
+      pS2_pS2_S4_c:
+      - stores
+      - pS2_pS2_S4_c
+      pS2_pS2_pS2_c:
+      - stores
+      - pS2_pS2_pS2_c
+      Smad7mRNA:
+      - stores
+      - Smad7mRNA
+      Smad7mRNA1:
+      - stores
+      - Smad7mRNA1
+      S7:
+      - stores
+      - S7
+      pS2_n:
+      - stores
+      - pS2_n
+      pS2_pS2_S4_n:
+      - stores
+      - pS2_pS2_S4_n
+      pS2_pS2_pS2_n:
+      - stores
+      - pS2_pS2_pS2_n
+      S2_n:
+      - stores
+      - S2_n
+      S4_n:
+      - stores
+      - S4_n
+    outputs:
+      TGFb_R1_surface:
+      - stores
+      - TGFb_R1_surface
+      TGFb_R2_surface:
+      - stores
+      - TGFb_R2_surface
+      TGFb_R1_endo:
+      - stores
+      - TGFb_R1_endo
+      TGFb_R2_endo:
+      - stores
+      - TGFb_R2_endo
+      TGFb:
+      - stores
+      - TGFb
+      TGFb_In:
+      - stores
+      - TGFb_In
+      Active_R2:
+      - stores
+      - Active_R2
+      Active_Rec:
+      - stores
+      - Active_Rec
+      Active_Rec_endo:
+      - stores
+      - Active_Rec_endo
+      Inactive_Rec:
+      - stores
+      - Inactive_Rec
+      pS2_c:
+      - stores
+      - pS2_c
+      S2_c:
+      - stores
+      - S2_c
+      S4_c:
+      - stores
+      - S4_c
+      pS2_pS2_S4_c:
+      - stores
+      - pS2_pS2_S4_c
+      pS2_pS2_pS2_c:
+      - stores
+      - pS2_pS2_pS2_c
+      Smad7mRNA:
+      - stores
+      - Smad7mRNA
+      Smad7mRNA1:
+      - stores
+      - Smad7mRNA1
+      S7:
+      - stores
+      - S7
+      pS2_n:
+      - stores
+      - pS2_n
+      pS2_pS2_S4_n:
+      - stores
+      - pS2_pS2_S4_n
+      pS2_pS2_pS2_n:
+      - stores
+      - pS2_pS2_pS2_n
+      S2_n:
+      - stores
+      - S2_n
+      S4_n:
+      - stores
+      - S4_n
+  stores:
+    TGFb_R1_surface: ${TGFb_R1_surface_0}
+    TGFb_R2_surface: ${TGFb_R2_surface_0}
+    TGFb_R1_endo: ${TGFb_R1_endo_0}
+    TGFb_R2_endo: ${TGFb_R2_endo_0}
+    TGFb: ${TGFb_0}
+    TGFb_In: ${TGFb_In_0}
+    Active_R2: ${Active_R2_0}
+    Active_Rec: ${Active_Rec_0}
+    Active_Rec_endo: ${Active_Rec_endo_0}
+    Inactive_Rec: ${Inactive_Rec_0}
+    pS2_c: ${pS2_c_0}
+    S2_c: ${S2_c_0}
+    S4_c: ${S4_c_0}
+    pS2_pS2_S4_c: ${pS2_pS2_S4_c_0}
+    pS2_pS2_pS2_c: ${pS2_pS2_pS2_c_0}
+    Smad7mRNA: ${Smad7mRNA_0}
+    Smad7mRNA1: ${Smad7mRNA1_0}
+    S7: ${S7_0}
+    pS2_n: ${pS2_n_0}
+    pS2_pS2_S4_n: ${pS2_pS2_S4_n_0}
+    pS2_pS2_pS2_n: ${pS2_pS2_pS2_n_0}
+    S2_n: ${S2_n_0}
+    S4_n: ${S4_n_0}
+    NUC_CYT_SMAD2: 0.0
+  assignments:
+    _type: step
+    address: local:MathExpressionStep
+    config:
+      expressions:
+      - out: NUC_CYT_SMAD2
+        expr: (S2_n + pS2_n + 2.0*pS2_pS2_S4_n + 3.0*pS2_pS2_pS2_n)/(S2_c + pS2_c
+          + 2.0*pS2_pS2_S4_c + 3.0*pS2_pS2_pS2_c)
+      params:
+        cyt: ${cyt}
+        nuc: ${nuc}
+        DRB: ${DRB}
+        K_mran: ${K_mran}
+        R1_total_C3: ${R1_total_C3}
+        R2_total_C3: ${R2_total_C3}
+        S2_export_from_nuc_C3: ${S2_export_from_nuc_C3}
+        S2_import_to_nuc_C3: ${S2_import_to_nuc_C3}
+        S2_total_C3: ${S2_total_C3}
+        S4_export_from_nuc_C3: ${S4_export_from_nuc_C3}
+        S4_import_to_nuc_C3: ${S4_import_to_nuc_C3}
+        S4_total_C3: ${S4_total_C3}
+        S7KD: ${S7KD}
+        Trimer_import_to_nuc: ${Trimer_import_to_nuc}
+        export_cytoplasm: ${export_cytoplasm}
+        hill_fact1: ${hill_fact1}
+        index_active_Rec_internalize_C3: ${index_active_Rec_internalize_C3}
+        index_induced_R2_deg: ${index_induced_R2_deg}
+        index_induced_ligand_deg: ${index_induced_ligand_deg}
+        index_k_out_1_relative_speed_C3: ${index_k_out_1_relative_speed_C3}
+        index_k_out_2_relative_speed_C3: ${index_k_out_2_relative_speed_C3}
+        index_kb_R1: ${index_kb_R1}
+        index_kb_R2: ${index_kb_R2}
+        index_kb_homotrimer: ${index_kb_homotrimer}
+        index_kf_homotrimer: ${index_kf_homotrimer}
+        index_seq_kb: ${index_seq_kb}
+        index_trimer_dephos: ${index_trimer_dephos}
+        k_Dephos_C3: ${k_Dephos_C3}
+        k_S7_protein_C3: ${k_S7_protein_C3}
+        k_disso_Active_Rec: ${k_disso_Active_Rec}
+        k_in_R1_C3: ${k_in_R1_C3}
+        k_in_R2_C3: ${k_in_R2_C3}
+        k_induced_S7_production_C3: ${k_induced_S7_production_C3}
+        k_medium: ${k_medium}
+        k_phosphorylation: ${k_phosphorylation}
+        kb_trimmer: ${kb_trimmer}
+        kdeg_R1: ${kdeg_R1}
+        kdeg_R2: ${kdeg_R2}
+        kdeg_S2: ${kdeg_S2}
+        kdeg_S4: ${kdeg_S4}
+        kdeg_S7: ${kdeg_S7}
+        kf_R1_activation: ${kf_R1_activation}
+        kf_R2_activation: ${kf_R2_activation}
+        kf_Seq_S7_Rec: ${kf_Seq_S7_Rec}
+        kf_trimmer: ${kf_trimmer}
+        kin_deg_Ligand: ${kin_deg_Ligand}
+        kmRNA1deg_S7: ${kmRNA1deg_S7}
+        kmRNAdeg_S7: ${kmRNAdeg_S7}
+        kout_deg_Ligand_100pM: ${kout_deg_Ligand_100pM}
+        mRNA_prod_C3: ${mRNA_prod_C3}
+    inputs:
+      S2_c:
+      - stores
+      - S2_c
+      S2_n:
+      - stores
+      - S2_n
+      pS2_c:
+      - stores
+      - pS2_c
+      pS2_n:
+      - stores
+      - pS2_n
+      pS2_pS2_S4_c:
+      - stores
+      - pS2_pS2_S4_c
+      pS2_pS2_S4_n:
+      - stores
+      - pS2_pS2_S4_n
+      pS2_pS2_pS2_c:
+      - stores
+      - pS2_pS2_pS2_c
+      pS2_pS2_pS2_n:
+      - stores
+      - pS2_pS2_pS2_n
+    outputs:
+      NUC_CYT_SMAD2:
+      - stores
+      - NUC_CYT_SMAD2
+  emitter:
+    _type: step
+    address: local:JSONEmitter
+    config:
+      emit:
+        TGFb_R1_surface: float
+        TGFb_R2_surface: float
+        TGFb_R1_endo: float
+        TGFb_R2_endo: float
+        TGFb: float
+        TGFb_In: float
+        Active_R2: float
+        Active_Rec: float
+        Active_Rec_endo: float
+        Inactive_Rec: float
+        pS2_c: float
+        S2_c: float
+        S4_c: float
+        pS2_pS2_S4_c: float
+        pS2_pS2_pS2_c: float
+        Smad7mRNA: float
+        Smad7mRNA1: float
+        S7: float
+        pS2_n: float
+        pS2_pS2_S4_n: float
+        pS2_pS2_pS2_n: float
+        S2_n: float
+        S4_n: float
+        NUC_CYT_SMAD2: float
+        time: float
+    inputs:
+      TGFb_R1_surface:
+      - stores
+      - TGFb_R1_surface
+      TGFb_R2_surface:
+      - stores
+      - TGFb_R2_surface
+      TGFb_R1_endo:
+      - stores
+      - TGFb_R1_endo
+      TGFb_R2_endo:
+      - stores
+      - TGFb_R2_endo
+      TGFb:
+      - stores
+      - TGFb
+      TGFb_In:
+      - stores
+      - TGFb_In
+      Active_R2:
+      - stores
+      - Active_R2
+      Active_Rec:
+      - stores
+      - Active_Rec
+      Active_Rec_endo:
+      - stores
+      - Active_Rec_endo
+      Inactive_Rec:
+      - stores
+      - Inactive_Rec
+      pS2_c:
+      - stores
+      - pS2_c
+      S2_c:
+      - stores
+      - S2_c
+      S4_c:
+      - stores
+      - S4_c
+      pS2_pS2_S4_c:
+      - stores
+      - pS2_pS2_S4_c
+      pS2_pS2_pS2_c:
+      - stores
+      - pS2_pS2_pS2_c
+      Smad7mRNA:
+      - stores
+      - Smad7mRNA
+      Smad7mRNA1:
+      - stores
+      - Smad7mRNA1
+      S7:
+      - stores
+      - S7
+      pS2_n:
+      - stores
+      - pS2_n
+      pS2_pS2_S4_n:
+      - stores
+      - pS2_pS2_S4_n
+      pS2_pS2_pS2_n:
+      - stores
+      - pS2_pS2_pS2_n
+      S2_n:
+      - stores
+      - S2_n
+      S4_n:
+      - stores
+      - S4_n
+      NUC_CYT_SMAD2:
+      - stores
+      - NUC_CYT_SMAD2
+      time:
+      - global_time
