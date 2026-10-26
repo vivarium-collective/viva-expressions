@@ -50,6 +50,13 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Populate external/* submodules (viva-biomodels is an editable
+          # path dependency). Non-recursive: do NOT descend into a submodule's
+          # own submodules, matching workspace-ci. Without this the editable
+          # path resolves to an empty dir and `uv sync` aborts with
+          # "does not appear to be a Python project".
+          submodules: true
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
