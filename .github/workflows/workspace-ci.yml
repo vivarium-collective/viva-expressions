@@ -8,7 +8,7 @@
 # re-scaffolding, or by copying the current source from
 #   vivarium-collective/viva-template/template/.github/workflows/<template>
 # template: workspace-ci.yml.j2
-# sha256: ad4f8305fdc983ea06399ce9f5d73cb1f0810a78389da45ee6aa5e1fe3d138de
+# sha256: 09fc4f22777659575a0ceec55a3a10e835f1eab5606dc3325e642f9fc7f3af17
 # <<< viva-template-provenance <<<
 
 name: workspace-ci
@@ -77,6 +77,9 @@ jobs:
           ls -la external/ 2>&1 || true
       - uses: actions/setup-python@v6
         with:
+          # Rendered from the workspace's pyproject.toml requires-python by
+          # template-init.sh (">=3.12" -> "3.12", otherwise "3.11"). A
+          # 3.12-only workspace must test on 3.12, not a hardcoded 3.11.
           python-version: "3.12"
       - name: Install uv
         run: pip install uv
@@ -164,3 +167,23 @@ jobs:
         run: |
           source .venv/bin/activate
           pytest tests/ -v --color=yes
+
+      - name: Publish render check (no study would 404)
+        run: |
+          # The deploy job (publish-dashboard.yml) renders one read-only shell
+          # per study. If any study fails to render, the published site 404s on
+          # opening it. That guard already lives in the deploy — but the deploy
+          # runs AFTER merge, so a study-render break reaches the live site
+          # before anyone sees it. Run the SAME snapshot build here, as a
+          # required PR gate, so the break is caught before merge. Mirror the
+          # deploy's vivarium-workbench@main install so the gate tests exactly
+          # what will deploy.
+          source .venv/bin/activate
+          uv pip install --reinstall-package vivarium-workbench "vivarium-workbench @ git+https://github.com/vivarium-collective/vivarium-workbench.git@main"
+          if vivarium-workbench-publish --help >/dev/null 2>&1; then
+            # A non-zero exit here means "the snapshot would 404 on opening one
+            # or more studies" — fail the PR rather than the live site.
+            vivarium-workbench-publish --workspace . --out "${RUNNER_TEMP:-/tmp}/render-check"
+          else
+            echo "vivarium-workbench-publish unavailable (older pin) — skipping render check."
+          fi
