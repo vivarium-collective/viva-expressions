@@ -8,7 +8,7 @@
 # re-scaffolding, or by copying the current source from
 #   vivarium-collective/viva-template/template/.github/workflows/<template>
 # template: workspace-ci.yml.j2
-# sha256: 09fc4f22777659575a0ceec55a3a10e835f1eab5606dc3325e642f9fc7f3af17
+# sha256: fe8c8f03b54507d76509e9c29e8d6e98ff5d35458278b85bb275df437162ede6
 # <<< viva-template-provenance <<<
 
 name: workspace-ci

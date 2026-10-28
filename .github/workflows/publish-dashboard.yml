@@ -8,7 +8,7 @@
 # re-scaffolding, or by copying the current source from
 #   vivarium-collective/viva-template/template/.github/workflows/<template>
 # template: publish-dashboard.yml
-# sha256: c792574c38606de292d9fe740875762837d3e725933d26c30ec60a13adee83d1
+# sha256: e77ce1b1c54b1880312c6762f6134aff41c9d9c5b455cb2229f679a4ecb4eb8a
 # <<< viva-template-provenance <<<
 
 name: Publish read-only workbench
@@ -51,8 +51,6 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: true
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
@@ -68,7 +66,10 @@ jobs:
       - name: Ensure the publish CLI is present (latest dashboard main)
         # uv.lock may pin a vivarium-workbench commit predating the publish CLI;
         # force current main so `vivarium-workbench-publish` exists.
-        run: uv pip install --reinstall-package vivarium-workbench "vivarium-workbench @ git+https://github.com/vivarium-collective/vivarium-workbench.git@main"
+        # --refresh-package: setup-uv caches uv's git clone of @main, so without this
+        # uv reuses a STALE cached commit and republishes a pre-merge bundle while
+        # the run stays green. Force a re-fetch of the tip.
+        run: uv pip install --refresh-package vivarium-workbench --reinstall-package vivarium-workbench "vivarium-workbench @ git+https://github.com/vivarium-collective/vivarium-workbench.git@main"
 
       - name: Build read-only workbench snapshot
         # Run inside the activated venv, NOT `uv run` — `uv run` re-syncs to
