@@ -20,7 +20,7 @@
   <div style="display:flex; align-items:center; gap:14px; justify-content:space-between;">
   <div style="display:flex; align-items:center; gap:12px; min-width:0; flex-wrap:wrap">
   <h1 class="study-title" style="margin:0">
-    <span class="study-name" id="study-name" data-slug="expression-kinetics-analytic" data-study-kind="computational" title="expression-kinetics-analytic">expression kinetics analytic</span>
+    <span class="study-name" id="study-name" data-slug="expression-kinetics-analytic" data-study-kind="computational" title="expression-kinetics-analytic" data-edit-kind="study" data-edit-field="title" data-edit-value="" data-edit-label="Title">expression kinetics analytic</span>
     
   </h1>
     
@@ -235,6 +235,9 @@
 /* findings */
 .findings-section{padding:14px 16px;background:#fafbff;border:1px solid #c7d2fe;border-radius:8px}
 .finding-card{padding:12px 14px;margin:10px 0;border:1px solid #e2e8f0;border-left:5px solid #6366f1;border-radius:6px;background:#fff}
+/* Brief highlight when an item is reached via a ?ev= evidence deep-link. */
+.ev-flash{animation:ev-flash-kf 1.9s ease-out;scroll-margin-top:12px}
+@keyframes ev-flash-kf{0%{box-shadow:0 0 0 3px #fbbf24}70%{box-shadow:0 0 0 3px rgba(251,191,36,0.45)}100%{box-shadow:0 0 0 0 rgba(251,191,36,0)}}
 .finding-card.finding-status-confirms{border-left-color:#10b981}
 .finding-card.finding-status-partial{border-left-color:#f59e0b}
 .finding-card.finding-status-contradicts{border-left-color:#dc2626}
@@ -551,8 +554,8 @@
     <div class="ctr-block">
       <h2 class="overview-label ctr-h">Background</h2>
       <div class="ctr-meta">
-        <div class="ctr-meta-row"><span class="ctr-meta-k">Question</span> <span class="ctr-meta-item">Does the expression-defined OdeProcess reproduce closed-form solutions and conserved quantities within numeric error bands across solver methods, tolerances and stiff regimes, and does its max_abs guard fail loudly at a finite-time singularity?</span></div>
-        <div class="ctr-meta-row"><span class="ctr-meta-k">Hypothesis</span> <span class="ctr-meta-item">At the default tolerances (rtol=1e-8, atol=1e-10) every analytic baseline lands within a relative error of 1e-6 of its oracle for every method. Error grows with rtol but stays inside a band set by that rtol. dx/dt = x**2 raises the max_abs RuntimeError at t = 1/x0 instead of stalling.</span></div>
+        <div class="ctr-meta-row"><span class="ctr-meta-k">Question</span> <span class="ctr-meta-item" data-edit-kind="study" data-edit-field="question" data-edit-value="Does the expression-defined OdeProcess reproduce closed-form solutions and conserved quantities within numeric error bands across solver methods, tolerances and stiff regimes, and does its max_abs guard fail loudly at a finite-time singularity?" data-edit-multiline data-edit-label="Question">Does the expression-defined OdeProcess reproduce closed-form solutions and conserved quantities within numeric error bands across solver methods, tolerances and stiff regimes, and does its max_abs guard fail loudly at a finite-time singularity?</span></div>
+        <div class="ctr-meta-row"><span class="ctr-meta-k">Hypothesis</span> <span class="ctr-meta-item" data-edit-kind="study" data-edit-field="hypothesis" data-edit-value="At the default tolerances (rtol=1e-8, atol=1e-10) every analytic baseline lands within a relative error of 1e-6 of its oracle for every method. Error grows with rtol but stays inside a band set by that rtol. dx/dt = x**2 raises the max_abs RuntimeError at t = 1/x0 instead of stalling." data-edit-multiline data-edit-label="Hypothesis">At the default tolerances (rtol=1e-8, atol=1e-10) every analytic baseline lands within a relative error of 1e-6 of its oracle for every method. Error grows with rtol but stays inside a band set by that rtol. dx/dt = x**2 raises the max_abs RuntimeError at t = 1/x0 instead of stalling.</span></div>
       </div>
     </div>
     
@@ -573,6 +576,7 @@
 
     <div class="ctr-block">
       <h2 class="overview-label ctr-h">Result</h2>
+      
       <p class="ctr-text"></p>
       
       
@@ -842,6 +846,12 @@
 <div class="overview-section" id="results-section">
   
   <div id="results-summary" data-study="expression-kinetics-analytic" style="margin:0 0 16px"></div>
+
+  
+  <div id="gate-results-section" data-study="expression-kinetics-analytic" style="margin:0 0 22px" hidden>
+    <h4>Gate results <span class="muted" style="font-size:0.8em;font-weight:normal">— each acceptance test's value, graded from run data</span></h4>
+    <div id="gate-results"></div>
+  </div>
 
   <h4>Latest run preview <span class="muted" style="font-size:0.8em;font-weight:normal">— downsampled sparkline + first/last/min/max per store</span></h4>
   <div id="results-preview" data-study="expression-kinetics-analytic">
@@ -1168,11 +1178,12 @@
 </section>
 
 </main>
-<script>window.__DASH_CONFIG__ = { mode: "snapshot", interactiveUrl: "https://github.com/vivarium-collective/viva-expressions", basePath: "/viva-expressions/workbench", inputsDownloadBase: "https://github.com/vivarium-collective/viva-expressions/raw/main", provenance: {"repo_slug": "vivarium-collective/viva-expressions", "repo_url": "https://github.com/vivarium-collective/viva-expressions", "commit": "a293ca423d1f41624af29e2df8ef5208ad7dbc0a", "commit_url": "https://github.com/vivarium-collective/viva-expressions/commit/a293ca423d1f41624af29e2df8ef5208ad7dbc0a", "branch": "main", "lockfile": "uv.lock@902fcd842041", "generated_at": "2026-10-26 15:48 UTC"} };</script>
+<script>window.__DASH_CONFIG__ = { mode: "snapshot", interactiveUrl: "https://github.com/vivarium-collective/viva-expressions", basePath: "/viva-expressions/workbench", inputsDownloadBase: "https://github.com/vivarium-collective/viva-expressions/raw/main", provenance: {"repo_slug": "vivarium-collective/viva-expressions", "repo_url": "https://github.com/vivarium-collective/viva-expressions", "commit": "bb4b71fac67cf6222a8736973d1d24171fc91c82", "commit_url": "https://github.com/vivarium-collective/viva-expressions/commit/bb4b71fac67cf6222a8736973d1d24171fc91c82", "branch": "main", "lockfile": "uv.lock@902fcd842041", "generated_at": "2026-11-03 14:47 UTC"} };</script>
 <script src="/viva-expressions/workbench/assets/data-source.js"></script>
 <script src="/viva-expressions/workbench/assets/toast.js"></script>
 <script>
 window._studyName = "expression-kinetics-analytic";
+window.__STUDY_INVESTIGATION__ = "";  // owning investigation (feedback save routing)
 window._study = null;  // populated by _bootstrapStudy() in study-detail.js
 
 // Save handler for the Conditions → Model settings editable rows.
@@ -1301,6 +1312,8 @@ window._seedFollowupProposal = _seedFollowupProposal;
 <script src="/viva-expressions/workbench/assets/progress-track.js"></script>
 <script src="/viva-expressions/workbench/assets/comparison-view.js"></script>
 <script src="/viva-expressions/workbench/assets/study-detail.js"></script>
+<script src="/viva-expressions/workbench/assets/study-feedback.js"></script>
+<script src="/viva-expressions/workbench/assets/inline-edit.js"></script>
 <script>
 // Re-assert the refresh-aware seed handlers AFTER study-detail.js (which
 // defines its own navigate-away _seedFollowupStudy). The embedded

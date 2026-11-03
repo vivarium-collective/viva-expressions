@@ -572,16 +572,825 @@ footer .wrap{display:flex;flex-direction:column;gap:6px}
 
 <main id="app"></main>
 
-<button class="fbfloat" id="fbfloat">Review &amp; export <span class="cnt" id="fbcnt">0</span></button>
-<div class="modal-bg" id="modalbg"><div class="modal">
-  <h3>Feedback report</h3>
-  <div class="sub">Your notes across the report, as a YAML feedback document — the same shape the workbench ingests. Copy it, or select all and save.</div>
-  <textarea id="fbyaml" spellcheck="false" readonly></textarea>
-  <div class="mfoot">
-    <button id="fbcopy">Copy YAML</button>
-    <button class="primary" id="fbclose">Close</button>
-  </div>
-</div></div>
+<!-- Inline expert-feedback: the shared engine (single source:
+     static/study-feedback.js) decorates every `.fbsection` and study card with a
+     hover-corner 💬 and shows a bottom-right export button once notes exist. The
+     engine source is inlined by render_html (token below) so the downloaded
+     report stays self-contained; it emits the canonical meta+annotations YAML. -->
+<script>window.__VIVA_FB_META__ = {"investigation": "simulator-benchmarking", "title": "simulator-benchmarking"};</script>
+<script>
+window.__VIVA_FB_CONFIG__ = (function () {
+  function slugify(s) { return (String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48)) || "x"; }
+  function meta() { return window.__VIVA_FB_META__ || {}; }
+  function cardOf(el) { return el.closest && el.closest('section.card[id^="s-"]'); }
+  function cardSlug(card) { return card ? (card.id || "").replace(/^s-/, "") : ""; }
+  function cardTitle(card) { var t = card && card.querySelector(".ctitle"); return (t && t.textContent.trim()) || cardSlug(card); }
+  function localKey(el) {
+    var id = (el.id || "").trim();
+    if (id) return slugify(id);
+    var sl = el.querySelector(":scope > .slabel"); if (sl) return slugify(sl.textContent);
+    var h = el.querySelector(".sec-h h2, h2, h3, figcaption"); if (h) return slugify(h.textContent);
+    return "section";
+  }
+  function sectionLabel(el) {
+    var h = el.querySelector(":scope > .slabel, .sec-h h2, h2, h3, figcaption");
+    return (h && h.textContent.trim().slice(0, 80)) || localKey(el);
+  }
+  return {
+    context: "investigation",
+    observeRoot: "#app",
+    title: "Feedback on " + ((meta().title) || meta().investigation || "investigation"),
+    meta: { investigation: function () { return meta().investigation || ""; } },
+    storeId: "inv." + slugify(meta().investigation || "investigation"),
+    allowInvestigationEdit: false,
+    noSave: true,
+    groups: [{ id: "studies", name: "Per-study" }, { id: "investigation", name: "Investigation" }],
+    regions: [
+      { sel: 'section.card[id^="s-"]', group: "studies",
+        sid: function (el) { return "study-" + slugify(cardSlug(el)); },
+        label: function (el) { return "Study: " + cardTitle(el); } },
+      { sel: ".fbsection",
+        group: function (el) { return cardOf(el) ? "studies" : "investigation"; },
+        sid: function (el) { var c = cardOf(el); return c ? "study-" + slugify(cardSlug(c)) + "-" + localKey(el) : "investigation-" + localKey(el); },
+        label: function (el) { var c = cardOf(el); return c ? cardTitle(c) + " · " + sectionLabel(el) : sectionLabel(el); } }
+    ]
+  };
+})();
+</script>
+<script>/* study-feedback.js — inline expert-feedback capture engine.
+ *
+ * ONE config-driven engine shared by two surfaces:
+ *   1. the study detail page (loaded as an external /study-feedback.js) — a
+ *      default config decorates every region across the six study tabs;
+ *   2. the investigation report (this same source inlined into the
+ *      self-contained downloadable HTML) — which sets window.__VIVA_FB_CONFIG__
+ *      before this runs, with its own region selectors.
+ *
+ * A reviewer hovers any region, clicks the corner 💬, leaves a disposition
+ * (👍 / ✏️) and a note. Notes collect into ONE YAML. The floating export
+ * button appears in the bottom-right ONLY once something is saved, showing the
+ * count; it opens a tray with Export / Copy and (live only) Save to workspace.
+ *
+ * Works identically on the LIVE workbench and the READ-ONLY published bundle /
+ * downloaded report: collection + export are pure client-side (localStorage);
+ * only "Save to workspace" needs the backend and hides in snapshot mode.
+ *
+ * The exported YAML is the canonical ingest shape read by
+ * viva_superpowers.feedback_import / feedback_tracking / feedback_actions and
+ * the /viva-* responder skills:
+ *
+ *   meta: {investigation, study?, reviewer, generated_at, source}
+ *   annotations:
+ *     <section-id>:
+ *       - {author, text, ts, disposition, region, group}
+ *
+ * Section ids prefixed `study-<slug>` attribute to that study
+ * (study_feedback_actions matches `study-<slug>` and `study-<slug>-*`);
+ * investigation-level sections use other prefixes and stay as report-level
+ * notes.
+ */
+(function () {
+  "use strict";
+
+  if (window.__vivaStudyFeedbackLoaded) return;
+  window.__vivaStudyFeedbackLoaded = true;
+
+  // ── generic helpers ──────────────────────────────────────────────────────────
+  function val(x) {
+    return typeof x === "function" ? x() : x;
+  }
+  function isSnapshot() {
+    try {
+      if (document.body && document.body.classList.contains("snapshot")) return true;
+      var c = window.__DASH_CONFIG__;
+      if (c && c.mode === "snapshot") return true;
+    } catch (e) {}
+    return false;
+  }
+  function nowIso() {
+    return new Date().toISOString().replace(/\.\d+Z$/, "Z");
+  }
+  function slugify(s) {
+    return (
+      String(s || "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 48) || "x"
+    );
+  }
+  function esc(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+  function cssEscape(s) {
+    return String(s).replace(/"/g, '\\"');
+  }
+  // The study detail page renders inside a full-height iframe in the SPA (the
+  // outer page scrolls, not the iframe), so position:fixed would pin the
+  // floating button to the iframe's document — i.e. the bottom of the content,
+  // not the screen. When embedded in a same-origin iframe, mount the viewport
+  // chrome (FAB + tray + toast) into the TOP window so it's fixed to the screen.
+  // Standalone pages (direct study page, report, published bundle) are not
+  // framed, so topDoc() === document and behavior is unchanged.
+  function topDoc() {
+    try {
+      if (window.self !== window.top && window.top && window.top.document) return window.top.document;
+    } catch (e) {}
+    return document;
+  }
+  function headingText(el) {
+    var h = el.querySelector(
+      "h1,h2,h3,h4,.card-h,.card-title,.figure-title,.finding-statement,.expert-question-title,.di-card-title,.followup-title,.sec-h,summary"
+    );
+    var t = (h && h.textContent) || el.getAttribute("aria-label") || "";
+    return t.replace(/\s+/g, " ").trim().slice(0, 80);
+  }
+  function textKey(el, fallback) {
+    return slugify(headingText(el) || fallback || "");
+  }
+
+  function reviewerName() {
+    try {
+      return localStorage.getItem("viva.fb.reviewer") || "";
+    } catch (e) {
+      return "";
+    }
+  }
+  function setReviewerName(v) {
+    try {
+      localStorage.setItem("viva.fb.reviewer", v || "");
+    } catch (e) {}
+  }
+
+  // ── default (study-detail) config ────────────────────────────────────────────
+  function studySlug() {
+    return (
+      (window._study && (window._study.name || window._study.slug)) ||
+      window._studyName ||
+      "study"
+    );
+  }
+  function studyInvestigation() {
+    var s = window._study || {};
+    var remembered = "";
+    try {
+      remembered = localStorage.getItem("viva.fb.inv." + slugify(studySlug())) || "";
+    } catch (e) {}
+    var cand =
+      window.__STUDY_INVESTIGATION__ ||
+      remembered ||
+      s.investigation ||
+      (Array.isArray(s.investigations) && s.investigations[0]) ||
+      (window.__DASH_CONFIG__ && window.__DASH_CONFIG__.investigation) ||
+      "";
+    if (cand && typeof cand === "object") cand = cand.slug || cand.name || "";
+    return cand || "";
+  }
+
+  var STUDY_TABS = {
+    overview: { panel: "#panel-overview", name: "Overview", regions: [
+      { sel: ".finding-card", key: function (el) { var i = el.querySelector(".finding-id"); return "finding-" + slugify((i && i.textContent) || textKey(el, "finding")); }, label: function (el) { var i = el.querySelector(".finding-id"); return "Finding " + (((i && i.textContent) || "").trim() || headingText(el)); } },
+      { sel: ".ctr-block", key: function (el) { return "block-" + textKey(el, "block"); }, label: function (el) { return headingText(el) || "Overview block"; } },
+      { sel: ".ov-src", key: function (el) { return "source-" + slugify((el.id || "").replace(/^sref-/, "") || textKey(el, "source")); }, label: function (el) { return "Source " + ((el.id || "").replace(/^sref-/, "") || headingText(el)); } },
+    ] },
+    visualize: { panel: "#panel-visualize", name: "Visualizations", regions: [
+      { sel: ".figure-card", key: function (el) { var t = el.querySelector(".figure-title"); var r = el.querySelector("[data-run-id]"); return "figure-" + slugify(((t && t.textContent) || "") + "-" + ((r && r.getAttribute("data-run-id")) || "")); }, label: function (el) { var t = el.querySelector(".figure-title"); return "Figure: " + (((t && t.textContent) || "").trim() || "untitled"); } },
+    ] },
+    compose: { panel: "#panel-compose", name: "Model", regions: [
+      { sel: ".cond-block", key: function (el) { return "model-" + slugify(el.getAttribute("data-model-composite") || textKey(el, "model")); }, label: function (el) { return "Model: " + (el.getAttribute("data-model-composite") || headingText(el) || "composite"); } },
+      { sel: "#model-composite-cards > *", key: function (el) { return "composite-" + textKey(el, "composite"); }, label: function (el) { return "Composite: " + (headingText(el) || "card"); } },
+      { sel: "#model-readouts-section", key: function () { return "readouts"; }, label: function () { return "Model readouts"; } },
+    ] },
+    simulate: { panel: "#panel-simulate", name: "Simulations", regions: [
+      { sel: "#study-sim-table", key: function () { return "runs"; }, label: function () { return "Simulation runs"; } },
+      { sel: "#results-summary", key: function () { return "results-summary"; }, label: function () { return "Results summary"; } },
+      { sel: "#gate-results", key: function () { return "gate-results"; }, label: function () { return "Gate results"; } },
+      { sel: "#study-analyses-list", key: function () { return "analyses"; }, label: function () { return "Analyses"; } },
+    ] },
+    audit: { panel: "#panel-audit", name: "Audit", regions: [
+      { sel: ".expected-behavior-item", key: function (el) { return "test-" + slugify((el.id || "").replace(/^bt-/, "") || el.getAttribute("data-pytest-node") || textKey(el, "test")); }, label: function (el) { return "Test: " + ((el.id || "").replace(/^bt-/, "") || el.getAttribute("data-pytest-node") || headingText(el)); } },
+      { sel: ".report-card-block", key: function (el) { return "report-card-" + textKey(el, "card"); }, label: function (el) { return "Report card: " + (headingText(el) || "card"); } },
+      { sel: ".audit-check-item", key: function (el) { var c = el.querySelector("code"); return "check-" + slugify((c && c.textContent) || textKey(el, "check")); }, label: function (el) { var c = el.querySelector("code"); return "Check: " + (((c && c.textContent) || "").trim() || headingText(el)); } },
+    ] },
+    conclusions: { panel: "#panel-conclusions", name: "Decisions", regions: [
+      { sel: "[data-narrative-card='conclusion_verdicts']", key: function () { return "verdicts"; }, label: function () { return "Three-track verdict"; } },
+      { sel: ".expert-question-card", key: function (el) { var i = el.querySelector(".expert-question-id"); return "debt-" + slugify((i && i.textContent) || textKey(el, "debt")); }, label: function (el) { var i = el.querySelector(".expert-question-id"); return "Open debt " + (((i && i.textContent) || "").trim() || headingText(el)); } },
+      { sel: ".di-card", key: function (el) { return "implication-" + textKey(el, "implication"); }, label: function (el) { return "Implication: " + (headingText(el) || "card"); } },
+      { sel: ".followup-card", key: function (el) { return "followup-" + textKey(el, "followup"); }, label: function (el) { return "Follow-up: " + (headingText(el) || "study"); } },
+    ] },
+  };
+
+  function defaultStudyConfig() {
+    var slug = studySlug();
+    var groups = [];
+    var regions = [];
+    Object.keys(STUDY_TABS).forEach(function (tab) {
+      var t = STUDY_TABS[tab];
+      groups.push({ id: tab, name: t.name });
+      t.regions.forEach(function (cfg) {
+        regions.push({
+          scope: t.panel,
+          sel: cfg.sel,
+          group: tab,
+          sid: (function (c, tabId) {
+            return function (el) {
+              return "study-" + slugify(slug) + "-" + tabId + "-" + c.key(el);
+            };
+          })(cfg, tab),
+          label: cfg.label,
+        });
+      });
+    });
+    return {
+      context: "study",
+      meta: { investigation: studyInvestigation, study: slug },
+      storeId: "study." + slugify(slug),
+      title: "Feedback on " + slug,
+      allowInvestigationEdit: true,
+      groups: groups,
+      regions: regions,
+      groupSwitch: function (gid) {
+        if (typeof window._setStudyTab === "function") {
+          try { window._setStudyTab(gid); } catch (e) {}
+        }
+      },
+    };
+  }
+
+  var CONFIG = window.__VIVA_FB_CONFIG__ || defaultStudyConfig();
+
+  function metaInvestigation() {
+    return val(CONFIG.meta && CONFIG.meta.investigation) || "";
+  }
+  function metaStudy() {
+    return val(CONFIG.meta && CONFIG.meta.study) || "";
+  }
+  function groupName(gid) {
+    var g = (CONFIG.groups || []).filter(function (x) { return x.id === gid; })[0];
+    return (g && g.name) || gid || "Other";
+  }
+
+  // ── store (localStorage) ──────────────────────────────────────────────────────
+  // Each surface (a study, the report, the SPA investigation view) persists its
+  // own store keyed `viva.fb.store.<ws>.<storeId>`, with meta under
+  // `viva.fb.meta.<ws>.<storeId>`. localStorage is shared across same-origin
+  // frames, so the single shared button AGGREGATES every store in the workspace
+  // — one count, one export ("all at once"), even when a study detail iframe and
+  // the SPA investigation view are on screen together.
+  // FB (this surface) = { sectionId: {note, disposition, label, group, ts} }
+  var FB = {};
+  // Guarantee unique section ids by checking the LIVE DOM — removed/re-rendered
+  // elements don't inflate the suffix, so ids stay stable across re-renders
+  // (only genuine same-view duplicates, e.g. Question + Hypothesis, get a -2).
+  function uniqueSid(sid) {
+    var base = sid, n = 1;
+    while (document.querySelector('[data-fb-sid="' + cssEscape(sid) + '"]')) {
+      n++;
+      sid = base + "-" + n;
+    }
+    return sid;
+  }
+  var STORE_PREFIX = "viva.fb.store.";
+  var META_PREFIX = "viva.fb.meta.";
+  function WS() {
+    return slugify((window.__DASH_CONFIG__ && window.__DASH_CONFIG__.workspace) || "");
+  }
+  function storeId() {
+    return val(CONFIG.storeId) || "x";
+  }
+  function storeKey() {
+    return STORE_PREFIX + WS() + "." + storeId();
+  }
+  function metaKey() {
+    return META_PREFIX + WS() + "." + storeId();
+  }
+  var _loadedKey = null;
+  function loadStore() {
+    _loadedKey = storeKey();
+    try {
+      FB = JSON.parse(localStorage.getItem(_loadedKey) || "{}") || {};
+    } catch (e) {
+      FB = {};
+    }
+  }
+  // The SPA investigation instance is long-lived across investigation switches
+  // (storeId is a function of the current slug) — reload FB when it changes.
+  function ensureStore() {
+    if (storeKey() !== _loadedKey) loadStore();
+  }
+  function persistMeta() {
+    try {
+      localStorage.setItem(metaKey(), JSON.stringify({
+        investigation: metaInvestigation(),
+        study: metaStudy(),
+        title: val(CONFIG.title) || "",
+        context: CONFIG.context || "",
+        noSave: !!CONFIG.noSave,
+        storeId: storeId(),
+      }));
+    } catch (e) {}
+  }
+  function saveStore() {
+    try {
+      localStorage.setItem(storeKey(), JSON.stringify(FB));
+    } catch (e) {}
+    persistMeta();
+    refreshChrome();
+  }
+  function setFB(key, patch) {
+    FB[key] = Object.assign({}, FB[key] || {}, patch);
+    if (!FB[key].note && !FB[key].disposition) delete FB[key];
+    saveStore();
+  }
+  // Aggregate every store for this workspace (investigation first, then studies).
+  function allStores() {
+    var pfx = STORE_PREFIX + WS() + ".";
+    var out = [];
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (!k || k.indexOf(pfx) !== 0) continue;
+        var entries = {};
+        try { entries = JSON.parse(localStorage.getItem(k) || "{}") || {}; } catch (e) { entries = {}; }
+        if (!Object.keys(entries).length) continue;
+        var storeId = k.slice(pfx.length);
+        var meta = {};
+        try { meta = JSON.parse(localStorage.getItem(META_PREFIX + WS() + "." + storeId) || "{}") || {}; } catch (e) {}
+        out.push({ storeId: storeId, meta: meta, entries: entries });
+      }
+    } catch (e) {}
+    out.sort(function (a, b) {
+      var ai = a.meta.context === "investigation" ? 0 : 1;
+      var bi = b.meta.context === "investigation" ? 0 : 1;
+      if (ai !== bi) return ai - bi;
+      return String(a.meta.title || a.storeId).localeCompare(String(b.meta.title || b.storeId));
+    });
+    return out;
+  }
+  function totalCount() {
+    return allStores().reduce(function (n, s) { return n + Object.keys(s.entries).length; }, 0);
+  }
+  function pickInvestigation() {
+    var stores = allStores();
+    for (var i = 0; i < stores.length; i++) if (stores[i].meta.context === "investigation" && stores[i].meta.investigation) return stores[i].meta.investigation;
+    for (var j = 0; j < stores.length; j++) if (stores[j].meta.investigation) return stores[j].meta.investigation;
+    return metaInvestigation();
+  }
+  function anySaveable() {
+    return allStores().some(function (s) { return !s.meta.noSave; });
+  }
+
+  // ── decoration: hover 💬 corners on every region ──────────────────────────────
+  function decorateRegion(el, region) {
+    if (!el || el.__fbDecorated) return;
+    if (el.closest(".fb-corner") || el.closest(".fb-pop") || el.closest("#fb-tray")) return;
+    el.__fbDecorated = true;
+    var sid, label, group;
+    try { sid = region.sid(el); } catch (e) { sid = "x"; }
+    sid = uniqueSid(sid);
+    try { label = region.label(el); } catch (e) { label = ""; }
+    group = typeof region.group === "function" ? region.group(el) : region.group || "";
+    el.classList.add("fb-region");
+    el.setAttribute("data-fb-sid", sid);
+    el.setAttribute("data-fb-label", label || sid);
+    el.setAttribute("data-fb-group", group);
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "fb-corner";
+    btn.setAttribute("data-fb-sid", sid);
+    btn.setAttribute("title", "Leave feedback on: " + (label || sid));
+    btn.setAttribute("aria-label", "Leave feedback on " + (label || sid));
+    btn.textContent = "💬";
+    el.appendChild(btn);
+    markCorner(sid);
+  }
+  function decorateAll() {
+    ensureStore();
+    (CONFIG.regions || []).forEach(function (region) {
+      var roots = region.scope ? document.querySelectorAll(region.scope) : [document];
+      for (var r = 0; r < roots.length; r++) {
+        var nodes = roots[r].querySelectorAll(region.sel);
+        for (var i = 0; i < nodes.length; i++) decorateRegion(nodes[i], region);
+      }
+    });
+  }
+  function markCorner(sid) {
+    var has = !!FB[sid];
+    document.querySelectorAll('.fb-corner[data-fb-sid="' + cssEscape(sid) + '"]').forEach(function (b) {
+      b.classList.toggle("has", has);
+      b.textContent = has ? "📝" : "💬";
+    });
+    var reg = document.querySelector('.fb-region[data-fb-sid="' + cssEscape(sid) + '"]');
+    if (reg) reg.classList.toggle("fb-has", has);
+  }
+
+  // ── inline editor popover ──────────────────────────────────────────────────────
+  var curPop = null;
+  function closePop() {
+    if (curPop) { curPop.remove(); curPop = null; }
+  }
+  function openEditor(sid, label, group, anchorBtn) {
+    closePop();
+    var f = FB[sid] || {};
+    var pop = document.createElement("div");
+    pop.className = "fb-pop";
+    pop.innerHTML =
+      '<div class="fb-pop-h">' + esc(label) + "</div>" +
+      '<div class="fb-disp">' +
+      '<button type="button" data-disp="ok" class="' + (f.disposition === "ok" ? "on-ok" : "") + '">👍 Looks right</button>' +
+      '<button type="button" data-disp="revise" class="' + (f.disposition === "revise" ? "on-rev" : "") + '">✏️ Needs revision</button>' +
+      "</div>" +
+      '<textarea class="fb-note" rows="4" placeholder="Note for the team / AI agent…">' + esc(f.note || "") + "</textarea>" +
+      '<div class="fb-pop-foot">' +
+      '<button type="button" class="fb-clear">Clear</button>' +
+      '<span class="fb-spacer"></span>' +
+      '<button type="button" class="fb-done">Done</button>' +
+      "</div>";
+    document.body.appendChild(pop);
+    curPop = pop;
+    pop._anchor = anchorBtn;
+    positionPop(pop, anchorBtn);
+
+    var ta = pop.querySelector(".fb-note");
+    ta.focus();
+    ta.setSelectionRange(ta.value.length, ta.value.length);
+    ta.addEventListener("input", function () {
+      setFB(sid, { note: ta.value, label: label, group: group, ts: f.ts || nowIso() });
+      markCorner(sid);
+    });
+    pop.querySelectorAll(".fb-disp button").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var d = b.getAttribute("data-disp");
+        var cur = (FB[sid] || {}).disposition;
+        var nd = cur === d ? null : d;
+        setFB(sid, { disposition: nd, label: label, group: group, ts: (FB[sid] || {}).ts || nowIso() });
+        pop.querySelectorAll(".fb-disp button").forEach(function (x) { x.classList.remove("on-ok", "on-rev"); });
+        if (nd === "ok") pop.querySelector('[data-disp="ok"]').classList.add("on-ok");
+        if (nd === "revise") pop.querySelector('[data-disp="revise"]').classList.add("on-rev");
+        markCorner(sid);
+      });
+    });
+    pop.querySelector(".fb-clear").addEventListener("click", function () {
+      delete FB[sid]; saveStore(); markCorner(sid); closePop();
+    });
+    pop.querySelector(".fb-done").addEventListener("click", closePop);
+  }
+  function positionPop(pop, anchor) {
+    var r = anchor.getBoundingClientRect();
+    var w = 320;
+    var left = Math.max(12, Math.min(r.right - w, window.innerWidth - w - 12));
+    var top = r.bottom + 8;
+    var maxTop = window.innerHeight - pop.offsetHeight - 12;
+    if (top > maxTop) top = Math.max(12, r.top - pop.offsetHeight - 8);
+    pop.style.left = left + "px";
+    pop.style.top = top + window.scrollY + "px";
+  }
+
+  // ── floating button + tray (singleton in the TOP window; aggregates stores) ───
+  function buildChrome() {
+    var TD = topDoc();
+    if (TD.getElementById("fb-fab")) { refreshChrome(); return; } // one shared button
+    var fab = TD.createElement("button");
+    fab.id = "fb-fab";
+    fab.type = "button";
+    fab.title = "Review & export collected feedback";
+    fab.innerHTML = '💬 Feedback <span id="fb-count">0</span>';
+    fab.addEventListener("click", toggleTray);
+    TD.body.appendChild(fab);
+    var tray = TD.createElement("div");
+    tray.id = "fb-tray";
+    tray.hidden = true;
+    TD.body.appendChild(tray);
+    refreshChrome();
+  }
+  function refreshChrome() {
+    var TD = topDoc();
+    var n = totalCount();
+    var fab = TD.getElementById("fb-fab");
+    if (fab) {
+      fab.style.display = n > 0 ? "flex" : "none"; // appears only when there's feedback
+      var c = fab.querySelector("#fb-count");
+      if (c) c.textContent = n;
+    }
+    var tray = TD.getElementById("fb-tray");
+    if (tray) {
+      if (n === 0) tray.hidden = true;
+      if (!tray.hidden) renderTray();
+    }
+  }
+  function toggleTray() {
+    var tray = topDoc().getElementById("fb-tray");
+    if (!tray) return;
+    tray.hidden = !tray.hidden;
+    if (!tray.hidden) renderTray();
+  }
+  function renderTray() {
+    var tray = topDoc().getElementById("fb-tray");
+    if (!tray) return;
+    var stores = allStores();
+
+    var html = '<div class="fb-tray-h"><b>Feedback</b>' +
+      '<button type="button" class="fb-tray-x" title="Close">✕</button></div>';
+    html += '<div class="fb-tray-meta"><label>Reviewer <input id="fb-reviewer" type="text" value="' +
+      esc(reviewerName()) + '" placeholder="your name"></label></div>';
+
+    if (!stores.length) {
+      html += '<div class="fb-tray-empty">No notes yet. Hover any region (a figure, a finding, a tab section…) and click the 💬 in its corner.</div>';
+    } else {
+      html += '<div class="fb-tray-list">';
+      stores.forEach(function (s) {
+        var gtitle = s.meta.title || (s.meta.study ? "Study: " + s.meta.study : s.meta.investigation || s.storeId);
+        html += '<div class="fb-tray-group">' + esc(gtitle) + "</div>";
+        Object.keys(s.entries).sort().forEach(function (sid) {
+          var e = s.entries[sid];
+          var disp = e.disposition === "ok" ? "👍" : e.disposition === "revise" ? "✏️" : "•";
+          html += '<div class="fb-item" data-store="' + esc(s.storeId) + '" data-sid="' + esc(sid) + '">' +
+            '<span class="fb-item-disp">' + disp + "</span>" +
+            '<span class="fb-item-body"><span class="fb-item-label">' + esc(e.region || e.label || sid) + "</span>" +
+            '<span class="fb-item-note">' + esc(e.note != null ? e.note : e.text || "(no note)") + "</span></span>" +
+            '<button type="button" class="fb-item-del" title="Remove">✕</button></div>';
+        });
+      });
+      html += "</div>";
+    }
+
+    html += '<div class="fb-tray-actions">' +
+      '<button type="button" id="fb-export">⬇ Export .yaml</button>' +
+      '<button type="button" id="fb-copy">⧉ Copy</button>' +
+      (!isSnapshot() && anySaveable() ? '<button type="button" id="fb-save" class="primary">⤴ Save to workspace</button>' : "") +
+      "</div>";
+    tray.innerHTML = html;
+
+    tray.querySelector(".fb-tray-x").addEventListener("click", toggleTray);
+    var rev = tray.querySelector("#fb-reviewer");
+    if (rev) rev.addEventListener("input", function () { setReviewerName(rev.value); });
+    tray.querySelectorAll(".fb-item").forEach(function (row) {
+      var sid = row.getAttribute("data-sid");
+      var store = row.getAttribute("data-store");
+      row.querySelector(".fb-item-body").addEventListener("click", function () { jumpTo(store, sid); });
+      row.querySelector(".fb-item-del").addEventListener("click", function (ev) {
+        ev.stopPropagation(); deleteItem(store, sid);
+      });
+    });
+    tray.querySelector("#fb-export").addEventListener("click", exportYaml);
+    tray.querySelector("#fb-copy").addEventListener("click", copyYaml);
+    var saveBtn = tray.querySelector("#fb-save");
+    if (saveBtn) saveBtn.addEventListener("click", saveToWorkspace);
+  }
+  function deleteItem(store, sid) {
+    var key = STORE_PREFIX + WS() + "." + store;
+    try {
+      var o = JSON.parse(localStorage.getItem(key) || "{}") || {};
+      delete o[sid];
+      if (Object.keys(o).length) localStorage.setItem(key, JSON.stringify(o));
+      else localStorage.removeItem(key);
+    } catch (e) {}
+    if (store === (CONFIG.storeId || "x")) delete FB[sid];
+    markCorner(sid);
+    refreshChrome();
+    renderTray();
+  }
+  function jumpTo(store, sid) {
+    // Only this surface's regions are reachable from its own engine instance;
+    // items from another frame/surface simply don't scroll (cross-frame).
+    var reg = document.querySelector('.fb-region[data-fb-sid="' + cssEscape(sid) + '"]');
+    if (!reg) return;
+    var e = FB[sid];
+    if (e && e.group && typeof CONFIG.groupSwitch === "function") CONFIG.groupSwitch(e.group);
+    setTimeout(function () {
+      reg.scrollIntoView({ behavior: "smooth", block: "center" });
+      reg.classList.add("fb-flash");
+      setTimeout(function () { reg.classList.remove("fb-flash"); }, 1400);
+    }, 120);
+  }
+
+  // ── YAML emit (canonical meta + annotations) ──────────────────────────────────
+  function yq(s) {
+    return '"' + String(s == null ? "" : s).replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, " ") + '"';
+  }
+  function payloadObj() {
+    // Aggregate every store in the workspace into ONE canonical payload. Section
+    // ids are globally unique (study-<slug>-… / investigation-…), so study notes
+    // attribute to their study and investigation notes stay report-level.
+    var author = reviewerName() || "reviewer";
+    var annotations = {};
+    var stores = allStores();
+    stores.forEach(function (s) {
+      Object.keys(s.entries).sort().forEach(function (sid) {
+        var e = s.entries[sid];
+        var entry = { author: author, text: e.note != null ? e.note : e.text || "", ts: e.ts || nowIso() };
+        if (e.disposition) entry.disposition = e.disposition;
+        if (e.region || e.label) entry.region = e.region || e.label;
+        if (e.group) entry.group = e.group;
+        annotations[sid] = [entry];
+      });
+    });
+    var meta = {
+      investigation: pickInvestigation(),
+      reviewer: author,
+      generated_at: nowIso(),
+      source: "workbench-inline-feedback",
+    };
+    // Single study in scope (no investigation store) → keep the study hint.
+    if (stores.length === 1 && stores[0].meta.study) meta.study = stores[0].meta.study;
+    return { meta: meta, annotations: annotations };
+  }
+  function genYaml() {
+    var p = payloadObj();
+    var L = ["meta:"];
+    L.push("  investigation: " + yq(p.meta.investigation));
+    if (p.meta.study) L.push("  study: " + yq(p.meta.study));
+    L.push("  reviewer: " + yq(p.meta.reviewer));
+    L.push("  generated_at: " + yq(p.meta.generated_at));
+    L.push("  source: " + yq(p.meta.source));
+    L.push("annotations:");
+    var keys = Object.keys(p.annotations);
+    if (!keys.length) {
+      L.push("  {}  # no notes — hover a region and click 💬");
+    } else {
+      keys.forEach(function (sid) {
+        var e = p.annotations[sid][0];
+        L.push("  " + sid + ":");
+        L.push("    - author: " + yq(e.author));
+        L.push("      text: " + yq(e.text));
+        L.push("      ts: " + yq(e.ts));
+        if (e.disposition) L.push("      disposition: " + yq(e.disposition));
+        if (e.region) L.push("      region: " + yq(e.region));
+        if (e.group) L.push("      group: " + yq(e.group));
+      });
+    }
+    return L.join("\n") + "\n";
+  }
+  function exportName() {
+    return "feedback-" + slugify(pickInvestigation() || "report") + ".yaml";
+  }
+  function download(name, text) {
+    var TD = topDoc();
+    var blob = new Blob([text], { type: "application/x-yaml" });
+    var url = URL.createObjectURL(blob);
+    var a = TD.createElement("a");
+    a.href = url;
+    a.download = name;
+    TD.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+  function toast(msg, ok) {
+    if (window.Toast && typeof window.Toast.show === "function") {
+      window.Toast.show(msg, ok === false ? "error" : "success");
+      return;
+    }
+    var TD = topDoc();
+    var t = TD.createElement("div");
+    t.className = "fb-toast" + (ok === false ? " err" : "");
+    t.textContent = msg;
+    TD.body.appendChild(t);
+    setTimeout(function () { t.classList.add("in"); }, 10);
+    setTimeout(function () { t.classList.remove("in"); setTimeout(function () { t.remove(); }, 300); }, 2600);
+  }
+  function exportYaml() {
+    download(exportName(), genYaml());
+    toast("Feedback YAML downloaded");
+  }
+  function copyYaml() {
+    var y = genYaml();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(y).then(
+        function () { toast("YAML copied to clipboard"); },
+        function () { download(exportName(), y); }
+      );
+    } else {
+      download(exportName(), y);
+    }
+  }
+  function saveToWorkspace(){}
+
+  // ── styles ─────────────────────────────────────────────────────────────────────
+  function injectStyle() {
+    if (document.getElementById("fb-style")) return;
+    var css = [
+      ".fb-region{position:relative;}",
+      ".fb-corner{position:absolute;top:4px;right:4px;z-index:6;width:26px;height:26px;padding:0;border:none;border-radius:7px;",
+      "  background:var(--card,#fff);box-shadow:0 1px 4px rgba(0,0,0,.18);cursor:pointer;font-size:14px;line-height:26px;text-align:center;",
+      "  opacity:0;transform:translateY(-2px);transition:opacity .12s,transform .12s;}",
+      ".fb-region:hover>.fb-corner,.fb-corner:focus{opacity:.92;transform:none;}",
+      ".fb-corner:hover{opacity:1;box-shadow:0 2px 8px rgba(0,0,0,.28);}",
+      ".fb-corner.has{opacity:1;background:#2d6cdf;}",
+      ".fb-region.fb-has{box-shadow:inset 0 0 0 1.5px rgba(45,108,223,.45);border-radius:8px;}",
+      ".fb-region.fb-flash{outline:2px solid #2d6cdf;outline-offset:2px;transition:outline .2s;}",
+      ".fb-pop{position:absolute;z-index:99999;width:320px;max-width:calc(100vw - 24px);background:var(--card,#fff);color:var(--ink,#111);",
+      "  border:1px solid var(--line,#ddd);border-radius:12px;box-shadow:0 10px 34px rgba(0,0,0,.28);padding:12px;font-size:13px;}",
+      ".fb-pop-h{font-weight:600;margin-bottom:8px;font-size:13px;line-height:1.3;}",
+      ".fb-disp{display:flex;gap:6px;margin-bottom:8px;}",
+      ".fb-disp button{flex:1;padding:6px 4px;border:1px solid var(--line,#ddd);border-radius:7px;background:var(--bg,#f7f7f8);cursor:pointer;font-size:12px;color:var(--ink,#111);}",
+      ".fb-disp button.on-ok{background:#1f9d55;border-color:#1f9d55;color:#fff;}",
+      ".fb-disp button.on-rev{background:#e0a106;border-color:#e0a106;color:#1a1a1a;}",
+      ".fb-note{width:100%;box-sizing:border-box;border:1px solid var(--line,#ddd);border-radius:8px;padding:7px 9px;font:inherit;resize:vertical;background:var(--bg,#fff);color:var(--ink,#111);}",
+      ".fb-pop-foot{display:flex;align-items:center;gap:8px;margin-top:9px;}",
+      ".fb-pop-foot .fb-spacer{flex:1;}",
+      ".fb-pop-foot button{padding:6px 12px;border:1px solid var(--line,#ddd);border-radius:7px;background:var(--bg,#f2f2f4);cursor:pointer;font-size:12px;color:var(--ink,#111);}",
+      ".fb-pop-foot .fb-done{background:#2d6cdf;border-color:#2d6cdf;color:#fff;}",
+      "#fb-fab{position:fixed;right:18px;bottom:18px;z-index:99998;padding:10px 15px;border:none;border-radius:22px;",
+      "  background:#2d6cdf;color:#fff;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 4px 16px rgba(45,108,223,.4);display:none;gap:7px;align-items:center;}",
+      "#fb-fab #fb-count{background:rgba(255,255,255,.26);border-radius:10px;padding:0 7px;min-width:14px;text-align:center;font-size:12px;}",
+      "#fb-tray{position:fixed;right:18px;bottom:66px;z-index:99998;width:360px;max-width:calc(100vw - 24px);max-height:72vh;overflow:auto;",
+      "  background:var(--card,#fff);color:var(--ink,#111);border:1px solid var(--line,#ddd);border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.3);}",
+      ".fb-tray-h{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--line,#eee);position:sticky;top:0;background:var(--card,#fff);}",
+      ".fb-tray-x{border:none;background:none;cursor:pointer;font-size:15px;color:var(--ink-2,#666);}",
+      ".fb-tray-meta{display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line,#eee);}",
+      ".fb-tray-meta label{flex:1;font-size:11px;color:var(--ink-2,#666);display:flex;flex-direction:column;gap:3px;}",
+      ".fb-tray-meta input{border:1px solid var(--line,#ddd);border-radius:6px;padding:5px 7px;font:inherit;font-size:12px;background:var(--bg,#fff);color:var(--ink,#111);}",
+      ".fb-tray-list{padding:6px 8px;}",
+      ".fb-tray-group{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-2,#888);padding:9px 8px 3px;}",
+      ".fb-item{display:flex;gap:8px;align-items:flex-start;padding:7px 8px;border-radius:8px;cursor:pointer;}",
+      ".fb-item:hover{background:var(--bg,#f5f6f8);}",
+      ".fb-item-disp{font-size:13px;line-height:1.3;}",
+      ".fb-item-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}",
+      ".fb-item-label{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}",
+      ".fb-item-note{font-size:12px;color:var(--ink-2,#666);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}",
+      ".fb-item-del{border:none;background:none;cursor:pointer;color:var(--ink-2,#999);font-size:12px;}",
+      ".fb-tray-actions{display:flex;gap:7px;padding:11px 14px;border-top:1px solid var(--line,#eee);position:sticky;bottom:0;background:var(--card,#fff);flex-wrap:wrap;}",
+      ".fb-tray-actions button{flex:1;min-width:92px;padding:8px 6px;border:1px solid var(--line,#ddd);border-radius:8px;background:var(--bg,#f2f2f4);cursor:pointer;font-size:12px;color:var(--ink,#111);}",
+      ".fb-tray-actions button.primary{background:#2d6cdf;border-color:#2d6cdf;color:#fff;}",
+      ".fb-toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(12px);z-index:100000;background:#1f9d55;color:#fff;",
+      "  padding:9px 16px;border-radius:9px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.3);opacity:0;transition:opacity .25s,transform .25s;}",
+      ".fb-toast.in{opacity:1;transform:translateX(-50%) translateY(0);}",
+      ".fb-toast.err{background:#d23f3f;}",
+      "@media print{.fb-corner,#fb-fab,#fb-tray,.fb-pop{display:none !important;}}",
+    ].join("\n");
+    // Inject into this document (regions/corners/popover live here) AND the top
+    // document (where the FAB/tray/toast are mounted when embedded in an iframe).
+    [document, topDoc()].forEach(function (doc) {
+      if (!doc || doc.getElementById("fb-style")) return;
+      var st = doc.createElement("style");
+      st.id = "fb-style";
+      st.textContent = css;
+      (doc.head || doc.documentElement).appendChild(st);
+    });
+  }
+
+  // ── wiring ───────────────────────────────────────────────────────────────────
+  var decorateTimer = null;
+  function scheduleDecorate() {
+    if (decorateTimer) return;
+    decorateTimer = setTimeout(function () { decorateTimer = null; decorateAll(); }, 150);
+  }
+  function init() {
+    if (!CONFIG || !CONFIG.regions || !CONFIG.regions.length) return;
+    // study page gate: only run on an actual study page for the default config
+    if (CONFIG.context === "study" && !document.querySelector("#panel-overview")) return;
+    injectStyle();
+    loadStore();
+    buildChrome();
+    decorateAll();
+    var root =
+      document.querySelector(CONFIG.observeRoot || "main.study-page") ||
+      document.querySelector("#app") ||
+      document.body;
+    new MutationObserver(scheduleDecorate).observe(root, { childList: true, subtree: true });
+
+    document.addEventListener("click", function (ev) {
+      var btn = ev.target.closest(".fb-corner");
+      if (btn) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        var sid = btn.getAttribute("data-fb-sid");
+        var reg = btn.closest(".fb-region");
+        var label = (reg && reg.getAttribute("data-fb-label")) || sid;
+        var group = (reg && reg.getAttribute("data-fb-group")) || "";
+        openEditor(sid, label, group, btn);
+        return;
+      }
+      if (curPop && !ev.target.closest(".fb-pop") && !ev.target.closest(".fb-corner")) closePop();
+    });
+    document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") closePop(); });
+    // On resize, REPOSITION the open popover — never close it. The study page
+    // renders in an auto-growing iframe, and focusing the note textarea opens
+    // the mobile keyboard; both fire resize, and closing here made the popover
+    // vanish right after it opened (worse on mobile). Reposition to the anchor
+    // if it's still in the DOM; otherwise leave the popover where it is.
+    var _rzTimer = null;
+    window.addEventListener("resize", function () {
+      if (!curPop || _rzTimer) return;
+      _rzTimer = setTimeout(function () {
+        _rzTimer = null;
+        if (curPop && curPop._anchor && curPop._anchor.isConnected) positionPop(curPop, curPop._anchor);
+      }, 80);
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
+</script>
 
 <footer><div class="wrap">
   <div>Rendered from workspace <span class="mono" id="foot-ws"></span> · deterministic from investigation + study YAML.</div>
@@ -592,7 +1401,7 @@ footer .wrap{display:flex;flex-direction:column;gap:6px}
      rendered inline in this document and uses this single copy (empty when the
      report carries no interactive figure). Must load before the renderer runs. -->
 <script id="plotlyjs"></script>
-<script id="data" type="application/json">{"slug": "simulator-benchmarking", "title": "simulator-benchmarking", "status": "planning", "question": null, "hypothesis": null, "lead": null, "executive": null, "scientific_argument": null, "biological_story": null, "glossary": null, "guidelines": null, "how_to_read": null, "created": "2026-10-03", "key_claims": null, "competing_frameworks": null, "at_a_glance": null, "acceptance_criteria": [], "spine": {"verdict_dag": {"nodes": [], "edges": []}, "acceptance": {"verdict_status": "in-progress", "criteria": [], "unmet": []}, "ac_matrix": {"investigation": "simulator-benchmarking", "verdict_status": "in-progress", "criteria": [], "gaps": []}, "plan_board": []}, "synthesis": {"studies_index": [], "stages": [], "claim_evidence": [], "contradictions": [], "continuity": {"edges": [], "external_inputs": []}, "quantitative": [], "roadmap": [], "figures_ranked": [], "headline": [], "counts": {"total": 0, "supported": 0, "qualified": 0, "refuted": 0, "planned": 0}, "validation": {"investigation": "simulator-benchmarking", "items": [], "summary": {"by_severity": {"high": 0, "medium": 0, "low": 0}, "by_kind": {}, "total": 0, "member_count": 0, "ac_total": 0, "ac_covered": 0}, "checks": [{"kind": "uncovered_ac", "label": "Acceptance criteria covered", "mode": "coverage", "flagged": 0, "examined": 0, "passing": 0}, {"kind": "unresolved_composite", "label": "Composites resolve in the registry", "mode": "studies", "flagged": 0, "examined": 0, "passing": 0}, {"kind": "verdict_divergence", "label": "Verdicts match the authored gate", "mode": "studies", "flagged": 0, "examined": 0, "passing": 0}, {"kind": "hard_gate", "label": "Hard gates passing", "mode": "studies", "flagged": 0, "examined": 0, "passing": 0}, {"kind": "test_regression", "label": "No behavior-test regressions", "mode": "studies", "flagged": 0, "examined": 0, "passing": 0}, {"kind": "diagnostic_branch_needed", "label": "Failed verdicts have a diagnostic study", "mode": "studies", "flagged": 0, "examined": 0, "passing": 0}, {"kind": "invariant_regression", "label": "No invariant regressions", "mode": "studies", "flagged": 0, "examined": 0, "passing": 0}, {"kind": "open_feedback", "label": "Expert feedback addressed", "mode": "studies", "flagged": 0, "examined": 0, "passing": 0}, {"kind": "param_drift", "label": "No parameter drift", "mode": "studies", "flagged": 0, "examined": 0, "passing": 0}, {"kind": "unregistered_confirmatory", "label": "Confirmatory studies registered", "mode": "studies", "flagged": 0, "examined": 0, "passing": 0}, {"kind": "stale_finding", "label": "No stale findings", "mode": "studies", "flagged": 0, "examined": 0, "passing": 0}, {"kind": "env_stale", "label": "Run environments current", "mode": "studies", "flagged": 0, "examined": 0, "passing": 0}, {"kind": "nondeterministic", "label": "Runs reproducible", "mode": "studies", "flagged": 0, "examined": 0, "passing": 0}], "report_lint": [{"study": "expression-kinetics-analytic", "check": "missing_visualizations", "severity": "error", "message": "Every study must declare at least one visualization — a `visualizations:` entry (address: local:\u003cClass> / a registered v2 Visualization) or an `embed_visualizations:` entry. This study declares none, so the report renders an empty Visualizations section. Author one with /viva-viz (a real chart for a completed run, or a PLANNED-mockup for a study still in design). A study too early for even a mockup can opt out by recording this finding's override_key in .pbg/report-lint-overrides.json (or run /viva-report --force).", "field_path": "visualizations"}, {"study": "expression-kinetics-analytic", "check": "status_legacy_only", "severity": "warning", "message": "Study uses the legacy `status: 'planned'` field with no multi-axis status set. The canonical fields are the six Pass A axes (design_status, implementation_status, simulation_status, evaluation_status, gate_status, expert_review_status). The dashboard still reads `status` as a back-compat fallback, but the legacy enum can't carry the orthogonal-axes semantics — e.g. a study can be simulation_status:ran AND evaluation_status:failed_evaluation simultaneously, which `status` alone cannot express.", "field_path": "status"}, {"study": "simulator-benchmarking", "check": "investigation_narrative_spine_required", "severity": "warning", "message": "Investigation is missing the REQUIRED narrative section 'Biology — the mechanism' (`biological_story`). Author it for a reviewer-ready report, or — for a genuinely slim investigation — explicitly opt out by adding 'biological_story' to `narrative_spine_skip: [...]` (optionally with `narrative_spine_skip_reason`).", "field_path": "biological_story"}, {"study": "simulator-benchmarking", "check": "investigation_narrative_spine_required", "severity": "warning", "message": "Investigation is missing the REQUIRED narrative section 'Executive summary' (`executive`). Author it for a reviewer-ready report, or — for a genuinely slim investigation — explicitly opt out by adding 'executive' to `narrative_spine_skip: [...]` (optionally with `narrative_spine_skip_reason`).", "field_path": "executive"}, {"study": "simulator-benchmarking", "check": "investigation_narrative_spine_required", "severity": "warning", "message": "Investigation is missing the REQUIRED narrative section 'Scientific argument' (`scientific_argument`). Author it for a reviewer-ready report, or — for a genuinely slim investigation — explicitly opt out by adding 'scientific_argument' to `narrative_spine_skip: [...]` (optionally with `narrative_spine_skip_reason`).", "field_path": "scientific_argument"}, {"study": "expression-kinetics-analytic", "check": "narrative_spine_completeness", "severity": "info", "message": "narrative incomplete: 13 of 15 v4 sections missing. ★ report, study_card, behavior_tests, readouts, conclusion_verdicts · other: runtime, assumptions, enforced_params, biological_summary, literature_anchors, model_change, implementation_requirements, design_pivot_required. See docs/concepts/vivarium-workbench-model.md#v4-narrative-spine for the full pattern, or /viva-study fill-overview \u003cslug> --include-narrative to draft them from plan + expert PDFs.", "field_path": "(narrative spine)"}, {"study": "expression-kinetics-analytic", "check": "missing_conditions_block", "severity": "info", "message": "Study has no `conditions:` block (or legacy `model_change` / `implementation_requirements`). The dashboard's study-detail Build tab renders from `conditions.{baseline,variants,model_settings}`. Without it the Build tab is BLANK for this study, even if v3 `baseline:` + `variants:` are populated. Add at minimum a `conditions.baseline.composite` value; see the study lint-checks + data-model reference in docs/concepts/vivarium-workbench-model.md.", "field_path": "conditions"}, {"study": "expression-kinetics-analytic", "check": "baseline_config_carry", "severity": "info", "message": "the viewer shows composite defaults, not a reproducible spec; Run will not reproduce this study — add conditions.baseline.config_file or fill conditions.baseline.params", "field_path": "conditions.baseline"}, {"study": "expression-kinetics-analytic", "check": "missing_planned_runs", "severity": "info", "message": "Study has no planned_runs[] and no runs[]. Document the experiments the study will execute (status: planned, with n_steps + 1-sentence details) so the expert sees the planned methodology + compute scope. Use planned_runs[] for what's coming, runs[] for what's completed.", "field_path": "planned_runs"}, {"study": "expression-kinetics-analytic", "check": "missing_readouts", "severity": "info", "message": "Study has no readouts declared. Describe what the study actually measures (the observables the expected_behavior tests evaluate against) so the expert reviewer has anchors for the test rows. Free-form string or list of strings.", "field_path": "readouts"}, {"study": "expression-kinetics-analytic", "check": "missing_simulation_set", "severity": "info", "message": "Study has no `simulation_set:` entries. The dashboard's study-detail Simulations tab renders from this list (each entry: name, kind, status, base_model, duration_steps, seeds, metrics, pass_fail_tests). Without it the Simulations tab is BLANK. For studies that have v3 `planned_runs:` instead, translate each entry into a `simulation_set` entry (the v3 field stays as back-compat).", "field_path": "simulation_set"}, {"study": "expression-kinetics-analytic", "check": "visualization_gap", "severity": "warning", "message": "Study has no visualizations — add a chart, embed, or run to produce a figure.", "field_path": "visualizations"}]}}, "references": {}, "inv_references": null, "catalog": null, "workspace": "viva-expressions", "provenance": "investigations/simulator-benchmarking/investigation.yaml · studies/*/study.yaml · loop-trajectory JSON", "studies": [], "loom_embed": {"loom": "../bigraph-loom/index.html", "state": "../api/composite-state/"}}</script>
+<script id="data" type="application/json">{"slug": "simulator-benchmarking", "title": "simulator-benchmarking", "status": "planning", "question": null, "hypothesis": null, "lead": null, "executive": null, "scientific_argument": null, "biological_story": null, "glossary": null, "guidelines": null, "how_to_read": null, "created": "2026-10-03", "key_claims": null, "competing_frameworks": null, "at_a_glance": null, "acceptance_criteria": [], "spine": {"verdict_dag": {"nodes": [], "edges": []}, "acceptance": {"verdict_status": "in-progress", "criteria": [], "unmet": [], "freshness": null}, "ac_matrix": {"investigation": "simulator-benchmarking", "verdict_status": "in-progress", "criteria": [], "gaps": []}, "plan_board": []}, "discovery": {"closed": true, "frontier_size": 1, "closure_blocking": 0, "next_action": {"op": "revise", "kind": "validation_finding", "target": "investigation"}, "opportunities": [{"source": "investigation", "action": "revise", "score": 0.03, "impact": 0.0, "enable": 0.0, "question": "[structural/investigation] missing authored prose: executive.what_is_this; missing authored prose: executive.verdict_detail"}], "diagnosis": {"flags": ["validation_limited"], "validator_pass_rate": 0.0}, "execution_plan": [{"source": "investigation", "action": "revise", "score": 0.03, "consequence": "review", "command": "\u003caddress the validator's recommendation>; discover resolve \u003cinv> validation_finding investigation --rationale '…'"}], "suggestions": [], "validator_census": {"failed": 1, "passed": 1}, "drift": {"divergences": 0, "stale_validations": 0}}, "synthesis": {"studies_index": [], "stages": [], "claim_evidence": [], "contradictions": [], "continuity": {"edges": [], "external_inputs": []}, "quantitative": [], "roadmap": [], "figures_ranked": [], "headline": [], "counts": {"total": 0, "supported": 0, "qualified": 0, "refuted": 0, "planned": 0}, "validation": {"investigation": "simulator-benchmarking", "items": [], "summary": {"by_severity": {"high": 0, "medium": 0, "low": 0}, "by_kind": {}, "total": 0, "member_count": 0, "ac_total": 0, "ac_covered": 0}, "checks": [{"kind": "uncovered_ac", "label": "Acceptance criteria covered", "mode": "coverage", "flagged": 0, "examined": 0, "passing": 0}, {"kind": "unresolved_composite", "label": "Composites resolve in the registry", "mode": "studies", "flagged": 0, "examined": 0, "passing": 0}, {"kind": "verdict_divergence", "label": "Verdicts match the authored gate", "mode": "studies", "flagged": 0, "examined": 0, "passing": 0}, {"kind": "hard_gate", "label": "Hard gates passing", "mode": "studies", "flagged": 0, "examined": 0, "passing": 0}, {"kind": "test_regression", "label": "No behavior-test regressions", "mode": "studies", "flagged": 0, "examined": 0, "passing": 0}, {"kind": "diagnostic_branch_needed", "label": "Failed verdicts have a diagnostic study", "mode": "studies", "flagged": 0, "examined": 0, "passing": 0}, {"kind": "invariant_regression", "label": "No invariant regressions", "mode": "studies", "flagged": 0, "examined": 0, "passing": 0}, {"kind": "open_feedback", "label": "Expert feedback addressed", "mode": "studies", "flagged": 0, "examined": 0, "passing": 0}, {"kind": "param_drift", "label": "No parameter drift", "mode": "studies", "flagged": 0, "examined": 0, "passing": 0}, {"kind": "unregistered_confirmatory", "label": "Confirmatory studies registered", "mode": "studies", "flagged": 0, "examined": 0, "passing": 0}, {"kind": "stale_finding", "label": "No stale findings", "mode": "studies", "flagged": 0, "examined": 0, "passing": 0}, {"kind": "env_stale", "label": "Run environments current", "mode": "studies", "flagged": 0, "examined": 0, "passing": 0}, {"kind": "nondeterministic", "label": "Runs reproducible", "mode": "studies", "flagged": 0, "examined": 0, "passing": 0}], "report_lint": [{"study": "expression-kinetics-analytic", "check": "missing_visualizations", "severity": "error", "message": "Every study must declare at least one visualization — a `visualizations:` entry (address: local:\u003cClass> / a registered v2 Visualization) or an `embed_visualizations:` entry. This study declares none, so the report renders an empty Visualizations section. Author one with /viva-viz (a real chart for a completed run, or a PLANNED-mockup for a study still in design). A study too early for even a mockup can opt out by recording this finding's override_key in .pbg/report-lint-overrides.json (or run /viva-report --force).", "field_path": "visualizations"}, {"study": "expression-kinetics-analytic", "check": "status_legacy_only", "severity": "warning", "message": "Study uses the legacy `status: 'planned'` field with no multi-axis status set. The canonical fields are the six Pass A axes (design_status, implementation_status, simulation_status, evaluation_status, gate_status, expert_review_status). The dashboard still reads `status` as a back-compat fallback, but the legacy enum can't carry the orthogonal-axes semantics — e.g. a study can be simulation_status:ran AND evaluation_status:failed_evaluation simultaneously, which `status` alone cannot express.", "field_path": "status"}, {"study": "simulator-benchmarking", "check": "investigation_narrative_spine_required", "severity": "warning", "message": "Investigation is missing the REQUIRED narrative section 'Biology — the mechanism' (`biological_story`). Author it for a reviewer-ready report, or — for a genuinely slim investigation — explicitly opt out by adding 'biological_story' to `narrative_spine_skip: [...]` (optionally with `narrative_spine_skip_reason`).", "field_path": "biological_story"}, {"study": "simulator-benchmarking", "check": "investigation_narrative_spine_required", "severity": "warning", "message": "Investigation is missing the REQUIRED narrative section 'Executive summary' (`executive`). Author it for a reviewer-ready report, or — for a genuinely slim investigation — explicitly opt out by adding 'executive' to `narrative_spine_skip: [...]` (optionally with `narrative_spine_skip_reason`).", "field_path": "executive"}, {"study": "simulator-benchmarking", "check": "investigation_narrative_spine_required", "severity": "warning", "message": "Investigation is missing the REQUIRED narrative section 'Scientific argument' (`scientific_argument`). Author it for a reviewer-ready report, or — for a genuinely slim investigation — explicitly opt out by adding 'scientific_argument' to `narrative_spine_skip: [...]` (optionally with `narrative_spine_skip_reason`).", "field_path": "scientific_argument"}, {"study": "expression-kinetics-analytic", "check": "narrative_spine_completeness", "severity": "info", "message": "narrative incomplete: 13 of 15 v4 sections missing. ★ report, study_card, behavior_tests, readouts, conclusion_verdicts · other: runtime, assumptions, enforced_params, biological_summary, literature_anchors, model_change, implementation_requirements, design_pivot_required. See docs/concepts/vivarium-workbench-model.md#v4-narrative-spine for the full pattern, or /viva-study fill-overview \u003cslug> --include-narrative to draft them from plan + expert PDFs.", "field_path": "(narrative spine)"}, {"study": "expression-kinetics-analytic", "check": "missing_conditions_block", "severity": "info", "message": "Study has no `conditions:` block (or legacy `model_change` / `implementation_requirements`). The dashboard's study-detail Build tab renders from `conditions.{baseline,variants,model_settings}`. Without it the Build tab is BLANK for this study, even if v3 `baseline:` + `variants:` are populated. Add at minimum a `conditions.baseline.composite` value; see the study lint-checks + data-model reference in docs/concepts/vivarium-workbench-model.md.", "field_path": "conditions"}, {"study": "expression-kinetics-analytic", "check": "baseline_config_carry", "severity": "info", "message": "the viewer shows composite defaults, not a reproducible spec; Run will not reproduce this study — add conditions.baseline.config_file or fill conditions.baseline.params", "field_path": "conditions.baseline"}, {"study": "expression-kinetics-analytic", "check": "missing_planned_runs", "severity": "info", "message": "Study has no planned_runs[] and no runs[]. Document the experiments the study will execute (status: planned, with n_steps + 1-sentence details) so the expert sees the planned methodology + compute scope. Use planned_runs[] for what's coming, runs[] for what's completed.", "field_path": "planned_runs"}, {"study": "expression-kinetics-analytic", "check": "missing_readouts", "severity": "info", "message": "Study has no readouts declared. Describe what the study actually measures (the observables the expected_behavior tests evaluate against) so the expert reviewer has anchors for the test rows. Free-form string or list of strings.", "field_path": "readouts"}, {"study": "expression-kinetics-analytic", "check": "missing_simulation_set", "severity": "info", "message": "Study has no `simulation_set:` entries. The dashboard's study-detail Simulations tab renders from this list (each entry: name, kind, status, base_model, duration_steps, seeds, metrics, pass_fail_tests). Without it the Simulations tab is BLANK. For studies that have v3 `planned_runs:` instead, translate each entry into a `simulation_set` entry (the v3 field stays as back-compat).", "field_path": "simulation_set"}, {"study": "expression-kinetics-analytic", "check": "visualization_gap", "severity": "warning", "message": "Study has no visualizations — add a chart, embed, or run to produce a figure.", "field_path": "visualizations"}]}}, "references": {}, "inv_references": null, "catalog": null, "workspace": "viva-expressions", "provenance": "investigations/simulator-benchmarking/investigation.yaml · studies/*/study.yaml · loop-trajectory JSON", "studies": [], "loom_embed": {"loom": "../bigraph-loom/index.html", "state": "../api/composite-state/"}}</script>
 <script>
 const INV = JSON.parse(document.getElementById('data').textContent);
 const esc = s => (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -1063,7 +1872,11 @@ function fmt(n){ if(typeof n!=='number') return esc(n); return Number.isInteger(
 function provText(p){ if(!p) return ''; if(typeof p==='string') return p;
   if(typeof p==='object') return String(p.note||p.rationale||p.kind||Object.values(p).filter(v=>typeof v==='string').join(' · ')||''); return String(p); }
 
-function fbBubble(key,label){ return `<button class="fbbubble ${FB[key]?'has':''}" data-fb="${esc(key)}" data-fblabel="${esc(label)}" title="Add feedback to this section" aria-label="Add feedback to ${esc(label)}">💬</button>`; }
+// Legacy inline bubble — superseded by the shared feedback engine
+// (static/study-feedback.js, inlined near the end of this document), which
+// decorates every `.fbsection` / study card with a hover-corner. Kept as a
+// no-op so the render markup (which still calls it) stays intact.
+function fbBubble(key,label){ return ''; }
 function part(label, body, key, klabel){ if(!body) return '';
   return `<div class="substage fbsection">${key?fbBubble(key,klabel||label):''}<div class="slabel">${label}</div>${body}</div>`; }
 
@@ -1491,6 +2304,44 @@ function renderArgument(inv){
     ${has(sa.caveats)?`<details class="exp" style="margin-top:12px"><summary>Caveats</summary><div class="body"><ul style="margin:0;padding-left:18px">${sa.caveats.map(c=>`<li>${esc(c)}</li>`).join('')}</ul></div></details>`:''}
   </div>`;
 }
+// The discovery engine's "what to do next" — value-ranked opportunities, the
+// productivity diagnosis, expert-gated study suggestions, and drift. A graceful
+// no-op when inv.discovery is absent (older viva_superpowers / other workspaces).
+function renderDiscovery(inv){
+  const d=inv.discovery; if(!d) return '';
+  const diag=d.diagnosis||{};
+  const flags=(diag.flags||[]).map(f=>`<span class="chip">${esc(f)}</span>`).join(' ')||'<span class="chip pass">clear</span>';
+  const pr=diag.validator_pass_rate; const prTxt=(pr==null)?'n/a':Math.round(pr*100)+'%';
+  const na=d.next_action;
+  const opps=(d.opportunities||[]).map(o=>{
+    const tgt=String(o.source||'').replace(/^claim:/,'');
+    const s=(o.score>=0?'+':'')+Number(o.score).toFixed(2);
+    return `<tr><td class="mono">${s}</td><td>${esc(o.action)}</td><td>${esc(tgt)}</td><td class="mono" style="color:var(--ink-2)">impact ${o.impact}${o.enable?` · enable ${o.enable}`:''}</td></tr>`;
+  }).join('');
+  const awaiting=(d.suggestions||[]).filter(s=>s.status==='awaiting_expert');
+  const suggRows=awaiting.map(s=>{
+    const needs=String(s.needs||''); const short=needs.length>140?needs.slice(0,140)+'…':needs;
+    return `<li><b>${esc(s.parent||s.id||'')}</b> — needs: ${esc(short)}</li>`;
+  }).join('');
+  const census=Object.entries(d.validator_census||{}).map(([k,v])=>`${v} ${k}`).join(' · ');
+  const plan=(d.execution_plan||[]).map(p=>{
+    const tgt=String(p.source||'').replace(/^claim:/,'');
+    const sc=(p.score>=0?'+':'')+Number(p.score).toFixed(2);
+    const cls=String(p.consequence||'');
+    const badge=cls==='safe'?'chip pass':(cls==='human-only'?'chip':'chip decision');
+    const cmd=p.command?`<div class="mono" style="color:var(--ink-2);font-size:12px;margin-top:2px">${esc(String(p.command).slice(0,120))}</div>`:'';
+    return `<tr><td class="mono">${sc}</td><td>${esc(p.action)}</td><td>${esc(tgt.length>48?tgt.slice(0,48)+'…':tgt)}</td><td><span class="${badge}">${esc(cls)}</span>${cmd}</td></tr>`;
+  }).join('');
+  return `<div class="fbsection measure" id="discovery">
+    <div class="sec-h"><h2>Discovery — what to do next</h2><span class="rule"></span></div>
+    <p style="color:var(--ink-2);font-size:14px">${d.closed?`Closed — acceptance criteria met${d.frontier_size?` · ${d.frontier_size} residual (hardening, non-blocking)`:''}`:`Open · ${d.closure_blocking!=null?`${d.closure_blocking} blocking closure · `:''}frontier ${d.frontier_size}`} · validator pass-rate ${prTxt} · diagnosis: ${flags}${na?` · next: <b>${esc(na.op)}</b> on ${esc(String(na.target).slice(0,60))}`:''}</p>
+    <h3 style="margin:14px 0 6px">Most valuable to investigate <span class="mono" style="color:var(--ink-2);font-weight:400">(value-ranked)</span></h3>
+    <table class="ttable"><tbody><tr><th>score</th><th>action</th><th>target</th><th>why</th></tr>${opps}</tbody></table>
+    ${awaiting.length?`<h3 style="margin:14px 0 6px">Suggested new studies <span class="mono" style="color:var(--ink-2);font-weight:400">(awaiting expert input)</span></h3><ul style="margin:0;padding-left:18px">${suggRows}</ul>`:''}
+    ${plan?`<h3 style="margin:14px 0 6px">Decide — the next action &amp; how it runs <span class="mono" style="color:var(--ink-2);font-weight:400">(gated)</span></h3><table class="ttable"><tbody><tr><th>score</th><th>action</th><th>target</th><th>how &amp; consequence</th></tr>${plan}</tbody></table>`:''}
+    <p style="color:var(--ink-2);font-size:13px;margin-top:10px">drift: ${d.drift.divergences} verdict divergences, ${d.drift.stale_validations} stale validations${census?` · validators: ${census}`:''}</p>
+  </div>`;
+}
 // dedicated place for the FINAL investigation-level visualizations
 function renderInvViz(inv){
   const figs=[];
@@ -1586,15 +2437,9 @@ function setFB(key,patch){ FB[key]={...(FB[key]||{}),...patch};
   if(!FB[key].note && !FB[key].disp) delete FB[key]; saveFB(); }
 function fbCount(){ return Object.keys(FB).length; }
 function updateCount(){ const el=document.getElementById('fbcnt'); if(el) el.textContent=fbCount(); }
-function feedbackRow(key,label){ const f=FB[key]||{};
-  return `<div class="fbrow" data-fbkey="${esc(key)}">
-    <span class="fblabel">Feedback · ${esc(label)}</span>
-    <div class="fbdisp">
-      <button data-disp="ok" class="${f.disp==='ok'?'on-ok':''}">👍 Looks right</button>
-      <button data-disp="revise" class="${f.disp==='revise'?'on-rev':''}">✏️ Needs revision</button>
-    </div>
-    <input class="fbnote" placeholder="Add a note…" value="${esc(f.note||'')}"></div>`;
-}
+// Legacy inline editor row — superseded by the shared feedback engine's popover.
+// No-op so render markup that calls feedbackRow('overall', …) stays intact.
+function feedbackRow(key,label){ return ''; }
 function yq(s){ return '"'+String(s).replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n/g,' ')+'"'; }
 function genYaml(inv){
   const L=['feedback_report:','  investigation: '+inv.slug,'  title: '+yq(inv.title),
@@ -1623,6 +2468,7 @@ function toc(inv){
   // background, ground rules, the key-figure gallery) now lives in the
   // Supplement, reached via the single Supplement link.
   const front=['<a href="#exec-summary" class="exec">Summary</a>'];
+  if(inv.discovery) front.push('<a href="#discovery">Discovery</a>');
   if(inv.spine) front.push('<a href="#spine-presentation">Map</a>');
   if((inv.studies||[]).length) front.push('<a href="#studies">Studies</a>');
   if((syn.quantitative||[]).length||(syn.contradictions||[]).length||(syn.roadmap||[]).length||(Array.isArray(exv.decisions_needed)&&exv.decisions_needed.length)) front.push('<a href="#synthesis-gaps">Synthesis &amp; gaps</a>');
@@ -1637,6 +2483,7 @@ function toc(inv){
   const _ndl=(href,label)=>`<a class="nd-link" href="${href}">${label}</a>`;
   const mainLinks=[
     ['#exec-summary','Summary',true],
+    ['#discovery','Discovery — what to do next',!!inv.discovery],
     ['#spine-presentation','Investigation map',!!inv.spine],
     ['#studies','Studies',(inv.studies||[]).length],
     ['#synthesis-gaps','Synthesis & gaps',(syn.quantitative||[]).length||(syn.contradictions||[]).length||(syn.roadmap||[]).length||(Array.isArray(exv.decisions_needed)&&exv.decisions_needed.length)],
@@ -1756,7 +2603,7 @@ function _resizeFig(fig){
 function renderPlotlyFigure(fig){
   if(!fig || typeof Plotly==='undefined') return;
   if(fig.dataset.plRendered){ _resizeFig(fig); return; }
-  if(!_isLaidOut(fig)) return;               // not visible yet — wait for a later trigger
+  if(!_isLaidOut(fig)) return;               // not visible yet — never draw at 0px
   fig.dataset.plRendered='1';
   fig.querySelectorAll('script').forEach(old=>{
     try{
@@ -1767,6 +2614,33 @@ function renderPlotlyFigure(fig){
   });
   // one post-layout resize so the plot fills its container exactly
   try{ requestAnimationFrame(()=>_resizeFig(fig)); }catch(e){ _resizeFig(fig); }
+  // a reveal can still be animating/settling: keep the plot fitted as its box changes
+  try{ if(typeof ResizeObserver==='function'){
+    new ResizeObserver(()=>{ if(_isLaidOut(fig)) _resizeFig(fig); }).observe(fig); } }catch(e){}
+}
+// A figure that has been REVEALED (its card was just expanded) but whose layout
+// has not settled yet must not be abandoned: retry on a bounded schedule (two
+// animation frames, then short timeouts up to ~1.2s) until it is laid out, then
+// render once. A figure that is still genuinely hidden (display:none / 0 width)
+// when the schedule ends is left alone — the 0px guard in renderPlotlyFigure
+// stays intact and a later reveal re-arms the retry. Idempotent per figure.
+const _PL_RETRY_MS=[0,50,120,250,450,700,1000,1200];
+function renderPlotlyFigureWhenLaidOut(fig){
+  if(!fig || fig.dataset.plRendered || fig.__plRetrying) return;
+  if(_isLaidOut(fig)){ renderPlotlyFigure(fig); return; }
+  fig.__plRetrying=true;
+  const done=()=>{ fig.__plRetrying=false; };
+  const attempt=()=>{
+    if(fig.dataset.plRendered) return done();
+    if(_isLaidOut(fig)){ renderPlotlyFigure(fig); return done(); }
+    return false;
+  };
+  const step=i=>{
+    if(attempt()!==false) return;
+    if(i>=_PL_RETRY_MS.length) return done();
+    setTimeout(()=>step(i+1), _PL_RETRY_MS[i]);
+  };
+  try{ requestAnimationFrame(()=>requestAnimationFrame(()=>step(0))); }catch(e){ step(0); }
 }
 function setupLazyPlotly(){
   if(typeof Plotly==='undefined') return;    // no shared bundle → leave figures inert
@@ -1775,12 +2649,20 @@ function setupLazyPlotly(){
   // Sweep every figure: render the visible-and-unrendered ones, resize the rest.
   // This is the reliable path for a subnav-tab click / card expand / expand-all —
   // ANY reveal that changes layout — independent of scrolling.
-  const sweep=()=>{ figs.forEach(f=>{ if(_isLaidOut(f)) renderPlotlyFigure(f); }); };
+  // Figures not yet laid out are only retried (bounded) when `reveal` is set —
+  // i.e. a card was just expanded — so collapsed cards never spawn timers.
+  const sweep=(reveal)=>{ figs.forEach(f=>{
+    if(f.dataset.plRendered){ if(_isLaidOut(f)) _resizeFig(f); return; }
+    if(_isLaidOut(f)) renderPlotlyFigure(f);
+    else if(reveal===true && f.closest('.card:not(.collapsed)')) renderPlotlyFigureWhenLaidOut(f);
+  }); };
+  const revealSweep=()=>{
+    try{ requestAnimationFrame(()=>requestAnimationFrame(()=>sweep(true))); }catch(e){ sweep(true); } };
   // Primary: IntersectionObserver renders a figure as it scrolls into view (or
   // becomes visible when its card expands). rootMargin pre-renders slightly early.
   try{
     const io=new IntersectionObserver(entries=>{
-      entries.forEach(en=>{ if(en.isIntersecting){ renderPlotlyFigure(en.target);
+      entries.forEach(en=>{ if(en.isIntersecting){ renderPlotlyFigureWhenLaidOut(en.target);
         if(en.target.dataset.plRendered) io.unobserve(en.target); } });
     }, {root:null, rootMargin:'250px 0px', threshold:0.01});
     figs.forEach(f=>io.observe(f));
@@ -1789,16 +2671,16 @@ function setupLazyPlotly(){
   // expand, subnav tab, expand-all) → sweep on the next frame.
   try{
     const mo=new MutationObserver(ms=>{ if(ms.some(m=>m.attributeName==='class')){
-      try{ requestAnimationFrame(sweep); }catch(e){ sweep(); } } });
+      revealSweep(); } });
     document.querySelectorAll('.card').forEach(c=>mo.observe(c,{attributes:true,attributeFilter:['class']}));
   }catch(e){}
   // Subnav tab / index click expands + scrolls its target card; sweep just after.
   document.addEventListener('click', e=>{ try{ if(e.target.closest('.subnav a')||e.target.id==='expandall'){
-    setTimeout(sweep,60); setTimeout(sweep,220); } }catch(err){} }, true);
+    revealSweep(); setTimeout(()=>sweep(true),60); setTimeout(()=>sweep(true),220); } }catch(err){} }, true);
   // Keep already-drawn figures crisp on viewport resize.
   window.addEventListener('resize', ()=>{ figs.forEach(f=>{ if(f.dataset.plRendered) _resizeFig(f); }); });
   // Anchored deep-link (opening the report at #s-<slug>): render after layout.
-  try{ setTimeout(sweep,120); }catch(e){}
+  try{ setTimeout(()=>sweep(true),120); }catch(e){}
 }
 
 // Print / PDF preparation — called by the server-side PDF renderer (Playwright).
@@ -2315,6 +3197,7 @@ function execSummary(inv){
     <div class="sec-h"><h2>Executive summary</h2><span class="rule"></span></div>
     ${q?`<p class="prose" style="font-size:16px;margin:2px 0 8px"><b>Question.</b> ${esc(q)}</p>`:''}
     ${verdict?`<div class="prose" style="font-size:15.5px">${mdLite(verdict)}</div>`:''}
+    ${(ex.verdict_detail||'').trim()?`<div class="prose measure" style="font-size:14px;color:var(--ink-2);margin:6px 0 0">${mdLite(ex.verdict_detail)}</div>`:''}
     ${gl?`<div style="margin-top:12px"><div class="kicker" style="margin-bottom:6px">Milestone outcomes</div><div>${gl}</div></div>`:''}
     <p class="measure" style="color:var(--ink-2);font-size:12.5px;margin:12px 0 0;line-height:1.5">
       Across <b>${c.total||0}</b> studies — <b>${c.supported||0}</b> supported · <b>${c.qualified||0}</b> qualified · <b>${c.refuted||0}</b> refuted · <b>${c.planned||0}</b> planned.
@@ -2798,6 +3681,7 @@ function render(inv){
     toc(inv)+
     `<div class="wrap">
     ${execSummary(inv)}
+    ${renderDiscovery(inv)}
     ${renderSpine(inv)}
     ${renderStudies(inv)}
     ${synthesisAndGaps(inv)}
@@ -2873,27 +3757,8 @@ app.addEventListener('click',e=>{
   const head=e.target.closest('.card-h');
   if(head){ head.closest('.card').classList.toggle('collapsed'); }
 });
-// modal
-const modalbg=document.getElementById('modalbg');
-// "Review & export" downloads the YAML feedback report straight to the downloads
-// folder (no modal). A Blob + transient <a download> — works in the served page.
-document.getElementById('fbfloat').onclick=()=>{
-  const yaml=genYaml(INV);
-  const blob=new Blob([yaml],{type:'application/x-yaml'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url; a.download='feedback-'+(INV.slug||'investigation')+'.yaml';
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url),1000);
-  const btn=document.getElementById('fbfloat');
-  const prev=btn.innerHTML; btn.innerHTML='Downloaded ✓';
-  setTimeout(()=>{btn.innerHTML=prev;},1600);
-};
-document.getElementById('fbclose').onclick=()=>modalbg.classList.remove('open');
-modalbg.onclick=e=>{ if(e.target===modalbg) modalbg.classList.remove('open'); };
-document.getElementById('fbcopy').onclick=()=>{ const ta=document.getElementById('fbyaml'); ta.select();
-  try{ navigator.clipboard.writeText(ta.value); }catch(e){ document.execCommand&&document.execCommand('copy'); }
-  document.getElementById('fbcopy').textContent='Copied ✓'; setTimeout(()=>document.getElementById('fbcopy').textContent='Copy YAML',1500); };
+// (Legacy export button + modal removed — the shared feedback engine
+// [static/study-feedback.js, inlined] now owns collection + export.)
 render(INV);
 </script>
 </body>
