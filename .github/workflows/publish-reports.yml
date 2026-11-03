@@ -8,7 +8,7 @@
 # re-scaffolding, or by copying the current source from
 #   vivarium-collective/viva-template/template/.github/workflows/<template>
 # template: publish-reports.yml
-# sha256: f62fab75fe45ba0b9fc752b589e7a27779074bd7e7b2a4df6b0c19daf0c2b465
+# sha256: 0ca08d3e69afe52138d97a21b897ee1e7e8ad2ff84f2a6eb8ba65626f9aa8a46
 # <<< viva-template-provenance <<<
 
 name: Publish investigation reports
@@ -49,12 +49,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # Populate external/* submodules (viva-biomodels is an editable
-          # path dependency). Non-recursive: do NOT descend into a submodule's
-          # own submodules, matching workspace-ci. Without this the editable
-          # path resolves to an empty dir and `uv sync` aborts with
-          # "does not appear to be a Python project".
-          submodules: true
+          # Workspaces commonly vendor ecosystem deps as git submodules under
+          # external/ and declare them as editable path deps in pyproject
+          # ([tool.uv.sources] … { path = "external/<pkg>", editable = true }).
+          # Without this, the submodule dir is empty, so `uv sync` fails with
+          # "Failed to generate package metadata for <pkg>==0.0.0". A repo with
+          # no submodules treats this as a harmless no-op.
+          submodules: recursive
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5

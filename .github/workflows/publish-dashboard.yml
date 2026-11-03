@@ -8,7 +8,7 @@
 # re-scaffolding, or by copying the current source from
 #   vivarium-collective/viva-template/template/.github/workflows/<template>
 # template: publish-dashboard.yml
-# sha256: e77ce1b1c54b1880312c6762f6134aff41c9d9c5b455cb2229f679a4ecb4eb8a
+# sha256: 5d7d9f0e4368f54a2901cc71f02e136ef2ec7433da035aec3039403b5d3c2998
 # <<< viva-template-provenance <<<
 
 name: Publish read-only workbench
@@ -51,6 +51,14 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Workspaces commonly vendor ecosystem deps as git submodules under
+          # external/ and declare them as editable path deps in pyproject
+          # ([tool.uv.sources] … { path = "external/<pkg>", editable = true }).
+          # Without this, the submodule dir is empty, so `uv sync` fails with
+          # "Failed to generate package metadata for <pkg>==0.0.0". A repo with
+          # no submodules treats this as a harmless no-op.
+          submodules: recursive
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
