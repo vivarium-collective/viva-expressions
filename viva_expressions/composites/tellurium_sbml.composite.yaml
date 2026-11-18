@@ -1,0 +1,54 @@
+name: tellurium_sbml
+description: "An SBML model run by viva-tellurium's TelluriumProcess (libroadrunner, CVODE) on the original file: the reference side of the simulator-benchmarking comparisons. Emits floating species AMOUNTS (roadrunner's bare-id selection), global parameters (including rate-rule targets) and model time each interval."
+tags: [ode, sbml, tellurium, benchmark]
+requires:
+  processes: [TelluriumProcess]
+parameters:
+  model_file:
+    type: string
+    default: workspace/investigations/simulator-benchmarking/inputs/models/BIOMD0000000012.xml
+    description: "SBML file, relative to the workspace root (the run's working directory)."
+  rtol:
+    type: float
+    default: 1.0e-8
+    description: "CVODE relative tolerance (OdeProcess's default, for a like-for-like comparison)."
+  atol:
+    type: float
+    default: 1.0e-10
+    description: "CVODE absolute tolerance (OdeProcess's default)."
+  interval:
+    type: float
+    default: 0.5
+    description: "Process interval; roadrunner integrates each interval from the previous state, as OdeProcess does."
+state:
+  tellurium:
+    _type: process
+    address: "local:TelluriumProcess"
+    config:
+      model_file: "${model_file}"
+      model_format: sbml
+      integrator: cvode
+      relative_tolerance: "${rtol}"
+      absolute_tolerance: "${atol}"
+    interval: "${interval}"
+    inputs: {}
+    outputs:
+      species: ["stores", "species"]
+      parameters: ["stores", "parameters"]
+      rates: ["stores", "rates"]
+      time: ["stores", "model_time"]
+  stores:
+    species: {}
+    parameters: {}
+    rates: {}
+    model_time: 0.0
+  emitter:
+    _type: step
+    address: "local:JSONEmitter"
+    config:
+      emit: {species: "map[float]", parameters: "map[float]", model_time: float, time: float}
+    inputs:
+      species: ["stores", "species"]
+      parameters: ["stores", "parameters"]
+      model_time: ["stores", "model_time"]
+      time: ["global_time"]

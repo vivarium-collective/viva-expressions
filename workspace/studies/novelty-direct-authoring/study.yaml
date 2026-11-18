@@ -1,0 +1,23 @@
+schema_version: 4
+name: novelty-direct-authoring
+created: '2026-10-05'
+status: planned
+phase: Design
+baseline:
+- name: baseline
+  composite: replace_me.composites.placeholder
+  params: {}
+variants: []
+objective: Compare writing models directly as expressions against writing them in
+  Antimony (the simbio composites already in the workspace, and tellurium). Use the
+  same models and record what each form can state, how much the user has to write,
+  and whether the trajectories agree. Correctness against closed-form solutions comes
+  from expression-kinetics-analytic. This study asks only whether the expression form
+  adds anything.
+question: Does writing a model directly as expressions give the user anything that
+  writing it in Antimony does not?
+hypothesis: For standard kinetics (logistic growth, Lotka-Volterra, Michaelis-Menten),
+  Antimony states everything the expression form does, so no advantage is recorded
+  there. The expression form adds value only for models Antimony cannot state directly;
+  the study must name at least one such model and run it, or it records no novelty
+  for direct authoring.

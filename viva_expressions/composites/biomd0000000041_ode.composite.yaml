@@ -1,0 +1,381 @@
+name: biomd0000000041_ode
+description: 'SBML model ''Kongas___Van_Beek'' imported into OdeProcess. Source: BIOMD0000000041.'
+tags:
+- ode
+- expressions
+- sbml-import
+requires:
+  processes:
+  - OdeProcess
+parameters:
+  IMS:
+    type: float
+    default: 0.0625
+    description: SBML compartment 'IMS' (held constant).
+  CYT:
+    type: float
+    default: 0.75
+    description: SBML compartment 'CYT' (held constant).
+  OxPhos_Kb_1:
+    type: float
+    default: 20.0
+    description: SBML parameter 'OxPhos_Kb_1' (held constant).
+  OxPhos_Ka_1:
+    type: float
+    default: 800.0
+    description: SBML parameter 'OxPhos_Ka_1' (held constant).
+  OxPhos_V_1:
+    type: float
+    default: 4600.0
+    description: SBML parameter 'OxPhos_V_1' (held constant).
+  MiCK_Kid_2:
+    type: float
+    default: 1600.0
+    description: SBML parameter 'MiCK_Kid_2' (held constant).
+  MiCK_Kib_2:
+    type: float
+    default: 28800.0
+    description: SBML parameter 'MiCK_Kib_2' (held constant).
+  MiCK_Kd_2:
+    type: float
+    default: 500.0
+    description: SBML parameter 'MiCK_Kd_2' (held constant).
+  MiCK_Kic_2:
+    type: float
+    default: 204.8
+    description: SBML parameter 'MiCK_Kic_2' (held constant).
+  MiCK_Vb_2:
+    type: float
+    default: 11160.0
+    description: SBML parameter 'MiCK_Vb_2' (held constant).
+  MiCK_Kb_2:
+    type: float
+    default: 5200.0
+    description: SBML parameter 'MiCK_Kb_2' (held constant).
+  MiCK_Kia_2:
+    type: float
+    default: 750.0
+    description: SBML parameter 'MiCK_Kia_2' (held constant).
+  MiCK_Vf_2:
+    type: float
+    default: 2658.0
+    description: SBML parameter 'MiCK_Vf_2' (held constant).
+  MMCK_Kid_3:
+    type: float
+    default: 4730.0
+    description: SBML parameter 'MMCK_Kid_3' (held constant).
+  MMCK_Kib_3:
+    type: float
+    default: 34900.0
+    description: SBML parameter 'MMCK_Kib_3' (held constant).
+  MMCK_Kd_3:
+    type: float
+    default: 1670.0
+    description: SBML parameter 'MMCK_Kd_3' (held constant).
+  MMCK_Kic_3:
+    type: float
+    default: 222.4
+    description: SBML parameter 'MMCK_Kic_3' (held constant).
+  MMCK_Vb_3:
+    type: float
+    default: 29250.0
+    description: SBML parameter 'MMCK_Vb_3' (held constant).
+  MMCK_Kb_3:
+    type: float
+    default: 15500.0
+    description: SBML parameter 'MMCK_Kb_3' (held constant).
+  MMCK_Kia_3:
+    type: float
+    default: 900.0
+    description: SBML parameter 'MMCK_Kia_3' (held constant).
+  MMCK_Vf_3:
+    type: float
+    default: 6966.0
+    description: SBML parameter 'MMCK_Vf_3' (held constant).
+  ATPase_v_4:
+    type: float
+    default: 4600.0
+    description: SBML parameter 'ATPase_v_4' (held constant).
+  Pi_diffusion_k2_5:
+    type: float
+    default: 18.4
+    description: SBML parameter 'Pi_diffusion_k2_5' (held constant).
+  Cr_diffusion_k1_6:
+    type: float
+    default: 14.6
+    description: SBML parameter 'Cr_diffusion_k1_6' (held constant).
+  ADP_diffusion_k1_7:
+    type: float
+    default: 8.16
+    description: SBML parameter 'ADP_diffusion_k1_7' (held constant).
+  PCr_diffusion_k1_8:
+    type: float
+    default: 14.6
+    description: SBML parameter 'PCr_diffusion_k1_8' (held constant).
+  ATP_diffusion_k1_9:
+    type: float
+    default: 8.16
+    description: SBML parameter 'ATP_diffusion_k1_9' (held constant).
+  ADPi_0:
+    type: float
+    default: 0.0
+    description: Initial value of ADPi (concentration).
+  ATPi_0:
+    type: float
+    default: 0.0
+    description: Initial value of ATPi (concentration).
+  Cri_0:
+    type: float
+    default: 0.0
+    description: Initial value of Cri (concentration).
+  PCri_0:
+    type: float
+    default: 0.0
+    description: Initial value of PCri (concentration).
+  PCr_0:
+    type: float
+    default: 0.0
+    description: Initial value of PCr (concentration).
+  ADP_0:
+    type: float
+    default: 0.0
+    description: Initial value of ADP (concentration).
+  ATP_0:
+    type: float
+    default: 9700.0
+    description: Initial value of ATP (concentration).
+  Cr_0:
+    type: float
+    default: 26000.0
+    description: Initial value of Cr (concentration).
+  Pi_0:
+    type: float
+    default: 32000.0
+    description: Initial value of Pi (concentration).
+  P_0:
+    type: float
+    default: 0.0
+    description: Initial value of P (concentration).
+  method:
+    type: string
+    default: LSODA
+    description: scipy solve_ivp method (LSODA, RK45, DOP853, Radau, BDF).
+  rtol:
+    type: float
+    default: 1.0e-08
+    description: Solver relative tolerance.
+  atol:
+    type: float
+    default: 1.0e-10
+    description: Solver absolute tolerance.
+state:
+  ode:
+    _type: process
+    address: local:OdeProcess
+    config:
+      rhs:
+        ADPi: (ADP*ADP_diffusion_k1_7*CYT - ADP_diffusion_k1_7*ADPi*IMS - ADPi*IMS*OxPhos_V_1*Pi/(OxPhos_Ka_1*OxPhos_Kb_1*(ADPi/OxPhos_Ka_1
+          + ADPi*Pi/(OxPhos_Ka_1*OxPhos_Kb_1) + 1 + Pi/OxPhos_Kb_1)) + IMS*(-ADPi*MiCK_Vb_2*PCri/(MiCK_Kd_2*MiCK_Kic_2)
+          + ATPi*Cri*MiCK_Vf_2/(MiCK_Kb_2*MiCK_Kia_2))/(ADPi*(Cri/(MiCK_Kib_2*MiCK_Kic_2)
+          + 1.0/MiCK_Kic_2 + PCri/(MiCK_Kd_2*MiCK_Kic_2)) + ATPi*(Cri/(MiCK_Kb_2*MiCK_Kia_2)
+          + 1.0/MiCK_Kia_2) + Cri/MiCK_Kib_2 + 1 + PCri/MiCK_Kid_2))/IMS
+        ATPi: (ADPi*IMS*OxPhos_V_1*Pi/(OxPhos_Ka_1*OxPhos_Kb_1*(ADPi/OxPhos_Ka_1 +
+          ADPi*Pi/(OxPhos_Ka_1*OxPhos_Kb_1) + 1 + Pi/OxPhos_Kb_1)) + ATP*ATP_diffusion_k1_9*CYT
+          - ATP_diffusion_k1_9*ATPi*IMS - IMS*(-ADPi*MiCK_Vb_2*PCri/(MiCK_Kd_2*MiCK_Kic_2)
+          + ATPi*Cri*MiCK_Vf_2/(MiCK_Kb_2*MiCK_Kia_2))/(ADPi*(Cri/(MiCK_Kib_2*MiCK_Kic_2)
+          + 1.0/MiCK_Kic_2 + PCri/(MiCK_Kd_2*MiCK_Kic_2)) + ATPi*(Cri/(MiCK_Kb_2*MiCK_Kia_2)
+          + 1.0/MiCK_Kia_2) + Cri/MiCK_Kib_2 + 1 + PCri/MiCK_Kid_2))/IMS
+        Cri: (CYT*Cr*Cr_diffusion_k1_6 - Cr_diffusion_k1_6*Cri*IMS - IMS*(-ADPi*MiCK_Vb_2*PCri/(MiCK_Kd_2*MiCK_Kic_2)
+          + ATPi*Cri*MiCK_Vf_2/(MiCK_Kb_2*MiCK_Kia_2))/(ADPi*(Cri/(MiCK_Kib_2*MiCK_Kic_2)
+          + 1.0/MiCK_Kic_2 + PCri/(MiCK_Kd_2*MiCK_Kic_2)) + ATPi*(Cri/(MiCK_Kb_2*MiCK_Kia_2)
+          + 1.0/MiCK_Kia_2) + Cri/MiCK_Kib_2 + 1 + PCri/MiCK_Kid_2))/IMS
+        PCri: (CYT*PCr*PCr_diffusion_k1_8 - IMS*PCr_diffusion_k1_8*PCri + IMS*(-ADPi*MiCK_Vb_2*PCri/(MiCK_Kd_2*MiCK_Kic_2)
+          + ATPi*Cri*MiCK_Vf_2/(MiCK_Kb_2*MiCK_Kia_2))/(ADPi*(Cri/(MiCK_Kib_2*MiCK_Kic_2)
+          + 1.0/MiCK_Kic_2 + PCri/(MiCK_Kd_2*MiCK_Kic_2)) + ATPi*(Cri/(MiCK_Kb_2*MiCK_Kia_2)
+          + 1.0/MiCK_Kia_2) + Cri/MiCK_Kib_2 + 1 + PCri/MiCK_Kid_2))/IMS
+        PCr: (-CYT*PCr*PCr_diffusion_k1_8 + CYT*(-ADP*MMCK_Vb_3*PCr/(MMCK_Kd_3*MMCK_Kic_3)
+          + ATP*Cr*MMCK_Vf_3/(MMCK_Kb_3*MMCK_Kia_3))/(ADP*(Cr/(MMCK_Kib_3*MMCK_Kic_3)
+          + 1.0/MMCK_Kic_3 + PCr/(MMCK_Kd_3*MMCK_Kic_3)) + ATP*(Cr/(MMCK_Kb_3*MMCK_Kia_3)
+          + 1.0/MMCK_Kia_3) + Cr/MMCK_Kib_3 + 1 + PCr/MMCK_Kid_3) + IMS*PCr_diffusion_k1_8*PCri)/CYT
+        ADP: (-ADP*ADP_diffusion_k1_7*CYT + ADP_diffusion_k1_7*ADPi*IMS + ATP*ATPase_v_4*CYT
+          + CYT*(-ADP*MMCK_Vb_3*PCr/(MMCK_Kd_3*MMCK_Kic_3) + ATP*Cr*MMCK_Vf_3/(MMCK_Kb_3*MMCK_Kia_3))/(ADP*(Cr/(MMCK_Kib_3*MMCK_Kic_3)
+          + 1.0/MMCK_Kic_3 + PCr/(MMCK_Kd_3*MMCK_Kic_3)) + ATP*(Cr/(MMCK_Kb_3*MMCK_Kia_3)
+          + 1.0/MMCK_Kia_3) + Cr/MMCK_Kib_3 + 1 + PCr/MMCK_Kid_3))/CYT
+        ATP: (-ATP*ATP_diffusion_k1_9*CYT - ATP*ATPase_v_4*CYT + ATP_diffusion_k1_9*ATPi*IMS
+          - CYT*(-ADP*MMCK_Vb_3*PCr/(MMCK_Kd_3*MMCK_Kic_3) + ATP*Cr*MMCK_Vf_3/(MMCK_Kb_3*MMCK_Kia_3))/(ADP*(Cr/(MMCK_Kib_3*MMCK_Kic_3)
+          + 1.0/MMCK_Kic_3 + PCr/(MMCK_Kd_3*MMCK_Kic_3)) + ATP*(Cr/(MMCK_Kb_3*MMCK_Kia_3)
+          + 1.0/MMCK_Kia_3) + Cr/MMCK_Kib_3 + 1 + PCr/MMCK_Kid_3))/CYT
+        Cr: (-CYT*Cr*Cr_diffusion_k1_6 - CYT*(-ADP*MMCK_Vb_3*PCr/(MMCK_Kd_3*MMCK_Kic_3)
+          + ATP*Cr*MMCK_Vf_3/(MMCK_Kb_3*MMCK_Kia_3))/(ADP*(Cr/(MMCK_Kib_3*MMCK_Kic_3)
+          + 1.0/MMCK_Kic_3 + PCr/(MMCK_Kd_3*MMCK_Kic_3)) + ATP*(Cr/(MMCK_Kb_3*MMCK_Kia_3)
+          + 1.0/MMCK_Kia_3) + Cr/MMCK_Kib_3 + 1 + PCr/MMCK_Kid_3) + Cr_diffusion_k1_6*Cri*IMS)/CYT
+        Pi: (-ADPi*IMS*OxPhos_V_1*Pi/(OxPhos_Ka_1*OxPhos_Kb_1*(ADPi/OxPhos_Ka_1 +
+          ADPi*Pi/(OxPhos_Ka_1*OxPhos_Kb_1) + 1 + Pi/OxPhos_Kb_1)) + CYT*P*Pi_diffusion_k2_5
+          - IMS*Pi*Pi_diffusion_k2_5)/IMS
+        P: (ATP*ATPase_v_4*CYT - CYT*P*Pi_diffusion_k2_5 + IMS*Pi*Pi_diffusion_k2_5)/CYT
+      params:
+        IMS: ${IMS}
+        CYT: ${CYT}
+        OxPhos_Kb_1: ${OxPhos_Kb_1}
+        OxPhos_Ka_1: ${OxPhos_Ka_1}
+        OxPhos_V_1: ${OxPhos_V_1}
+        MiCK_Kid_2: ${MiCK_Kid_2}
+        MiCK_Kib_2: ${MiCK_Kib_2}
+        MiCK_Kd_2: ${MiCK_Kd_2}
+        MiCK_Kic_2: ${MiCK_Kic_2}
+        MiCK_Vb_2: ${MiCK_Vb_2}
+        MiCK_Kb_2: ${MiCK_Kb_2}
+        MiCK_Kia_2: ${MiCK_Kia_2}
+        MiCK_Vf_2: ${MiCK_Vf_2}
+        MMCK_Kid_3: ${MMCK_Kid_3}
+        MMCK_Kib_3: ${MMCK_Kib_3}
+        MMCK_Kd_3: ${MMCK_Kd_3}
+        MMCK_Kic_3: ${MMCK_Kic_3}
+        MMCK_Vb_3: ${MMCK_Vb_3}
+        MMCK_Kb_3: ${MMCK_Kb_3}
+        MMCK_Kia_3: ${MMCK_Kia_3}
+        MMCK_Vf_3: ${MMCK_Vf_3}
+        ATPase_v_4: ${ATPase_v_4}
+        Pi_diffusion_k2_5: ${Pi_diffusion_k2_5}
+        Cr_diffusion_k1_6: ${Cr_diffusion_k1_6}
+        ADP_diffusion_k1_7: ${ADP_diffusion_k1_7}
+        PCr_diffusion_k1_8: ${PCr_diffusion_k1_8}
+        ATP_diffusion_k1_9: ${ATP_diffusion_k1_9}
+      state_vars:
+      - ADPi
+      - ATPi
+      - Cri
+      - PCri
+      - PCr
+      - ADP
+      - ATP
+      - Cr
+      - Pi
+      - P
+      input_vars: []
+      method: ${method}
+      rtol: ${rtol}
+      atol: ${atol}
+    interval: 0.5
+    inputs:
+      ADPi:
+      - stores
+      - ADPi
+      ATPi:
+      - stores
+      - ATPi
+      Cri:
+      - stores
+      - Cri
+      PCri:
+      - stores
+      - PCri
+      PCr:
+      - stores
+      - PCr
+      ADP:
+      - stores
+      - ADP
+      ATP:
+      - stores
+      - ATP
+      Cr:
+      - stores
+      - Cr
+      Pi:
+      - stores
+      - Pi
+      P:
+      - stores
+      - P
+    outputs:
+      ADPi:
+      - stores
+      - ADPi
+      ATPi:
+      - stores
+      - ATPi
+      Cri:
+      - stores
+      - Cri
+      PCri:
+      - stores
+      - PCri
+      PCr:
+      - stores
+      - PCr
+      ADP:
+      - stores
+      - ADP
+      ATP:
+      - stores
+      - ATP
+      Cr:
+      - stores
+      - Cr
+      Pi:
+      - stores
+      - Pi
+      P:
+      - stores
+      - P
+  stores:
+    ADPi: ${ADPi_0}
+    ATPi: ${ATPi_0}
+    Cri: ${Cri_0}
+    PCri: ${PCri_0}
+    PCr: ${PCr_0}
+    ADP: ${ADP_0}
+    ATP: ${ATP_0}
+    Cr: ${Cr_0}
+    Pi: ${Pi_0}
+    P: ${P_0}
+  emitter:
+    _type: step
+    address: local:JSONEmitter
+    config:
+      emit:
+        ADPi: float
+        ATPi: float
+        Cri: float
+        PCri: float
+        PCr: float
+        ADP: float
+        ATP: float
+        Cr: float
+        Pi: float
+        P: float
+        time: float
+    inputs:
+      ADPi:
+      - stores
+      - ADPi
+      ATPi:
+      - stores
+      - ATPi
+      Cri:
+      - stores
+      - Cri
+      PCri:
+      - stores
+      - PCri
+      PCr:
+      - stores
+      - PCr
+      ADP:
+      - stores
+      - ADP
+      ATP:
+      - stores
+      - ATP
+      Cr:
+      - stores
+      - Cr
+      Pi:
+      - stores
+      - Pi
+      P:
+      - stores
+      - P
+      time:
+      - global_time

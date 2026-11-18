@@ -1,0 +1,187 @@
+name: biomd0000000254_ode
+description: 'SBML model ''Bier2000_GlycolyticOscillation'' imported into OdeProcess.
+  Source: BIOMD0000000254.'
+tags:
+- ode
+- expressions
+- sbml-import
+requires:
+  processes:
+  - OdeProcess
+  - MathExpressionStep
+parameters:
+  compartment:
+    type: float
+    default: 1.0
+    description: SBML compartment 'compartment' (held constant).
+  V_in:
+    type: float
+    default: 0.36
+    description: SBML parameter 'V_in' (held constant).
+  k1:
+    type: float
+    default: 0.02
+    description: SBML parameter 'k1' (held constant).
+  kp:
+    type: float
+    default: 6.0
+    description: SBML parameter 'kp' (held constant).
+  km:
+    type: float
+    default: 13.0
+    description: SBML parameter 'km' (held constant).
+  epsilon:
+    type: float
+    default: 0.01
+    description: SBML parameter 'epsilon' (held constant).
+  G1_0:
+    type: float
+    default: 6.6
+    description: Initial value of G1 (concentration).
+  T1_0:
+    type: float
+    default: 7.6
+    description: Initial value of T1 (concentration).
+  G2_0:
+    type: float
+    default: 10.3
+    description: Initial value of G2 (concentration).
+  T2_0:
+    type: float
+    default: 0.41
+    description: Initial value of T2 (concentration).
+  method:
+    type: string
+    default: LSODA
+    description: scipy solve_ivp method (LSODA, RK45, DOP853, Radau, BDF).
+  rtol:
+    type: float
+    default: 1.0e-08
+    description: Solver relative tolerance.
+  atol:
+    type: float
+    default: 1.0e-10
+    description: Solver absolute tolerance.
+state:
+  ode:
+    _type: process
+    address: local:OdeProcess
+    config:
+      rhs:
+        G1: -G1*T1*k1 + V_in
+        T1: 2*G1*T1*k1 - T1*kp/(T1 + km) + epsilon*(-T1 + T2)
+        G2: -G2*T2*k1 + V_in
+        T2: 2*G2*T2*k1 - T2*kp/(T2 + km) - epsilon*(-T1 + T2)
+      params:
+        compartment: ${compartment}
+        V_in: ${V_in}
+        k1: ${k1}
+        kp: ${kp}
+        km: ${km}
+        epsilon: ${epsilon}
+      state_vars:
+      - G1
+      - T1
+      - G2
+      - T2
+      input_vars: []
+      method: ${method}
+      rtol: ${rtol}
+      atol: ${atol}
+    interval: 0.5
+    inputs:
+      G1:
+      - stores
+      - G1
+      T1:
+      - stores
+      - T1
+      G2:
+      - stores
+      - G2
+      T2:
+      - stores
+      - T2
+    outputs:
+      G1:
+      - stores
+      - G1
+      T1:
+      - stores
+      - T1
+      G2:
+      - stores
+      - G2
+      T2:
+      - stores
+      - T2
+  stores:
+    G1: ${G1_0}
+    T1: ${T1_0}
+    G2: ${G2_0}
+    T2: ${T2_0}
+    Tsum: 0.0
+    Tdiff: 0.0
+  assignments:
+    _type: step
+    address: local:MathExpressionStep
+    config:
+      expressions:
+      - out: Tsum
+        expr: T1 + T2
+      - out: Tdiff
+        expr: -T1 + T2
+      params:
+        compartment: ${compartment}
+        V_in: ${V_in}
+        k1: ${k1}
+        kp: ${kp}
+        km: ${km}
+        epsilon: ${epsilon}
+    inputs:
+      T1:
+      - stores
+      - T1
+      T2:
+      - stores
+      - T2
+    outputs:
+      Tsum:
+      - stores
+      - Tsum
+      Tdiff:
+      - stores
+      - Tdiff
+  emitter:
+    _type: step
+    address: local:JSONEmitter
+    config:
+      emit:
+        G1: float
+        T1: float
+        G2: float
+        T2: float
+        Tsum: float
+        Tdiff: float
+        time: float
+    inputs:
+      G1:
+      - stores
+      - G1
+      T1:
+      - stores
+      - T1
+      G2:
+      - stores
+      - G2
+      T2:
+      - stores
+      - T2
+      Tsum:
+      - stores
+      - Tsum
+      Tdiff:
+      - stores
+      - Tdiff
+      time:
+      - global_time

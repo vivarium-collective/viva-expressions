@@ -1,0 +1,307 @@
+name: biomd0000000010_ode
+description: 'SBML model ''BIOMD0000000010'' imported into OdeProcess. Source: BIOMD0000000010.'
+tags:
+- ode
+- expressions
+- sbml-import
+requires:
+  processes:
+  - OdeProcess
+parameters:
+  uVol:
+    type: float
+    default: 1.0
+    description: SBML compartment 'uVol' (held constant).
+  J0_K1:
+    type: float
+    default: 10.0
+    description: SBML parameter 'J0_K1' (held constant).
+  J0_n:
+    type: float
+    default: 1.0
+    description: SBML parameter 'J0_n' (held constant).
+  J0_Ki:
+    type: float
+    default: 9.0
+    description: SBML parameter 'J0_Ki' (held constant).
+  J0_V1:
+    type: float
+    default: 2.5
+    description: SBML parameter 'J0_V1' (held constant).
+  J1_KK2:
+    type: float
+    default: 8.0
+    description: SBML parameter 'J1_KK2' (held constant).
+  J1_V2:
+    type: float
+    default: 0.25
+    description: SBML parameter 'J1_V2' (held constant).
+  J2_KK3:
+    type: float
+    default: 15.0
+    description: SBML parameter 'J2_KK3' (held constant).
+  J2_k3:
+    type: float
+    default: 0.025
+    description: SBML parameter 'J2_k3' (held constant).
+  J3_KK4:
+    type: float
+    default: 15.0
+    description: SBML parameter 'J3_KK4' (held constant).
+  J3_k4:
+    type: float
+    default: 0.025
+    description: SBML parameter 'J3_k4' (held constant).
+  J4_KK5:
+    type: float
+    default: 15.0
+    description: SBML parameter 'J4_KK5' (held constant).
+  J4_V5:
+    type: float
+    default: 0.75
+    description: SBML parameter 'J4_V5' (held constant).
+  J5_KK6:
+    type: float
+    default: 15.0
+    description: SBML parameter 'J5_KK6' (held constant).
+  J5_V6:
+    type: float
+    default: 0.75
+    description: SBML parameter 'J5_V6' (held constant).
+  J6_KK7:
+    type: float
+    default: 15.0
+    description: SBML parameter 'J6_KK7' (held constant).
+  J6_k7:
+    type: float
+    default: 0.025
+    description: SBML parameter 'J6_k7' (held constant).
+  J7_KK8:
+    type: float
+    default: 15.0
+    description: SBML parameter 'J7_KK8' (held constant).
+  J7_k8:
+    type: float
+    default: 0.025
+    description: SBML parameter 'J7_k8' (held constant).
+  J8_KK9:
+    type: float
+    default: 15.0
+    description: SBML parameter 'J8_KK9' (held constant).
+  J8_V9:
+    type: float
+    default: 0.5
+    description: SBML parameter 'J8_V9' (held constant).
+  J9_KK10:
+    type: float
+    default: 15.0
+    description: SBML parameter 'J9_KK10' (held constant).
+  J9_V10:
+    type: float
+    default: 0.5
+    description: SBML parameter 'J9_V10' (held constant).
+  MKKK_0:
+    type: float
+    default: 90.0
+    description: Initial value of MKKK (concentration).
+  MKKK_P_0:
+    type: float
+    default: 10.0
+    description: Initial value of MKKK_P (concentration).
+  MKK_0:
+    type: float
+    default: 280.0
+    description: Initial value of MKK (concentration).
+  MKK_P_0:
+    type: float
+    default: 10.0
+    description: Initial value of MKK_P (concentration).
+  MKK_PP_0:
+    type: float
+    default: 10.0
+    description: Initial value of MKK_PP (concentration).
+  MAPK_0:
+    type: float
+    default: 280.0
+    description: Initial value of MAPK (concentration).
+  MAPK_P_0:
+    type: float
+    default: 10.0
+    description: Initial value of MAPK_P (concentration).
+  MAPK_PP_0:
+    type: float
+    default: 10.0
+    description: Initial value of MAPK_PP (concentration).
+  method:
+    type: string
+    default: LSODA
+    description: scipy solve_ivp method (LSODA, RK45, DOP853, Radau, BDF).
+  rtol:
+    type: float
+    default: 1.0e-08
+    description: Solver relative tolerance.
+  atol:
+    type: float
+    default: 1.0e-10
+    description: Solver absolute tolerance.
+state:
+  ode:
+    _type: process
+    address: local:OdeProcess
+    config:
+      rhs:
+        MKKK: (-J0_V1*MKKK*uVol/((J0_K1 + MKKK)*((MAPK_PP/J0_Ki)**J0_n + 1)) + J1_V2*MKKK_P*uVol/(J1_KK2
+          + MKKK_P))/uVol
+        MKKK_P: (J0_V1*MKKK*uVol/((J0_K1 + MKKK)*((MAPK_PP/J0_Ki)**J0_n + 1)) - J1_V2*MKKK_P*uVol/(J1_KK2
+          + MKKK_P))/uVol
+        MKK: (-J2_k3*MKK*MKKK_P*uVol/(J2_KK3 + MKK) + J5_V6*MKK_P*uVol/(J5_KK6 + MKK_P))/uVol
+        MKK_P: (J2_k3*MKK*MKKK_P*uVol/(J2_KK3 + MKK) - J3_k4*MKKK_P*MKK_P*uVol/(J3_KK4
+          + MKK_P) + J4_V5*MKK_PP*uVol/(J4_KK5 + MKK_PP) - J5_V6*MKK_P*uVol/(J5_KK6
+          + MKK_P))/uVol
+        MKK_PP: (J3_k4*MKKK_P*MKK_P*uVol/(J3_KK4 + MKK_P) - J4_V5*MKK_PP*uVol/(J4_KK5
+          + MKK_PP))/uVol
+        MAPK: (-J6_k7*MAPK*MKK_PP*uVol/(J6_KK7 + MAPK) + J9_V10*MAPK_P*uVol/(J9_KK10
+          + MAPK_P))/uVol
+        MAPK_P: (J6_k7*MAPK*MKK_PP*uVol/(J6_KK7 + MAPK) - J7_k8*MAPK_P*MKK_PP*uVol/(J7_KK8
+          + MAPK_P) + J8_V9*MAPK_PP*uVol/(J8_KK9 + MAPK_PP) - J9_V10*MAPK_P*uVol/(J9_KK10
+          + MAPK_P))/uVol
+        MAPK_PP: (J7_k8*MAPK_P*MKK_PP*uVol/(J7_KK8 + MAPK_P) - J8_V9*MAPK_PP*uVol/(J8_KK9
+          + MAPK_PP))/uVol
+      params:
+        uVol: ${uVol}
+        J0_K1: ${J0_K1}
+        J0_n: ${J0_n}
+        J0_Ki: ${J0_Ki}
+        J0_V1: ${J0_V1}
+        J1_KK2: ${J1_KK2}
+        J1_V2: ${J1_V2}
+        J2_KK3: ${J2_KK3}
+        J2_k3: ${J2_k3}
+        J3_KK4: ${J3_KK4}
+        J3_k4: ${J3_k4}
+        J4_KK5: ${J4_KK5}
+        J4_V5: ${J4_V5}
+        J5_KK6: ${J5_KK6}
+        J5_V6: ${J5_V6}
+        J6_KK7: ${J6_KK7}
+        J6_k7: ${J6_k7}
+        J7_KK8: ${J7_KK8}
+        J7_k8: ${J7_k8}
+        J8_KK9: ${J8_KK9}
+        J8_V9: ${J8_V9}
+        J9_KK10: ${J9_KK10}
+        J9_V10: ${J9_V10}
+      state_vars:
+      - MKKK
+      - MKKK_P
+      - MKK
+      - MKK_P
+      - MKK_PP
+      - MAPK
+      - MAPK_P
+      - MAPK_PP
+      input_vars: []
+      method: ${method}
+      rtol: ${rtol}
+      atol: ${atol}
+    interval: 0.5
+    inputs:
+      MKKK:
+      - stores
+      - MKKK
+      MKKK_P:
+      - stores
+      - MKKK_P
+      MKK:
+      - stores
+      - MKK
+      MKK_P:
+      - stores
+      - MKK_P
+      MKK_PP:
+      - stores
+      - MKK_PP
+      MAPK:
+      - stores
+      - MAPK
+      MAPK_P:
+      - stores
+      - MAPK_P
+      MAPK_PP:
+      - stores
+      - MAPK_PP
+    outputs:
+      MKKK:
+      - stores
+      - MKKK
+      MKKK_P:
+      - stores
+      - MKKK_P
+      MKK:
+      - stores
+      - MKK
+      MKK_P:
+      - stores
+      - MKK_P
+      MKK_PP:
+      - stores
+      - MKK_PP
+      MAPK:
+      - stores
+      - MAPK
+      MAPK_P:
+      - stores
+      - MAPK_P
+      MAPK_PP:
+      - stores
+      - MAPK_PP
+  stores:
+    MKKK: ${MKKK_0}
+    MKKK_P: ${MKKK_P_0}
+    MKK: ${MKK_0}
+    MKK_P: ${MKK_P_0}
+    MKK_PP: ${MKK_PP_0}
+    MAPK: ${MAPK_0}
+    MAPK_P: ${MAPK_P_0}
+    MAPK_PP: ${MAPK_PP_0}
+  emitter:
+    _type: step
+    address: local:JSONEmitter
+    config:
+      emit:
+        MKKK: float
+        MKKK_P: float
+        MKK: float
+        MKK_P: float
+        MKK_PP: float
+        MAPK: float
+        MAPK_P: float
+        MAPK_PP: float
+        time: float
+    inputs:
+      MKKK:
+      - stores
+      - MKKK
+      MKKK_P:
+      - stores
+      - MKKK_P
+      MKK:
+      - stores
+      - MKK
+      MKK_P:
+      - stores
+      - MKK_P
+      MKK_PP:
+      - stores
+      - MKK_PP
+      MAPK:
+      - stores
+      - MAPK
+      MAPK_P:
+      - stores
+      - MAPK_P
+      MAPK_PP:
+      - stores
+      - MAPK_PP
+      time:
+      - global_time

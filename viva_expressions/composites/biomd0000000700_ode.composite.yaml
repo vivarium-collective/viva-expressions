@@ -1,0 +1,939 @@
+name: biomd0000000700_ode
+description: 'SBML model ''Heldt2018___Proliferation_quiescence_decision_pormoted_by_p21_in_response_to_DNA_damage''
+  imported into OdeProcess. Source: BIOMD0000000700.'
+tags:
+- ode
+- expressions
+- sbml-import
+requires:
+  processes:
+  - OdeProcess
+  - MathExpressionStep
+parameters:
+  Cell:
+    type: float
+    default: 1.0
+    description: SBML compartment 'Cell' (held constant).
+  Cd:
+    type: float
+    default: 0.65
+    description: SBML parameter 'Cd' (held constant).
+  Skp2:
+    type: float
+    default: 1.0
+    description: SBML parameter 'Skp2' (held constant).
+  Cdt2:
+    type: float
+    default: 1.0
+    description: SBML parameter 'Cdt2' (held constant).
+  kSyE2f:
+    type: float
+    default: 0.03
+    description: SBML parameter 'kSyE2f' (held constant).
+  kSyE2fE2f:
+    type: float
+    default: 0.04
+    description: SBML parameter 'kSyE2fE2f' (held constant).
+  jSyE2f:
+    type: float
+    default: 0.2
+    description: SBML parameter 'jSyE2f' (held constant).
+  kAsRbE2f:
+    type: float
+    default: 5.0
+    description: SBML parameter 'kAsRbE2f' (held constant).
+  kDsRbE2f:
+    type: float
+    default: 0.005
+    description: SBML parameter 'kDsRbE2f' (held constant).
+  kDeE2f:
+    type: float
+    default: 0.05
+    description: SBML parameter 'kDeE2f' (held constant).
+  kPhRbCd:
+    type: float
+    default: 0.2
+    description: SBML parameter 'kPhRbCd' (held constant).
+  kPhRbCe:
+    type: float
+    default: 0.3
+    description: SBML parameter 'kPhRbCe' (held constant).
+  kPhRbCa:
+    type: float
+    default: 0.3
+    description: SBML parameter 'kPhRbCa' (held constant).
+  kDpRb:
+    type: float
+    default: 0.05
+    description: SBML parameter 'kDpRb' (held constant).
+  kSyE1:
+    type: float
+    default: 0.005
+    description: SBML parameter 'kSyE1' (held constant).
+  kDeE1C1:
+    type: float
+    default: 0.005
+    description: SBML parameter 'kDeE1C1' (held constant).
+  kDeE1:
+    type: float
+    default: 0.0005
+    description: SBML parameter 'kDeE1' (held constant).
+  kPhC1:
+    type: float
+    default: 0.0
+    description: SBML parameter 'kPhC1' (held constant).
+  kPhC1Ce:
+    type: float
+    default: 0.01
+    description: SBML parameter 'kPhC1Ce' (held constant).
+  kPhC1Ca:
+    type: float
+    default: 1.0
+    description: SBML parameter 'kPhC1Ca' (held constant).
+  kDpC1:
+    type: float
+    default: 0.05
+    description: SBML parameter 'kDpC1' (held constant).
+  kAsE1C1:
+    type: float
+    default: 10.0
+    description: SBML parameter 'kAsE1C1' (held constant).
+  kDsE1C1:
+    type: float
+    default: 0.01
+    description: SBML parameter 'kDsE1C1' (held constant).
+  kSyP21:
+    type: float
+    default: 0.002
+    description: SBML parameter 'kSyP21' (held constant).
+  kSyP21P53:
+    type: float
+    default: 0.008
+    description: SBML parameter 'kSyP21P53' (held constant).
+  kDeP21:
+    type: float
+    default: 0.0025
+    description: SBML parameter 'kDeP21' (held constant).
+  kDeP21Cy:
+    type: float
+    default: 0.007
+    description: SBML parameter 'kDeP21Cy' (held constant).
+  kDeP21aRc:
+    type: float
+    default: 1.0
+    description: SBML parameter 'kDeP21aRc' (held constant).
+  kSyCe:
+    type: float
+    default: 0.01
+    description: SBML parameter 'kSyCe' (held constant).
+  kSyCa:
+    type: float
+    default: 0.02
+    description: SBML parameter 'kSyCa' (held constant).
+  kAsCyP21:
+    type: float
+    default: 1.0
+    description: SBML parameter 'kAsCyP21' (held constant).
+  kDsCyP21:
+    type: float
+    default: 0.05
+    description: SBML parameter 'kDsCyP21' (held constant).
+  kDeCe:
+    type: float
+    default: 0.004
+    description: SBML parameter 'kDeCe' (held constant).
+  kDeCa:
+    type: float
+    default: 0.01
+    description: SBML parameter 'kDeCa' (held constant).
+  kDeCeCa:
+    type: float
+    default: 0.015
+    description: SBML parameter 'kDeCeCa' (held constant).
+  kDeCaC1:
+    type: float
+    default: 2.0
+    description: SBML parameter 'kDeCaC1' (held constant).
+  kImPc:
+    type: float
+    default: 0.003
+    description: SBML parameter 'kImPc' (held constant).
+  kExPc:
+    type: float
+    default: 0.006
+    description: SBML parameter 'kExPc' (held constant).
+  kPhRc:
+    type: float
+    default: 0.1
+    description: SBML parameter 'kPhRc' (held constant).
+  kDpRc:
+    type: float
+    default: 0.05
+    description: SBML parameter 'kDpRc' (held constant).
+  jCy:
+    type: float
+    default: 1.8
+    description: SBML parameter 'jCy' (held constant).
+  n:
+    type: float
+    default: 6.0
+    description: SBML parameter 'n' (held constant).
+  kAsRcPc:
+    type: float
+    default: 0.01
+    description: SBML parameter 'kAsRcPc' (held constant).
+  kDsRcPc:
+    type: float
+    default: 0.001
+    description: SBML parameter 'kDsRcPc' (held constant).
+  kAsPcP21:
+    type: float
+    default: 100.0
+    description: SBML parameter 'kAsPcP21' (held constant).
+  kDsPcP21:
+    type: float
+    default: 0.01
+    description: SBML parameter 'kDsPcP21' (held constant).
+  kSyDna:
+    type: float
+    default: 0.0093
+    description: SBML parameter 'kSyDna' (held constant).
+  kSyP53:
+    type: float
+    default: 0.05
+    description: SBML parameter 'kSyP53' (held constant).
+  kDeP53:
+    type: float
+    default: 0.05
+    description: SBML parameter 'kDeP53' (held constant).
+  jP53:
+    type: float
+    default: 0.01
+    description: SBML parameter 'jP53' (held constant).
+  kGeDam:
+    type: float
+    default: 0.001
+    description: SBML parameter 'kGeDam' (held constant).
+  kGeDamArc:
+    type: float
+    default: 0.012
+    description: SBML parameter 'kGeDamArc' (held constant).
+  kReDam:
+    type: float
+    default: 0.001
+    description: SBML parameter 'kReDam' (held constant).
+  kReDamP53:
+    type: float
+    default: 0.005
+    description: SBML parameter 'kReDamP53' (held constant).
+  jDam:
+    type: float
+    default: 0.5
+    description: SBML parameter 'jDam' (held constant).
+  kSyPr:
+    type: float
+    default: 0.01
+    description: SBML parameter 'kSyPr' (held constant).
+  kDePr:
+    type: float
+    default: 0.0001
+    description: SBML parameter 'kDePr' (held constant).
+  Rb_0:
+    type: float
+    default: 0.0
+    description: Initial value of Rb (concentration).
+  pRb_0:
+    type: float
+    default: 5.0
+    description: Initial value of pRb (concentration).
+  E2f_0:
+    type: float
+    default: 0.0
+    description: Initial value of E2f (concentration).
+  RbE2f_0:
+    type: float
+    default: 0.0
+    description: Initial value of RbE2f (concentration).
+  E1_0:
+    type: float
+    default: 0.0
+    description: Initial value of E1 (concentration).
+  C1_0:
+    type: float
+    default: 0.0
+    description: Initial value of C1 (concentration).
+  pC1_0:
+    type: float
+    default: 1.0
+    description: Initial value of pC1 (concentration).
+  E1C1_0:
+    type: float
+    default: 0.0
+    description: Initial value of E1C1 (concentration).
+  P21_0:
+    type: float
+    default: 0.6
+    description: Initial value of P21 (concentration).
+  Ce_0:
+    type: float
+    default: 0.5
+    description: Initial value of Ce (concentration).
+  Ca_0:
+    type: float
+    default: 1.2
+    description: Initial value of Ca (concentration).
+  CeP21_0:
+    type: float
+    default: 0.0
+    description: Initial value of CeP21 (concentration).
+  CaP21_0:
+    type: float
+    default: 0.0
+    description: Initial value of CaP21 (concentration).
+  aPcna_0:
+    type: float
+    default: 0.5
+    description: Initial value of aPcna (concentration).
+  iPcna_0:
+    type: float
+    default: 0.0
+    description: Initial value of iPcna (concentration).
+  Rc_0:
+    type: float
+    default: 1.0
+    description: Initial value of Rc (concentration).
+  pRc_0:
+    type: float
+    default: 0.0
+    description: Initial value of pRc (concentration).
+  aRc_0:
+    type: float
+    default: 0.0
+    description: Initial value of aRc (concentration).
+  iRc_0:
+    type: float
+    default: 0.0
+    description: Initial value of iRc (concentration).
+  Dna_0:
+    type: float
+    default: 0.0
+    description: Initial value of Dna (concentration).
+  P53_0:
+    type: float
+    default: 0.0
+    description: Initial value of P53 (concentration).
+  Dam_0:
+    type: float
+    default: 0.0
+    description: Initial value of Dam (concentration).
+  Pr_0:
+    type: float
+    default: 0.5
+    description: Initial value of Pr (concentration).
+  method:
+    type: string
+    default: LSODA
+    description: scipy solve_ivp method (LSODA, RK45, DOP853, Radau, BDF).
+  rtol:
+    type: float
+    default: 1.0e-08
+    description: Solver relative tolerance.
+  atol:
+    type: float
+    default: 1.0e-10
+    description: Solver absolute tolerance.
+state:
+  ode:
+    _type: process
+    address: local:OdeProcess
+    config:
+      rhs:
+        Rb: (-Cell*Rb*(Ca*kPhRbCa + Cd*kPhRbCd + Ce*kPhRbCe) + Cell*RbE2f*kDeE2f +
+          Cell*kDpRb*pRb - Cell*(E2f*Rb*kAsRbE2f - RbE2f*kDsRbE2f))/Cell
+        pRb: (Cell*Rb*(Ca*kPhRbCa + Cd*kPhRbCd + Ce*kPhRbCe) + Cell*RbE2f*(Ca*kPhRbCa
+          + Cd*kPhRbCd + Ce*kPhRbCe) - Cell*kDpRb*pRb)/Cell
+        E2f: (-Cell*E2f*kDeE2f + Cell*RbE2f*(Ca*kPhRbCa + Cd*kPhRbCd + Ce*kPhRbCe)
+          - Cell*(E2f*Rb*kAsRbE2f - RbE2f*kDsRbE2f) + Cell*(E2f*kSyE2fE2f/(E2f + jSyE2f)
+          + kSyE2f))/Cell
+        RbE2f: (-Cell*RbE2f*kDeE2f - Cell*RbE2f*(Ca*kPhRbCa + Cd*kPhRbCd + Ce*kPhRbCe)
+          + Cell*(E2f*Rb*kAsRbE2f - RbE2f*kDsRbE2f))/Cell
+        E1: (-Cell*E1*kDeE1 + Cell*E1C1*(Ca*kPhC1Ca + Ce*kPhC1Ce + kPhC1) + Cell*E2f*kSyE1
+          - Cell*(C1*E1*kAsE1C1 - E1C1*kDsE1C1))/Cell
+        C1: (-C1*Cell*(Ca*kPhC1Ca + Ce*kPhC1Ce + kPhC1) + Cell*E1C1*kDeE1C1 + Cell*kDpC1*pC1
+          - Cell*(C1*E1*kAsE1C1 - E1C1*kDsE1C1))/Cell
+        pC1: (C1*Cell*(Ca*kPhC1Ca + Ce*kPhC1Ce + kPhC1) + Cell*E1C1*(Ca*kPhC1Ca +
+          Ce*kPhC1Ce + kPhC1) - Cell*kDpC1*pC1)/Cell
+        E1C1: (-Cell*E1C1*kDeE1C1 - Cell*E1C1*(Ca*kPhC1Ca + Ce*kPhC1Ce + kPhC1) +
+          Cell*(C1*E1*kAsE1C1 - E1C1*kDsE1C1))/Cell
+        P21: (CaP21*Cell*(C1*kDeCaC1 + kDeCa) + CeP21*Cell*(Ca*kDeCeCa + kDeCe) -
+          Cell*P21*(Cdt2*aRc*kDeP21aRc + Skp2*kDeP21Cy*(Ca + Ce) + kDeP21) + Cell*iPcna*kExPc
+          + Cell*(P53*kSyP21P53 + kSyP21) - Cell*(Ca*P21*kAsCyP21 - CaP21*kDsCyP21)
+          - Cell*(Ce*P21*kAsCyP21 - CeP21*kDsCyP21) - Cell*(P21*aPcna*kAsPcP21 - iPcna*kDsPcP21)
+          - Cell*(P21*aRc*kAsPcP21 - iRc*kDsPcP21))/Cell
+        Ce: (-Ce*Cell*(Ca*kDeCeCa + kDeCe) + CeP21*Cell*(Cdt2*aRc*kDeP21aRc + Skp2*kDeP21Cy*(Ca
+          + Ce) + kDeP21) + Cell*E2f*kSyCe - Cell*(Ce*P21*kAsCyP21 - CeP21*kDsCyP21))/Cell
+        Ca: (-Ca*Cell*(C1*kDeCaC1 + kDeCa) + CaP21*Cell*(Cdt2*aRc*kDeP21aRc + Skp2*kDeP21Cy*(Ca
+          + Ce) + kDeP21) + Cell*E2f*kSyCa - Cell*(Ca*P21*kAsCyP21 - CaP21*kDsCyP21))/Cell
+        CeP21: (-CeP21*Cell*(Ca*kDeCeCa + kDeCe) - CeP21*Cell*(Cdt2*aRc*kDeP21aRc
+          + Skp2*kDeP21Cy*(Ca + Ce) + kDeP21) + Cell*(Ce*P21*kAsCyP21 - CeP21*kDsCyP21))/Cell
+        CaP21: (-CaP21*Cell*(C1*kDeCaC1 + kDeCa) - CaP21*Cell*(Cdt2*aRc*kDeP21aRc
+          + Skp2*kDeP21Cy*(Ca + Ce) + kDeP21) + Cell*(Ca*P21*kAsCyP21 - CaP21*kDsCyP21))/Cell
+        aPcna: (-Cell*aPcna*kExPc + Cell*iPcna*(Cdt2*aRc*kDeP21aRc + Skp2*kDeP21Cy*(Ca
+          + Ce) + kDeP21) + Cell*kImPc - Cell*(P21*aPcna*kAsPcP21 - iPcna*kDsPcP21)
+          - Cell*(aPcna*kAsRcPc*pRc - aRc*kDsRcPc) + Cell*Piecewise((0.0, Dna < 1.0),
+          (Piecewise((1.0*aRc, Dna > 1.0), (0.5*aRc, True)), True)))/Cell
+        iPcna: (-Cell*iPcna*kExPc - Cell*iPcna*(Cdt2*aRc*kDeP21aRc + Skp2*kDeP21Cy*(Ca
+          + Ce) + kDeP21) + Cell*(P21*aPcna*kAsPcP21 - iPcna*kDsPcP21) - Cell*(iPcna*kAsRcPc*pRc
+          - iRc*kDsRcPc) + Cell*Piecewise((0.0, Dna < 1.0), (Piecewise((1.0*iRc, Dna
+          > 1.0), (0.5*iRc, True)), True)))/Cell
+        Rc: (-Cell*Rc*kPhRc*(Ca + Ce)**n/(jCy**n + (Ca + Ce)**n) + Cell*kDpRc*pRc
+          - Cell*Piecewise((0.0, Dna < 1.0), (Piecewise((1.0*Rc, Dna > 1.0), (0.5*Rc,
+          True)), True)))/Cell
+        pRc: (Cell*Rc*kPhRc*(Ca + Ce)**n/(jCy**n + (Ca + Ce)**n) - Cell*kDpRc*pRc
+          - Cell*(aPcna*kAsRcPc*pRc - aRc*kDsRcPc) - Cell*(iPcna*kAsRcPc*pRc - iRc*kDsRcPc)
+          - Cell*Piecewise((0.0, Dna < 1.0), (Piecewise((1.0*pRc, Dna > 1.0), (0.5*pRc,
+          True)), True)))/Cell
+        aRc: (Cell*iRc*(Cdt2*aRc*kDeP21aRc + Skp2*kDeP21Cy*(Ca + Ce) + kDeP21) - Cell*(P21*aRc*kAsPcP21
+          - iRc*kDsPcP21) + Cell*(aPcna*kAsRcPc*pRc - aRc*kDsRcPc) - Cell*Piecewise((0.0,
+          Dna < 1.0), (Piecewise((1.0*aRc, Dna > 1.0), (0.5*aRc, True)), True)))/Cell
+        iRc: (-Cell*iRc*(Cdt2*aRc*kDeP21aRc + Skp2*kDeP21Cy*(Ca + Ce) + kDeP21) +
+          Cell*(P21*aRc*kAsPcP21 - iRc*kDsPcP21) + Cell*(iPcna*kAsRcPc*pRc - iRc*kDsRcPc)
+          - Cell*Piecewise((0.0, Dna < 1.0), (Piecewise((1.0*iRc, Dna > 1.0), (0.5*iRc,
+          True)), True)))/Cell
+        Dna: aRc*kSyDna
+        P53: (-Cell*P53*kDeP53/(Dam + jP53) + Cell*kSyP53)/Cell
+        Dam: (-Cell*Dam*(P53*kReDamP53/(Dam + jDam) + kReDam) + Cell*aRc*kGeDamArc
+          + Cell*kGeDam)/Cell
+        Pr: (-Cell*Pr*(C1*kDeCaC1 + kDePr) + Cell*kSyPr)/Cell
+      params:
+        Cell: ${Cell}
+        Cd: ${Cd}
+        Skp2: ${Skp2}
+        Cdt2: ${Cdt2}
+        kSyE2f: ${kSyE2f}
+        kSyE2fE2f: ${kSyE2fE2f}
+        jSyE2f: ${jSyE2f}
+        kAsRbE2f: ${kAsRbE2f}
+        kDsRbE2f: ${kDsRbE2f}
+        kDeE2f: ${kDeE2f}
+        kPhRbCd: ${kPhRbCd}
+        kPhRbCe: ${kPhRbCe}
+        kPhRbCa: ${kPhRbCa}
+        kDpRb: ${kDpRb}
+        kSyE1: ${kSyE1}
+        kDeE1C1: ${kDeE1C1}
+        kDeE1: ${kDeE1}
+        kPhC1: ${kPhC1}
+        kPhC1Ce: ${kPhC1Ce}
+        kPhC1Ca: ${kPhC1Ca}
+        kDpC1: ${kDpC1}
+        kAsE1C1: ${kAsE1C1}
+        kDsE1C1: ${kDsE1C1}
+        kSyP21: ${kSyP21}
+        kSyP21P53: ${kSyP21P53}
+        kDeP21: ${kDeP21}
+        kDeP21Cy: ${kDeP21Cy}
+        kDeP21aRc: ${kDeP21aRc}
+        kSyCe: ${kSyCe}
+        kSyCa: ${kSyCa}
+        kAsCyP21: ${kAsCyP21}
+        kDsCyP21: ${kDsCyP21}
+        kDeCe: ${kDeCe}
+        kDeCa: ${kDeCa}
+        kDeCeCa: ${kDeCeCa}
+        kDeCaC1: ${kDeCaC1}
+        kImPc: ${kImPc}
+        kExPc: ${kExPc}
+        kPhRc: ${kPhRc}
+        kDpRc: ${kDpRc}
+        jCy: ${jCy}
+        n: ${n}
+        kAsRcPc: ${kAsRcPc}
+        kDsRcPc: ${kDsRcPc}
+        kAsPcP21: ${kAsPcP21}
+        kDsPcP21: ${kDsPcP21}
+        kSyDna: ${kSyDna}
+        kSyP53: ${kSyP53}
+        kDeP53: ${kDeP53}
+        jP53: ${jP53}
+        kGeDam: ${kGeDam}
+        kGeDamArc: ${kGeDamArc}
+        kReDam: ${kReDam}
+        kReDamP53: ${kReDamP53}
+        jDam: ${jDam}
+        kSyPr: ${kSyPr}
+        kDePr: ${kDePr}
+      state_vars:
+      - Rb
+      - pRb
+      - E2f
+      - RbE2f
+      - E1
+      - C1
+      - pC1
+      - E1C1
+      - P21
+      - Ce
+      - Ca
+      - CeP21
+      - CaP21
+      - aPcna
+      - iPcna
+      - Rc
+      - pRc
+      - aRc
+      - iRc
+      - Dna
+      - P53
+      - Dam
+      - Pr
+      input_vars: []
+      method: ${method}
+      rtol: ${rtol}
+      atol: ${atol}
+    interval: 0.5
+    inputs:
+      Rb:
+      - stores
+      - Rb
+      pRb:
+      - stores
+      - pRb
+      E2f:
+      - stores
+      - E2f
+      RbE2f:
+      - stores
+      - RbE2f
+      E1:
+      - stores
+      - E1
+      C1:
+      - stores
+      - C1
+      pC1:
+      - stores
+      - pC1
+      E1C1:
+      - stores
+      - E1C1
+      P21:
+      - stores
+      - P21
+      Ce:
+      - stores
+      - Ce
+      Ca:
+      - stores
+      - Ca
+      CeP21:
+      - stores
+      - CeP21
+      CaP21:
+      - stores
+      - CaP21
+      aPcna:
+      - stores
+      - aPcna
+      iPcna:
+      - stores
+      - iPcna
+      Rc:
+      - stores
+      - Rc
+      pRc:
+      - stores
+      - pRc
+      aRc:
+      - stores
+      - aRc
+      iRc:
+      - stores
+      - iRc
+      Dna:
+      - stores
+      - Dna
+      P53:
+      - stores
+      - P53
+      Dam:
+      - stores
+      - Dam
+      Pr:
+      - stores
+      - Pr
+    outputs:
+      Rb:
+      - stores
+      - Rb
+      pRb:
+      - stores
+      - pRb
+      E2f:
+      - stores
+      - E2f
+      RbE2f:
+      - stores
+      - RbE2f
+      E1:
+      - stores
+      - E1
+      C1:
+      - stores
+      - C1
+      pC1:
+      - stores
+      - pC1
+      E1C1:
+      - stores
+      - E1C1
+      P21:
+      - stores
+      - P21
+      Ce:
+      - stores
+      - Ce
+      Ca:
+      - stores
+      - Ca
+      CeP21:
+      - stores
+      - CeP21
+      CaP21:
+      - stores
+      - CaP21
+      aPcna:
+      - stores
+      - aPcna
+      iPcna:
+      - stores
+      - iPcna
+      Rc:
+      - stores
+      - Rc
+      pRc:
+      - stores
+      - pRc
+      aRc:
+      - stores
+      - aRc
+      iRc:
+      - stores
+      - iRc
+      Dna:
+      - stores
+      - Dna
+      P53:
+      - stores
+      - P53
+      Dam:
+      - stores
+      - Dam
+      Pr:
+      - stores
+      - Pr
+  stores:
+    Rb: ${Rb_0}
+    pRb: ${pRb_0}
+    E2f: ${E2f_0}
+    RbE2f: ${RbE2f_0}
+    E1: ${E1_0}
+    C1: ${C1_0}
+    pC1: ${pC1_0}
+    E1C1: ${E1C1_0}
+    P21: ${P21_0}
+    Ce: ${Ce_0}
+    Ca: ${Ca_0}
+    CeP21: ${CeP21_0}
+    CaP21: ${CaP21_0}
+    aPcna: ${aPcna_0}
+    iPcna: ${iPcna_0}
+    Rc: ${Rc_0}
+    pRc: ${pRc_0}
+    aRc: ${aRc_0}
+    iRc: ${iRc_0}
+    Dna: ${Dna_0}
+    P53: ${P53_0}
+    Dam: ${Dam_0}
+    Pr: ${Pr_0}
+    tRb: 0.0
+    tE2f: 0.0
+    tE1: 0.0
+    tC1: 0.0
+    tCe: 0.0
+    tCa: 0.0
+    tP21: 0.0
+  assignments:
+    _type: step
+    address: local:MathExpressionStep
+    config:
+      expressions:
+      - out: tRb
+        expr: Rb + RbE2f + pRb
+      - out: tE2f
+        expr: E2f + RbE2f
+      - out: tE1
+        expr: E1 + E1C1
+      - out: tC1
+        expr: C1 + E1C1 + pC1
+      - out: tCe
+        expr: Ce + CeP21
+      - out: tCa
+        expr: Ca + CaP21
+      - out: tP21
+        expr: CaP21 + CeP21 + P21 + iPcna + iRc
+      params:
+        Cell: ${Cell}
+        Cd: ${Cd}
+        Skp2: ${Skp2}
+        Cdt2: ${Cdt2}
+        kSyE2f: ${kSyE2f}
+        kSyE2fE2f: ${kSyE2fE2f}
+        jSyE2f: ${jSyE2f}
+        kAsRbE2f: ${kAsRbE2f}
+        kDsRbE2f: ${kDsRbE2f}
+        kDeE2f: ${kDeE2f}
+        kPhRbCd: ${kPhRbCd}
+        kPhRbCe: ${kPhRbCe}
+        kPhRbCa: ${kPhRbCa}
+        kDpRb: ${kDpRb}
+        kSyE1: ${kSyE1}
+        kDeE1C1: ${kDeE1C1}
+        kDeE1: ${kDeE1}
+        kPhC1: ${kPhC1}
+        kPhC1Ce: ${kPhC1Ce}
+        kPhC1Ca: ${kPhC1Ca}
+        kDpC1: ${kDpC1}
+        kAsE1C1: ${kAsE1C1}
+        kDsE1C1: ${kDsE1C1}
+        kSyP21: ${kSyP21}
+        kSyP21P53: ${kSyP21P53}
+        kDeP21: ${kDeP21}
+        kDeP21Cy: ${kDeP21Cy}
+        kDeP21aRc: ${kDeP21aRc}
+        kSyCe: ${kSyCe}
+        kSyCa: ${kSyCa}
+        kAsCyP21: ${kAsCyP21}
+        kDsCyP21: ${kDsCyP21}
+        kDeCe: ${kDeCe}
+        kDeCa: ${kDeCa}
+        kDeCeCa: ${kDeCeCa}
+        kDeCaC1: ${kDeCaC1}
+        kImPc: ${kImPc}
+        kExPc: ${kExPc}
+        kPhRc: ${kPhRc}
+        kDpRc: ${kDpRc}
+        jCy: ${jCy}
+        n: ${n}
+        kAsRcPc: ${kAsRcPc}
+        kDsRcPc: ${kDsRcPc}
+        kAsPcP21: ${kAsPcP21}
+        kDsPcP21: ${kDsPcP21}
+        kSyDna: ${kSyDna}
+        kSyP53: ${kSyP53}
+        kDeP53: ${kDeP53}
+        jP53: ${jP53}
+        kGeDam: ${kGeDam}
+        kGeDamArc: ${kGeDamArc}
+        kReDam: ${kReDam}
+        kReDamP53: ${kReDamP53}
+        jDam: ${jDam}
+        kSyPr: ${kSyPr}
+        kDePr: ${kDePr}
+    inputs:
+      C1:
+      - stores
+      - C1
+      Ca:
+      - stores
+      - Ca
+      CaP21:
+      - stores
+      - CaP21
+      Ce:
+      - stores
+      - Ce
+      CeP21:
+      - stores
+      - CeP21
+      E1:
+      - stores
+      - E1
+      E1C1:
+      - stores
+      - E1C1
+      E2f:
+      - stores
+      - E2f
+      P21:
+      - stores
+      - P21
+      Rb:
+      - stores
+      - Rb
+      RbE2f:
+      - stores
+      - RbE2f
+      iPcna:
+      - stores
+      - iPcna
+      iRc:
+      - stores
+      - iRc
+      pC1:
+      - stores
+      - pC1
+      pRb:
+      - stores
+      - pRb
+    outputs:
+      tRb:
+      - stores
+      - tRb
+      tE2f:
+      - stores
+      - tE2f
+      tE1:
+      - stores
+      - tE1
+      tC1:
+      - stores
+      - tC1
+      tCe:
+      - stores
+      - tCe
+      tCa:
+      - stores
+      - tCa
+      tP21:
+      - stores
+      - tP21
+  emitter:
+    _type: step
+    address: local:JSONEmitter
+    config:
+      emit:
+        Rb: float
+        pRb: float
+        E2f: float
+        RbE2f: float
+        E1: float
+        C1: float
+        pC1: float
+        E1C1: float
+        P21: float
+        Ce: float
+        Ca: float
+        CeP21: float
+        CaP21: float
+        aPcna: float
+        iPcna: float
+        Rc: float
+        pRc: float
+        aRc: float
+        iRc: float
+        Dna: float
+        P53: float
+        Dam: float
+        Pr: float
+        tRb: float
+        tE2f: float
+        tE1: float
+        tC1: float
+        tCe: float
+        tCa: float
+        tP21: float
+        time: float
+    inputs:
+      Rb:
+      - stores
+      - Rb
+      pRb:
+      - stores
+      - pRb
+      E2f:
+      - stores
+      - E2f
+      RbE2f:
+      - stores
+      - RbE2f
+      E1:
+      - stores
+      - E1
+      C1:
+      - stores
+      - C1
+      pC1:
+      - stores
+      - pC1
+      E1C1:
+      - stores
+      - E1C1
+      P21:
+      - stores
+      - P21
+      Ce:
+      - stores
+      - Ce
+      Ca:
+      - stores
+      - Ca
+      CeP21:
+      - stores
+      - CeP21
+      CaP21:
+      - stores
+      - CaP21
+      aPcna:
+      - stores
+      - aPcna
+      iPcna:
+      - stores
+      - iPcna
+      Rc:
+      - stores
+      - Rc
+      pRc:
+      - stores
+      - pRc
+      aRc:
+      - stores
+      - aRc
+      iRc:
+      - stores
+      - iRc
+      Dna:
+      - stores
+      - Dna
+      P53:
+      - stores
+      - P53
+      Dam:
+      - stores
+      - Dam
+      Pr:
+      - stores
+      - Pr
+      tRb:
+      - stores
+      - tRb
+      tE2f:
+      - stores
+      - tE2f
+      tE1:
+      - stores
+      - tE1
+      tC1:
+      - stores
+      - tC1
+      tCe:
+      - stores
+      - tCe
+      tCa:
+      - stores
+      - tCa
+      tP21:
+      - stores
+      - tP21
+      time:
+      - global_time
