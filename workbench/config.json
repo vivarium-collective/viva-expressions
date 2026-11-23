@@ -1,7 +1,6 @@
 {
   "mode": "snapshot",
-  "smsApiBase": "",
   "repo": "https://github.com/vivarium-collective/viva-expressions",
-  "commit": "bb4b71fac67cf6222a8736973d1d24171fc91c82",
+  "commit": "a736f557f393622f63cc827e570cb0a2d2c3fe61",
   "generated_from_ref": "main"
 }
